@@ -25,6 +25,14 @@
             <systemPath>${project.basedir}/lib/utapi.jar</systemPath>
         </dependency>
 
+        <dependency>
+            <groupId>ctp</groupId>
+            <artifactId>tradeapi</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/thosttraderapi.jar</systemPath>
+        </dependency>
+
 
     </dependencies>
 
