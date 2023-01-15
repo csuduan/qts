@@ -6,13 +6,9 @@
         <groupId>com.bingbei</groupId>
         <artifactId>mts</artifactId>
         <version>0.0.1-SNAPSHOT</version>
-        <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.bingbei</groupId>
     <artifactId>mts-adapter</artifactId>
-    <version>${project.version}</version>
-    <name>mts-adapter</name>
-    <description>mts-adapter</description>
     <properties>
         <java.version>17</java.version>
     </properties>
@@ -22,7 +18,7 @@
             <artifactId>utapi</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/lib/utapi.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/resources/lib/utapi.jar</systemPath>
         </dependency>
 
         <dependency>
@@ -30,7 +26,21 @@
             <artifactId>tradeapi</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/lib/thosttraderapi.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/resources/lib/thosttraderapi.jar</systemPath>
+        </dependency>
+
+        <dependency>
+            <groupId>ctp</groupId>
+            <artifactId>mdapi</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/src/main/resources/lib/thostmduserapi.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>com.bingbei</groupId>
+            <artifactId>mts-common</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
 
 

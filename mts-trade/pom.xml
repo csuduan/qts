@@ -6,13 +6,9 @@
         <groupId>com.bingbei</groupId>
         <artifactId>mts</artifactId>
         <version>0.0.1-SNAPSHOT</version>
-        <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.bingbei</groupId>
     <artifactId>mts-trade</artifactId>
-    <version>${project.version}</version>
-    <name>mts-trade</name>
-    <description>mts-trade</description>
     <properties>
 
     </properties>
@@ -22,6 +18,7 @@
             <artifactId>mts-adapter</artifactId>
             <version>${project.version}</version>
         </dependency>
+
     </dependencies>
 
 

@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:sqlite:mts.sqlite3
+    username:
+    password:
+    driver-class-name: org.sqlite.JDBC
+
+
+mybatis:
+  mapper-locations: classpath*:io/parcelx/**/mapper/xml/**.xml
+  type-aliases-package: io.parcelx
+  configuration:
+    use-generated-keys: true
+    map-underscore-to-camel-case: true

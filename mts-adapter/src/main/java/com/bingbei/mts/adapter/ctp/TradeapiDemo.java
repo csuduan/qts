@@ -126,6 +126,8 @@ class TraderSpiImpl extends CThostFtdcTraderSpi{
 public class TradeapiDemo {
 
 	static{
+		System.out.println(	System.getenv().get("LD_LIBRARY_PATH"));
+		System.out.println(System.getProperty("java.library.path"));
 		System.loadLibrary("thosttraderapi_se");
 		System.loadLibrary("thosttraderapi_wrap");
 	}
@@ -133,7 +135,7 @@ public class TradeapiDemo {
 	//final static String ctp1_TradeAddress = "tcp://172.24.125.199:50233";
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		//System.out.println(System.getProperty("java.library.path"));
+
 		CThostFtdcTraderApi traderApi = CThostFtdcTraderApi.CreateFtdcTraderApi();
 		TraderSpiImpl pTraderSpi = new TraderSpiImpl(traderApi);
 		traderApi.RegisterSpi(pTraderSpi);
