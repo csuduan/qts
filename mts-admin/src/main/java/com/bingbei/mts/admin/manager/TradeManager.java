@@ -22,6 +22,7 @@ public class TradeManager {
     @Autowired
     private TradeEngineFactory tradeEngineFactory;
     private Map<String,String> accountEngineMap=new HashMap<>();
+    private Map<String,Account> accountMap=new HashMap<>();
 
 
     @PostConstruct

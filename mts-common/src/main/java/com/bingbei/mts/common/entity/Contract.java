@@ -12,6 +12,7 @@ public class Contract implements Serializable {
 
 	private static final long serialVersionUID = -2126532217233428316L;
 
+	private String accountId;
 	//通用
 	private String name;// 合约中文名
 	private String type; // 合约类型

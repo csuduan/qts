@@ -3,8 +3,8 @@ package com.bingbei.mts.trade.engine;
 import com.alibaba.fastjson.JSON;
 import com.bingbei.mts.common.entity.*;
 import com.bingbei.mts.common.gateway.MdGateway;
-import com.bingbei.mts.common.gateway.TdGateway;
 import com.bingbei.mts.common.service.FastEventEngineService;
+import com.bingbei.mts.common.service.PersistSerivce;
 import com.bingbei.mts.common.service.extend.event.EventConstant;
 import com.bingbei.mts.common.service.extend.event.FastEvent;
 import com.bingbei.mts.common.service.extend.event.FastEventDynamicHandlerAbstract;
@@ -12,7 +12,6 @@ import com.bingbei.mts.trade.factory.GatwayFactory;
 import com.bingbei.mts.trade.strategy.StrategyEngine;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,21 +23,22 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
     private MdGateway mdGateway;
     //一个交易引擎支持多个账户的交易
     private Map<String, Account> accountMap=new HashMap<>();
-    private Map<String, Contract> contractMap = new HashMap<>();
     private Map<String, Tick> tickMap = new HashMap<>();
 
 
     private StrategyEngine strategyEngine;
     private GatwayFactory gatwayFactory;
+    private PersistSerivce persistSerivce;
 
     //private FastEventEngineService fastEventEngineService;
     public String getId(){
         return this.id;
     }
 
-    public TradeEngine(String engineId,GatwayFactory gatwayFactory,FastEventEngineService fastEventEngineService, MdInfo mdInfo){
+    public TradeEngine(String engineId, GatwayFactory gatwayFactory, FastEventEngineService fastEventEngineService, PersistSerivce persistSerivce,MdInfo mdInfo){
         this.id=engineId;
         this.gatwayFactory=gatwayFactory;
+        this.persistSerivce=persistSerivce;
         this.changeMd(mdInfo);
         fastEventEngineService.addHandler(this);
         subscribeEvent(EventConstant.EVENT_TICK);
@@ -49,6 +49,11 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
         subscribeEvent(EventConstant.EVENT_CONTRACT);
         subscribeEvent(EventConstant.EVENT_ERROR);
         subscribeEvent(EventConstant.EVENT_GATEWAY);
+
+        this.loadContract();
+    }
+    private void loadContract(){
+        List<Contract> contracts=persistSerivce.getContracts();
     }
     public void changeMd(MdInfo mdInfo){
         if(this.mdGateway!=null)
@@ -77,6 +82,7 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
     public void close(String accountId){
 
     }
+
 
 
     @Override
@@ -139,8 +145,13 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
         }
     }
     private void onContract(Contract contract) {
-        contractMap.put(contract.getSymbol(), contract);
-        // CTP重连时Trade可能先于Contract到达,在此处重新赋值
+        var account=accountMap.get(contract.getAccountId());
+        if(account==null){
+            log.error("找不到账户{}",contract.getAccountId());
+            return;
+        }
+        account.getContractMap().put(contract.getSymbol(),contract);
+        //todo CTP重连时Trade可能先于Contract到达,在此处重新赋值
 //        String exchange = contract.getExchange();
 //        String symbol = contract.getSymbol();
 //        LocalPositionDetail localPositionDetail = localPositionDetailMap.get(contract.getSymbol());
@@ -155,18 +166,18 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
         Account account=accountMap.get(order.getAccountID());
         if(account==null)
             return;
-        account.getOrderMap().put(order.getOrderID(), order);
+        account.getOrderMap().put(order.getOrderRef(), order);
         if (RtConstant.STATUS_FINISHED.contains(order.getStatus())) {
-            if (account.getWorkingOrderMap().containsKey(order.getOrderID())) {
-                account.getWorkingOrderMap().remove(order.getOrderID());
+            if (account.getWorkingOrderMap().containsKey(order.getOrderRef())) {
+                account.getWorkingOrderMap().remove(order.getOrderRef());
             }
         } else {
-            account.getWorkingOrderMap().put(order.getOrderID(), order);
+            account.getWorkingOrderMap().put(order.getOrderRef(), order);
         }
 
         LocalPositionDetail localPositionDetail;
-        if (account.getLocalPositionDetailMap().containsKey(order.getOrderID())) {
-            localPositionDetail = account.getLocalPositionDetailMap().get(order.getOrderID());
+        if (account.getLocalPositionDetailMap().containsKey(order.getOrderRef())) {
+            localPositionDetail = account.getLocalPositionDetailMap().get(order.getOrderRef());
         } else {
             localPositionDetail = account.createLocalPositionDetail(order.getAccountID(),order.getSymbol());
         }

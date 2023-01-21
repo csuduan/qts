@@ -137,12 +137,12 @@ public class PositionDetail implements Serializable {
 	public void updateOrder(Order order) {
 		// 将活动委托缓存下来
 		if (RtConstant.STATUS_WORKING.contains(order.getStatus())) {
-			workingOrderMap.put(order.getOrderID(), order);
+			workingOrderMap.put(order.getOrderRef(), order);
 
 			// 移除缓存中已经完成的委托
 		} else {
-			if (workingOrderMap.containsKey(order.getOrderID())) {
-				workingOrderMap.remove(order.getOrderID());
+			if (workingOrderMap.containsKey(order.getOrderRef())) {
+				workingOrderMap.remove(order.getOrderRef());
 			}
 		}
 

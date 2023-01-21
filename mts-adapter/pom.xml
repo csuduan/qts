@@ -23,19 +23,13 @@
 
         <dependency>
             <groupId>ctp</groupId>
-            <artifactId>tradeapi</artifactId>
-            <version>1.0</version>
+            <artifactId>jctp</artifactId>
+            <version>6.3.19</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/src/main/resources/lib/thosttraderapi.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/resources/lib/ctp19/jctp-6.3.19.jar</systemPath>
         </dependency>
 
-        <dependency>
-            <groupId>ctp</groupId>
-            <artifactId>mdapi</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/src/main/resources/lib/thostmduserapi.jar</systemPath>
-        </dependency>
+
         <dependency>
             <groupId>com.bingbei</groupId>
             <artifactId>mts-common</artifactId>
@@ -45,5 +39,4 @@
 
 
     </dependencies>
-
 </project>

@@ -21,21 +21,19 @@ public class LibLoader {
                     tempLibPath = envTmpDir + File.separator + "mts"
                             + File.separator + "jctp" + File.separator + "lib";
 
-                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/win/libiconv.dll"));
-                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/win/ctp/thostmduserapi.dll"));
-                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/win/ctp/jctpmdapiv6v3v11x64.dll"));
-                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/win/ctp/thosttraderapi.dll"));
-                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/win/ctp/jctptraderapiv6v3v11x64.dll"));
+                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/libiconv.dll"));
+                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/ctp19/thostmduserapi_se.dll"));
+                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/ctp19/thosttraderapi_se.dll"));
+                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/ctp19/jctpv6v3v19p1x64api.dll"));
                 } else {
 
                     envTmpDir = "/tmp";
                     tempLibPath = envTmpDir + File.separator + "mts"
                             + File.separator + "jctp" + File.separator + "lib";
 
-                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/linux/ctp/libthostmduserapi.so"));
-                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/linux/ctp/libthosttraderapi.so"));
-                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/linux/ctp/libjctpmdapiv6v3v11x64.so"));
-                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/linux/ctp/libjctptraderapiv6v3v11x64.so"));
+                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/ctp19/libthostmduserapi_se.so"));
+                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/ctp19/libthosttraderapi_se.so"));
+                    CommonUtil.copyURLToFileForTmp(tempLibPath, CtpTdGateway.class.getResource("/lib/ctp19/libjctpv6v3v19p1x64api.so"));
                 }
             }catch (Exception e) {
                 log.warn("复制库文件到临时目录失败", e);
@@ -43,16 +41,14 @@ public class LibLoader {
 
             if (System.getProperties().getProperty("os.name").toUpperCase().indexOf("WINDOWS") != -1) {
                 System.loadLibrary("iconv");
-                System.loadLibrary("thostmduserapi");
-                System.loadLibrary("jctpmdapiv6v3v11x64");
-                System.loadLibrary("thosttraderapi");
-                System.loadLibrary("jctptraderapiv6v3v11x64");
+                System.loadLibrary("thostmduserapi_se");
+                System.loadLibrary("thosttraderapi_se");
+                System.loadLibrary("jctpv6v3v19p1x64api");
 
             } else {
-                System.loadLibrary("thostmduserapi");
-                System.loadLibrary("jctpmdapiv6v3v11x64");
-                System.loadLibrary("thosttraderapi");
-                System.loadLibrary("jctptraderapiv6v3v11x64");
+                System.loadLibrary("thostmduserapi_se");
+                System.loadLibrary("thosttraderapi_se");
+                System.loadLibrary("jctpv6v3v19p1x64api");
             }
         } catch (Exception e) {
             log.error("加载库失败!", e);

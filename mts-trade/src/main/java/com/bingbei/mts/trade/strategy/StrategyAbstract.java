@@ -1,9 +1,7 @@
 package com.bingbei.mts.trade.strategy;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -451,9 +449,9 @@ public abstract class StrategyAbstract implements Strategy {
 	@Override
 	public void processOrder(Order order) {
 		try {
-			workingOrderMap.put(order.getOrderID(), order);
+			workingOrderMap.put(order.getOrderRef(), order);
 			if (RtConstant.STATUS_FINISHED.contains(order.getStatus())) {
-				workingOrderMap.remove(order.getOrderID());
+				workingOrderMap.remove(order.getOrderRef());
 			}
 			if (contractPositionMap.containsKey(order.getSymbol())) {
 				PositionDetail contractPositionDetail = contractPositionMap.get(order.getSymbol());

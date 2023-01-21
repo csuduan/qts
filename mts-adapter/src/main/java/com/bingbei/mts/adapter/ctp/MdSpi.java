@@ -8,9 +8,9 @@ import java.util.HashMap;
 import com.bingbei.mts.common.entity.MdInfo;
 import com.bingbei.mts.common.entity.RtConstant;
 import com.bingbei.mts.common.entity.Tick;
-import ctp.thostmduserapi.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import xyz.redtorch.gateway.ctp.x64v6v3v19p1v.api.*;
 
 /**
  * @author sun0x00@gmail.com
@@ -18,7 +18,7 @@ import org.apache.commons.io.FileUtils;
 @Slf4j
 public class MdSpi extends CThostFtdcMdSpi {
 
-	private CThostFtdcMdApi cThostFtdcMdApi;
+	private xyz.redtorch.gateway.ctp.x64v6v3v19p1v.api.CThostFtdcMdApi cThostFtdcMdApi;
 	private CtpMdGateway ctpGateway;
 	private MdInfo mdInfo;
 	private String tradingDayStr;

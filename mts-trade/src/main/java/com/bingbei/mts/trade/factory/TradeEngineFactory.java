@@ -1,7 +1,9 @@
 package com.bingbei.mts.trade.factory;
 
+import com.bingbei.mts.common.entity.Account;
 import com.bingbei.mts.common.entity.MdInfo;
 import com.bingbei.mts.common.service.FastEventEngineService;
+import com.bingbei.mts.common.service.PersistSerivce;
 import com.bingbei.mts.trade.engine.TradeEngine;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,8 @@ public class TradeEngineFactory {
     private FastEventEngineService fastEventEngineService;
     @Autowired
     private GatwayFactory gatwayFactory;
+    @Autowired
+    private PersistSerivce persistSerivce;
 
     private Map<String,TradeEngine> tradeEngineMap=new HashMap<>();
 
@@ -27,7 +31,7 @@ public class TradeEngineFactory {
             tradeEngine=tradeEngineMap.get(engineId);
             tradeEngine.changeMd(mdInfo);
         }else{
-            tradeEngine=new TradeEngine(engineId,gatwayFactory,fastEventEngineService,mdInfo);
+            tradeEngine=new TradeEngine(engineId,gatwayFactory,fastEventEngineService,persistSerivce,mdInfo);
             tradeEngineMap.put(engineId,tradeEngine);
         }
         log.info("创建交易引擎-{}",engineId);

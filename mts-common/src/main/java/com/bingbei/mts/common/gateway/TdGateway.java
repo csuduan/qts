@@ -3,8 +3,6 @@ package com.bingbei.mts.common.gateway;
 
 import com.bingbei.mts.common.entity.*;
 
-import java.time.LocalDateTime;
-
 /**
  * @author sun0x00@gmail.com
  */
@@ -25,7 +23,7 @@ public interface TdGateway {
 	 * 
 	 * @param orderReq
 	 */
-	String sendOrder(OrderReq orderReq);
+	String insertOrder(Order orderReq);
 
 	/**
 	 * 撤单
@@ -81,5 +79,6 @@ public interface TdGateway {
 	LoginInfo getLoginInfo();
 	Contract getContract(String symbol);
 	Account getAccount();
+	void qryContract();
 
 }

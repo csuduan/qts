@@ -22,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 public class CtpTdGateway extends TdGatewayAbstract {
 
 	private Timer timer = new Timer();
-	private HashMap<String,Contract> contractHashMap=new HashMap<>();
+	//private HashMap<String,Contract> contractHashMap=new HashMap<>();
 	private TdSpi tdSpi = null;
 
 	public CtpTdGateway(FastEventEngineService fastEventEngineService, LoginInfo loginInfo) {
@@ -53,9 +53,9 @@ public class CtpTdGateway extends TdGatewayAbstract {
 	}
 
 	@Override
-	public String sendOrder(OrderReq orderReq) {
+	public String insertOrder(Order orderReq) {
 		if (tdSpi != null) {
-			return tdSpi.sendOrder(orderReq);
+			return tdSpi.insertOrder(orderReq);
 		} else {
 			return null;
 		}
@@ -88,12 +88,12 @@ public class CtpTdGateway extends TdGatewayAbstract {
 
 	@Override
 	public LoginInfo getLoginInfo() {
-		return null;
+		return this.loginInfo;
 	}
 
 	@Override
 	public Contract getContract(String symbol) {
-		return contractHashMap.get(symbol);
+		return null;
 	}
 
 	@Override
@@ -101,18 +101,24 @@ public class CtpTdGateway extends TdGatewayAbstract {
 		return null;
 	}
 
+	@Override
+	public void qryContract() {
+
+	}
+
 	class QueryTimerTask extends TimerTask{
 
 	    @Override
 	    public void run() {
 	    	try {
-		    	if(isConnected()) {
-			        queryAccount();
-		    	}
-			    Thread.sleep(1250);
-			    if(isConnected()) {
-				    queryPosition();
-			    }
+//				Thread.sleep(1250);
+//		    	if(isConnected()) {
+//			        queryAccount();
+//		    	}
+//			    Thread.sleep(1250);
+//			    if(isConnected()) {
+//				    queryPosition();
+//			    }
 			    Thread.sleep(1250);
 	    	}catch (Exception e) {
 				log.error(loginInfo.getAccoutId()+"定时查询发生异常",e);

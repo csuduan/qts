@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MtsAdminApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="mts-admin" />
+    <projectPathOnTarget name="projectPathOnTarget" value="/tmp/mts" />
+    <target name="openjdk:17" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.bingbei.mts.admin.MtsAdminApplication" />
+    <option name="VM_PARAMETERS" value="-Djava.library.path=$PROJECT_DIR$/../../mts/lib" />
+    <option name="ALTERNATIVE_JRE_PATH" />
+    <envs>
+      <env name="LD_LIBRARY_PATH" value="$PROJECT_DIR$/../../mts/lib" />
+    </envs>
+    <method v="2" />
+  </configuration>
+</component>

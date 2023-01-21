@@ -32,6 +32,9 @@ public class Account implements Serializable {
 	private double deposit; // 入金
 	private double withdraw; // 出金
 
+
+	//合约信息
+	private Map<String, Contract> contractMap = new HashMap<>();
 	//报单与持仓
 	private Map<String, Position> positionMap = new HashMap<>();
 

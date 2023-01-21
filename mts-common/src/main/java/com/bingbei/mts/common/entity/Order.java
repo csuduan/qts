@@ -1,8 +1,10 @@
 package com.bingbei.mts.common.entity;
 
+import com.bingbei.mts.common.utils.CommonUtil;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author sun0x00@gmail.com
@@ -12,23 +14,22 @@ public class Order implements Serializable {
 
 	private static final long serialVersionUID = 7932302478961553376L;
 
+	private static AtomicInteger orderRefGen = new AtomicInteger(CommonUtil.getRandom(10000, 555000)); // 订单编号
+
 	private String accountID; // 账户代码
 	// 代码编号相关
 	private String symbol; // 代码
 	private String exchange; // 交易所代码
-	private String stdSymbol; // 系统中的唯一代码,通常是 合约代码.交易所代码
-
-	private String orderID; // 订单编号
+	private String orderRef; // 订单编号
 	// 报单相关
 	private String direction; // 报单方向
 	private String offset; // 报单开平仓
 	private double price; // 报单价格
+	private String priceType;//报单价格类型
 	private int totalVolume; // 报单总数量
 	private int tradedVolume; // 报单成交数量
 	private String status; // 报单状态
-
 	private String tradingDay;
-
 	private String orderDate; // 发单日期
 	private String orderTime; // 发单时间
 	private String cancelTime; // 撤单时间
@@ -46,7 +47,7 @@ public class Order implements Serializable {
 		this.accountID = accountID;
 		this.symbol = symbol;
 		this.exchange = exchange;
-		this.orderID = orderID;
+		this.orderRef = orderID;
 		this.direction = direction;
 		this.offset = offset;
 		this.price = price;
@@ -63,7 +64,8 @@ public class Order implements Serializable {
 		this.sessionID = sessionID;
 		return this;
 	}
-
-
+	public Order(){
+		this.orderRef = orderRefGen.incrementAndGet()+"";
+	}
 
 }

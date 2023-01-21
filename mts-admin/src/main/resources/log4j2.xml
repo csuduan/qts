@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d [%15t] [%-5level] [%50.50logger{2.} %4L] - %msg%n" />
+        </Console>
+
+        <RollingFile name="ELP-ALL" fileName="/opt/logs/mts-all.log"
+                     filePattern="/opt/logs/mts-all.log_%d{yyyy-MM-dd}-%i"
+                     append="true">
+            <PatternLayout charset="UTF-8" pattern="%d %t [%F:%L] %-5p : [%X{X-B3-TraceId}] %m%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="512 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="20"/>
+        </RollingFile>
+
+        <RollingFile name="ELP-ERROR" fileName="/opt/logs/mts-error.log"
+                     filePattern="/opt/logs/mts-error.log_%d{yyyy-MM-dd}-%i"
+                     append="true">
+            <PatternLayout charset="UTF-8" pattern="%d %t [%F:%L] %-5p : [%X{X-B3-TraceId}] %m%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="512 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="20"/>
+            <Filters>
+                <ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+        </RollingFile>
+
+    </Appenders>
+
+    <Loggers>
+        <Logger name="org.springframework" level="WARN" additivity="false">
+            <AppenderRef ref="ELP-ALL" />
+            <AppenderRef ref="console" />
+        </Logger>
+        <Logger name="org.apache" level="WARN" additivity="false">
+            <AppenderRef ref="ELP-ALL" />
+            <AppenderRef ref="console" />
+        </Logger>
+        <Logger name="com.alibaba" level="WARN" additivity="false">
+            <AppenderRef ref="ELP-ALL" />
+            <AppenderRef ref="console" />
+        </Logger>
+        <Logger name="org.mybatis" level="WARN" additivity="false">
+            <AppenderRef ref="ELP-ALL" />
+            <AppenderRef ref="console" />
+        </Logger>
+        <Logger name="java.sql" level="WARN" additivity="false">
+            <AppenderRef ref="ELP-ALL" />
+            <AppenderRef ref="console" />
+        </Logger>
+
+
+        <AsyncRoot level="INFO" includeLocation="true">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="ELP-ALL" />
+            <AppenderRef ref="ELP-ERROR" />
+        </AsyncRoot>
+    </Loggers>
+</Configuration>

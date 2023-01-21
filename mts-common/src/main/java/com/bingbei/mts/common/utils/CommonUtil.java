@@ -2,8 +2,10 @@ package com.bingbei.mts.common.utils;
 
 import org.apache.commons.codec.binary.Base64;
 import java.io.File;
+import java.lang.management.ManagementFactory;
 import java.net.URL;
-import java.util.Scanner;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -17,14 +19,6 @@ import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.UUID;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -319,7 +313,7 @@ public class CommonUtil {
 		}
 		FileUtils.copyFileToDirectory(orginFile, new File(targetDir));
 
-		targetFile.deleteOnExit();
+		//targetFile.deleteOnExit();
 	}
 
 	/**
@@ -337,7 +331,7 @@ public class CommonUtil {
 		}
 		FileUtils.copyURLToFile(sourceURL, targetFile);
 
-		targetFile.deleteOnExit();
+		//targetFile.deleteOnExit();
 	}
 
 	public static String generateUuidAsBase64() {
@@ -361,5 +355,12 @@ public class CommonUtil {
 		ByteBuffer bb = ByteBuffer.wrap(bytes);
 		UUID uuid = new UUID(bb.getLong(), bb.getLong());
 		return uuid.toString();
+	}
+
+	public static int getRandom(int min,int max){
+		String pid= ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
+		long seed=Integer.parseInt(pid) + System.currentTimeMillis();;
+		Random rand = new Random(seed);
+		return rand.nextInt(max)%(max-min+1) + min;
 	}
 }
