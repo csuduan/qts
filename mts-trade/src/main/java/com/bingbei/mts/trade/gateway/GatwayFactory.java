@@ -1,17 +1,31 @@
-package com.bingbei.mts.adapter;
+package com.bingbei.mts.trade.gateway;
 
-import com.bingbei.mts.adapter.ctp.CtpTdGateway;
+import com.bingbei.mts.trade.gateway.ctp.CtpMdGateway;
+import com.bingbei.mts.trade.gateway.ctp.CtpTdGateway;
+import com.bingbei.mts.common.entity.Account;
+import com.bingbei.mts.common.entity.MdInfo;
+import com.bingbei.mts.common.gateway.MdGateway;
+import com.bingbei.mts.common.gateway.TdGateway;
+import com.bingbei.mts.common.service.FastEventEngineService;
 import com.bingbei.mts.common.utils.CommonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.io.File;
 
-@Slf4j
 @Component
-public class LibLoader {
-    static {
+@Slf4j
+public class GatwayFactory {
+    private FastEventEngineService fastEventEngineService;
+
+    @PostConstruct
+    public void init(){
         try {
+            long startTime=System.nanoTime();   //获取开始时间
+            long endTime=System.nanoTime(); //获取结束时间
+            long diff=endTime-startTime;
+            System.out.println("程序运行时间： "+diff+"ns");
             String envTmpDir = "";
             String tempLibPath = "";
             try {
@@ -50,9 +64,22 @@ public class LibLoader {
                 System.loadLibrary("thosttraderapi_se");
                 System.loadLibrary("jctpv6v3v19p1x64api");
             }
+            log.info("加载库文件成功!");
         } catch (Exception e) {
             log.error("加载库失败!", e);
         }
+    }
+    public GatwayFactory(FastEventEngineService fastEventEngineService){
+        this.fastEventEngineService=fastEventEngineService;
+    }
 
+    public TdGateway createTdGateway(Account account){
+        if("CTP".equals(account.getLoginInfo().getTdType()))
+            return new CtpTdGateway(fastEventEngineService,account.getLoginInfo());
+        return null;
+    }
+
+    public MdGateway createMdGateway(MdInfo mdInfo){
+        return new CtpMdGateway(fastEventEngineService,mdInfo);
     }
 }

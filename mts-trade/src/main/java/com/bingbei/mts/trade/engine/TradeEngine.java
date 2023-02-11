@@ -8,7 +8,7 @@ import com.bingbei.mts.common.service.PersistSerivce;
 import com.bingbei.mts.common.service.extend.event.EventConstant;
 import com.bingbei.mts.common.service.extend.event.FastEvent;
 import com.bingbei.mts.common.service.extend.event.FastEventDynamicHandlerAbstract;
-import com.bingbei.mts.trade.factory.GatwayFactory;
+import com.bingbei.mts.trade.gateway.GatwayFactory;
 import com.bingbei.mts.trade.strategy.StrategyEngine;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,6 +16,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * TradeEngine是一个交易单元，维护着一个策略引擎，一个行情及多个账户
+ */
 @Slf4j
 public class TradeEngine extends FastEventDynamicHandlerAbstract {
     private String id;
@@ -60,6 +63,7 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
             this.mdGateway.close();
         this.mdInfo=mdInfo;
         this.mdGateway=this.gatwayFactory.createMdGateway(mdInfo);
+        this.mdGateway.connect();
     }
     public void addAccount(Account account){
         this.accountMap.put(account.getId(),account);

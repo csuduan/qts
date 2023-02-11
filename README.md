@@ -6,13 +6,14 @@
 * mts-web   管理WEB(客户端)
 * mts-trade 交易模块
 * mts-common 公共模块
-* mts-adapter 接口适配器
-* mts-core 核心模块
+
+交易引擎是交易系统的核心载体，一个管理器管着多个交易引擎。
+交易引擎可以是内嵌模块，也可以是个独立进程。一个交易引擎维护这一个策略引擎，行情管理器，以及多个账户。
+
 
 
 # 部署启动
 1. 环境准备
-* 拷贝mts-admin.jar到/opt/mts/app
 * 拷贝mts.sqlite到/opt/mts/data
 * 拷贝依赖lib到/opt/mts/lib
 

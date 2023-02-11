@@ -1,13 +1,13 @@
 package com.bingbei.mts.admin.manager;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.bingbei.mts.admin.entity.OrderReq;
 import com.bingbei.mts.admin.entity.config.TradeConfig;
 import com.bingbei.mts.common.entity.Account;
 import com.bingbei.mts.common.entity.LoginInfo;
 import com.bingbei.mts.common.entity.MdInfo;
 import com.bingbei.mts.common.utils.ResourceUtil;
-import com.bingbei.mts.trade.factory.TradeEngineFactory;
+import com.bingbei.mts.trade.engine.TradeEngineFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -71,6 +71,12 @@ public class TradeManager {
         return true;
     }
     public boolean disconnect(String accountId){
+        String engineId=accountEngineMap.get(accountId);
+        var engine=tradeEngineFactory.getTradeEngine(engineId);
+        engine.close(accountId);
         return true;
+    }
+    public String order(OrderReq orderReq){
+        return null;
     }
 }

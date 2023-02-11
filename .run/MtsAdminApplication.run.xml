@@ -9,6 +9,8 @@
     <envs>
       <env name="LD_LIBRARY_PATH" value="$PROJECT_DIR$/../../mts/lib" />
     </envs>
-    <method v="2" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
   </configuration>
 </component>

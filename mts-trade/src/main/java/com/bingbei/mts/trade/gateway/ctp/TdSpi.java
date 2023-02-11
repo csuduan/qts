@@ -1,11 +1,9 @@
-package com.bingbei.mts.adapter.ctp;
+package com.bingbei.mts.trade.gateway.ctp;
 
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -26,7 +24,7 @@ public class TdSpi extends CThostFtdcTraderSpi {
 	private LoginInfo loginInfo;
 	private String tdName;
 
-	TdSpi(CtpTdGateway ctpGateway) {
+	public TdSpi(CtpTdGateway ctpGateway) {
 		this.ctpGateway = ctpGateway;
 		this.loginInfo=ctpGateway.getLoginInfo();
 		this.tdName=this.loginInfo.getAccoutId();

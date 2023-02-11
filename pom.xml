@@ -5,9 +5,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>mts-admin</module>
-        <module>mts-core</module>
         <module>mts-trade</module>
-        <module>mts-adapter</module>
         <module>mts-common</module>
     </modules>
     <parent>
@@ -108,22 +106,12 @@
             </dependency>
             <dependency>
                 <groupId>com.bingbei</groupId>
-                <artifactId>mts-adapter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.bingbei</groupId>
                 <artifactId>mts-admin</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.bingbei</groupId>
                 <artifactId>mts-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.bingbei</groupId>
-                <artifactId>mts-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

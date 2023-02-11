@@ -8,7 +8,7 @@ ENV LD_LIBRARY_PATH=/opt/mts/lib
 RUN mkdir /opt/mts/lib/ -p
 RUN mkdir /opt/mts/app/ -p
 #工作目录
-#WORKDIR /opt/mts/app/
+WORKDIR /opt/mts/app/
 
 RUN set -x && \
 echo "#!/bin/bash" > entrypoint.sh && \

@@ -2,7 +2,6 @@ package com.bingbei.mts.trade.strategy.impl;
 
 import com.bingbei.mts.common.entity.Bar;
 import com.bingbei.mts.common.entity.Contract;
-import com.bingbei.mts.common.entity.OrderReq;
 import com.bingbei.mts.common.entity.Tick;
 import com.bingbei.mts.trade.entity.PositionDetail;
 import com.bingbei.mts.trade.strategy.StrategyEngine;

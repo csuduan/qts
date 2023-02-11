@@ -1,4 +1,4 @@
-package com.bingbei.mts.adapter.ctp;
+package com.bingbei.mts.trade.gateway.ctp;
 
 import com.bingbei.mts.common.entity.RtConstant;
 import xyz.redtorch.gateway.ctp.x64v6v3v19p1v.api.jctpv6v3v19p1x64apiConstants;

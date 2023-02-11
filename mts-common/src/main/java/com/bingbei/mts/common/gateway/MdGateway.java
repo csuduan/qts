@@ -17,9 +17,9 @@ public interface MdGateway {
     /**
      * 订阅
      *
-     * @param subscribeReq
+     * @param symbol
      */
-    void subscribe(SubscribeReq subscribeReq);
+    void subscribe(String symbol);
 
     /**
      * 退订

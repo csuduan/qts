@@ -1,9 +1,6 @@
-package com.bingbei.mts.adapter.ctp;
+package com.bingbei.mts.trade.gateway.ctp;
 
-import com.bingbei.mts.common.entity.Account;
-import com.bingbei.mts.common.entity.LoginInfo;
 import com.bingbei.mts.common.entity.MdInfo;
-import com.bingbei.mts.common.entity.SubscribeReq;
 import com.bingbei.mts.common.gateway.MdGatewayAbstract;
 import com.bingbei.mts.common.service.FastEventEngineService;
 
@@ -24,6 +21,8 @@ public class CtpMdGateway extends MdGatewayAbstract {
             this.mdSpi.close();
         //重新实例化接口
         this.mdSpi= new MdSpi(this);
+        this.mdSpi.connect();
+        this.subscribe("cu2202");
     }
 
     @Override
@@ -37,10 +36,10 @@ public class CtpMdGateway extends MdGatewayAbstract {
 
 
     @Override
-    public void subscribe(SubscribeReq subscribeReq) {
-        this.subscribedSymbols.add(subscribeReq.getSymbol());
+    public void subscribe(String symbol) {
+        this.subscribedSymbols.add(symbol);
         if(this.mdSpi.isConnected())
-            this.mdSpi.subscribe(subscribeReq.getSymbol());
+            this.mdSpi.subscribe(symbol);
     }
 
     @Override

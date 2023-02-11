@@ -16,15 +16,12 @@ public class Tick implements Serializable {
 	// 代码相关
 	private String symbol; // 代码
 	private String exchange; // 交易所代码
-	private String stdSymbol; // 系统中的唯一代码,通常是 合约代码.交易所代码
-
 	private String tradingDay; // 交易日
 	private String actionDay; // 业务发生日
-	private String actionTime; // 时间(HHMMSSmmm)
-	private LocalDateTime dateTime;
+	private double actionTime; // 时间(HHMMSSmmm)
+	//private LocalDateTime dateTime;
 
 	private int status; // 状态
-
 	private String source;//来源
 
 	// 成交数据
@@ -89,9 +86,9 @@ public class Tick implements Serializable {
 	private int askVolume9 = 0;
 	private int askVolume10 = 0;
 
-	public Tick setAllValue(String gatewayID, String gatewayDisplayName, String symbol, String exchange,
-			String rtSymbol, String contractName, String rtTickID, String tradingDay, String actionDay,
-			String actionTime, LocalDateTime dateTime, int status, double lastPrice, int lastVolume, int volume,
+	public Tick setAllValue(String symbol, String exchange,
+			String tradingDay, String actionDay,
+			Double actionTime, int status, double lastPrice, int lastVolume, int volume,
 			double openInterest, Long preOpenInterest, double preClosePrice, double preSettlePrice, double openPrice,
 			double highPrice, double lowPrice, double upperLimit, double lowerLimit, double bidPrice1, double bidPrice2,
 			double bidPrice3, double bidPrice4, double bidPrice5, double bidPrice6, double bidPrice7, double bidPrice8,
@@ -106,7 +103,6 @@ public class Tick implements Serializable {
 		this.tradingDay = tradingDay;
 		this.actionDay = actionDay;
 		this.actionTime = actionTime;
-		this.dateTime = dateTime;
 		this.status = status;
 		this.lastPrice = lastPrice;
 		this.lastVolume = lastVolume;

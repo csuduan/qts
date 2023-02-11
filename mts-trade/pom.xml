@@ -15,9 +15,27 @@
     <dependencies>
         <dependency>
             <groupId>com.bingbei</groupId>
-            <artifactId>mts-adapter</artifactId>
+            <artifactId>mts-common</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>utapi</groupId>
+            <artifactId>utapi</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/src/main/resources/lib/ost/utapi.jar</systemPath>
+        </dependency>
+
+        <dependency>
+            <groupId>ctp</groupId>
+            <artifactId>jctp</artifactId>
+            <version>6.3.19-1</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/src/main/resources/lib/ctp19/jctp-6.3.19.jar</systemPath>
+        </dependency>
+
+
 
     </dependencies>
 

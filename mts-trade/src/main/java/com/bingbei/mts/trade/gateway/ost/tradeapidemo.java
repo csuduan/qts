@@ -1,4 +1,4 @@
-package com.bingbei.mts.adapter.ost;
+package com.bingbei.mts.trade.gateway.ost;
 
 import ut.api.*;
 

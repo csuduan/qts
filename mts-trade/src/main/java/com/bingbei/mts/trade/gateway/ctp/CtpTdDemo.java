@@ -1,9 +1,12 @@
-package com.bingbei.mts.adapter.ctp;
+package com.bingbei.mts.trade.gateway.ctp;
 
 
 import xyz.redtorch.gateway.ctp.x64v6v3v19p1v.api.*;
 
-class TraderSpiImpl extends CThostFtdcTraderSpi {
+class CtpTdDemo extends CThostFtdcTraderSpi {
+
+
+
 	//final static String m_BrokerId = "9999";
 	//final static String m_UserId = "070624";
 	final static String m_BrokerId = "9999";
@@ -15,7 +18,7 @@ class TraderSpiImpl extends CThostFtdcTraderSpi {
 	final static String m_CurrencyId = "CNY";
 	final static String m_AppId = "simnow_client_test";
 	final static String m_AuthCode = "0000000000000000";
-	TraderSpiImpl(CThostFtdcTraderApi traderapi)
+	CtpTdDemo(CThostFtdcTraderApi traderapi)
 	{
 		m_traderapi =  traderapi;
 	}
@@ -122,29 +125,4 @@ class TraderSpiImpl extends CThostFtdcTraderSpi {
 	}
 
 	private CThostFtdcTraderApi m_traderapi;
-}
-
-public class CtpDemo {
-
-	static{
-		System.out.println(	System.getenv().get("LD_LIBRARY_PATH"));
-		System.out.println(System.getProperty("java.library.path"));
-		System.loadLibrary("thosttraderapi_se");
-		System.loadLibrary("jctpv6v3v19p1x64api");
-	}
-	final static String ctp1_TradeAddress = "tcp://180.168.146.187:10101";
-	//final static String ctp1_TradeAddress = "tcp://172.24.125.199:50233";
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-
-		CThostFtdcTraderApi traderApi = CThostFtdcTraderApi.CreateFtdcTraderApi();
-		TraderSpiImpl pTraderSpi = new TraderSpiImpl(traderApi);
-		traderApi.RegisterSpi(pTraderSpi);
-		traderApi.RegisterFront(ctp1_TradeAddress);
-		traderApi.SubscribePublicTopic(THOST_TE_RESUME_TYPE.THOST_TERT_RESTART);
-		traderApi.SubscribePrivateTopic(THOST_TE_RESUME_TYPE.THOST_TERT_RESTART);
-		traderApi.Init();
-		traderApi.Join();
-		return;
-	}
 }
