@@ -1,0 +1,15 @@
+syntax = "proto3";
+package mts;
+message cmd{
+     cmdType cmd = 1;
+     string param = 2;
+
+}
+enum cmdType {
+    CONNECT = 0;
+    DISCONNECT = 1;
+    ORDER =2;
+    CANCEL =3;
+}
+
+

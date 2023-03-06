@@ -1,0 +1,9 @@
+package mts;
+message order{
+    required string accountId1 = 1;
+    required string contract = 2;
+    required bytes offset = 3;
+    required bytes direction = 4;
+    required double price =5;
+    required int32 volume =6;
+}

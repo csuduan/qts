@@ -1,0 +1,40 @@
+{
+  "tradeEngines": [
+    {
+      "engineId": "sim",
+      "mdId": "md-sim",
+      "accounts": [
+        {
+          "id": "DQ",
+          "name": "SimNow-DQ",
+          "user": "048997|123456!",
+          "tdAddress": "CTP|tcp://180.168.146.187:10201|9999:simnow_client_test:0000000000000000"
+        }
+      ]
+    },
+    {
+      "engineId": "sim-24",
+      "mdId": "md-sim-24",
+      "accounts": [
+        {
+          "id": "DQ-24",
+          "name": "SimNow-DQ-24",
+          "user": "048997|123456!",
+          "tdAddress": "CTP|tcp://180.168.146.187:10130|9999:simnow_client_test:0000000000000000"
+        }
+      ]
+    }
+  ],
+
+  "mds": [
+    {
+      "mdId": "md-sim",
+      "address": "CTP|tcp://180.168.146.187:10211"
+    },
+    {
+      "mdId": "md-sim-24",
+      "address": "CTP|tcp://180.168.146.187:10131"
+    }
+  ],
+  "sublist": ["ag2203","cu2206","au2203","zn2203","ni2203"]
+}
