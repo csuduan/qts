@@ -5,10 +5,10 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * @author sun0x00@gmail.com
+ * 账户仓位(服务端)
  */
 @Data
-public class Position implements Serializable {
+public class AccoPosition implements Serializable {
 
 	private static final long serialVersionUID = -7231668074296775467L;
 	// 账号代码相关
@@ -18,11 +18,10 @@ public class Position implements Serializable {
 	// 代码编号相关
 	private String symbol; // 代码
 	private String exchange; // 交易所代码
-	private String stdSymbol; // 系统中的唯一代码,通常是 合约代码.交易所代码
 	private int multiple;//合约乘数
 
 	// 持仓相关
-	private String direction; // 持仓方向
+	private Enums.POS_DIRECTION direction; // 持仓方向
 	private int position; // 持仓量
 	private int frozen; // 冻结数量
 	private int ydPosition; // 昨持仓

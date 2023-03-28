@@ -3,7 +3,6 @@ package com.bingbei.mts.common.entity;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
 
 /**
  * @author sun0x00@gmail.com
@@ -18,8 +17,9 @@ public class Tick implements Serializable {
 	private String exchange; // 交易所代码
 	private String tradingDay; // 交易日
 	private String actionDay; // 业务发生日
-	private double actionTime; // 时间(HHMMSSmmm)
-	//private LocalDateTime dateTime;
+	private double actionTime; // 时间(HHMMSSmmm.sss)
+	private double timeStampRecv;
+	private double timeStampOnEvent;
 
 	private int status; // 状态
 	private String source;//来源

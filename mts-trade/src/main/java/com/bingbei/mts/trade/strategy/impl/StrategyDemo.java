@@ -1,232 +1,210 @@
 package com.bingbei.mts.trade.strategy.impl;
 
 import com.bingbei.mts.common.entity.*;
-import com.bingbei.mts.trade.entity.PositionDetail;
+import com.bingbei.mts.trade.engine.TradeExecutor;
 import com.bingbei.mts.trade.strategy.StrategyAbstract;
-import com.bingbei.mts.trade.strategy.StrategyEngine;
+import com.bingbei.mts.trade.strategy.StrategyDef;
 import com.bingbei.mts.trade.strategy.StrategySetting;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import com.alibaba.fastjson.JSON;
+import lombok.extern.slf4j.Slf4j;
 
 
 /**
  * @author sun0x00@gmail.com
  */
+@Slf4j
+@StrategyDef("demo")
 public class StrategyDemo extends StrategyAbstract {
-	
-	Logger log = LoggerFactory.getLogger(StrategyDemo.class);
-	
+
 	Long tickCount = 0L;
 	Long barCount = 0L;
 
-	public StrategyDemo(StrategyEngine zeusEngineService, StrategySetting strategySetting) {
-		super(zeusEngineService, strategySetting);
+	double sumDelay1=0d;
+	double sumDelay2=0d;
+	long count=0L;
+
+	public StrategyDemo(TradeExecutor tradeExecutor, StrategySetting strategySetting) {
+		super(tradeExecutor, strategySetting);
 	}
 
 	@Override
-	public void onInit() throws Exception {
-		log.info("初始化！");
-		log.info("=================ParamMap=============================");
-		log.info(JSON.toJSONString(strategySetting.getParamMap()));
-		log.info("======================================================");
-		log.info("==================VarMap==============================");
-		log.info(JSON.toJSONString(strategySetting.getVarMap()));
-		log.info("======================================================");
-		
-		if(strategySetting.getVarMap().containsKey("tickCount")) {
-			tickCount = Long.valueOf(strategySetting.getVarMap().get("tickCount"));
+	public void init()  {
+		super.init();
+
+		if(this.varMap.containsKey("tickCount")) {
+			tickCount = Long.valueOf(this.varMap.get("tickCount"));
 		}
-		
-		if(strategySetting.getVarMap().containsKey("barCount")) {
-			barCount = Long.valueOf(strategySetting.getVarMap().get("barCount"));
+		if(this.varMap.containsKey("barCount")) {
+			barCount = Long.valueOf(this.varMap.get("barCount"));
 		}
 	}
 
-	@Override
-	public void onStartTrading() throws Exception {
-		log.info("开始交易！");
-	}
 
-	@Override
-	public void onStopTrading(boolean finishedCorrectly) throws Exception {
-		log.info("停止交易！是否正常停止-[{}]",finishedCorrectly);
-	}
 
 	@Override
 	public void onTick(Tick tick) throws Exception {
+		super.onTick(tick);
+		double tickDelay2=System.nanoTime()-tick.getTimeStampOnEvent();
+		double tickDelay1=tick.getTimeStampOnEvent()-tick.getTimeStampRecv();
+		sumDelay1+=tickDelay1/1000;
+		sumDelay2+=tickDelay2/1000;
+		count++;
+		if(count%10==0)
+			log.info("account:{} tick:{} {} delay1:{}us,delay2:{}us",this.strategySetting.getAccountId(),tick.getSymbol(),tick.getActionTime(),sumDelay1/count,sumDelay2/count);
 		tickCount++;
-		setVarValue("tickCount", tickCount+"");
-//		
-//		log.info("################## TICK #########################");
-//		log.info(JSON.toJSONString(tick));
+		//setVarValue("tickCount", tickCount+"");
+
+		if(tickCount>=1000){
+			tickCount=0L;
+			LocalPosition position=this.positionMap.get(tick.getSymbol());
+			if(position.getLongPos()>0){
+				//平多
+
+			}else{
+				//开多
+			}
+		}
 	}
 
 	@Override
 	public void onBar(Bar bar) throws Exception {
-		
-//		log.info("################## BAR #########################");
-//		log.info(JSON.toJSONString(bar));
-		
 		barCount++;
 		setVarValue("barCount", barCount+"");
+
 		
-//		if(tradingStatus) {
-//			sellTd("IF1903.CFFEX", 1, bar.getClose()-1, "095076.CNY.657552c83e33496e8d675edaae9acea9");
+//		int tradeTime = bar.getDateTime().getMinute() + bar.getDateTime().getHour()*100;
+//
+//		String icSymbol = strategySetting.getContractByAlias("IC").getRtSymbol();
+//		String ihSymbol = strategySetting.getContractByAlias("IH").getRtSymbol();
+//		if(tradeTime == 945 && tradingStatus) {
+//			if(bar.getRtSymbol().equals(icSymbol)) {
+//				LocalPosition pd = positionMap.get(icSymbol);
+//				int longPos = 0;
+//				if( pd != null ) {
+//					longPos = pd.getLongPos()+pd.getLongPosFrozen();
+//					if(longPos<0) {
+//						log.error("检测到仓位异常，longPos不应小于0");
+//						stopTrading();
+//						return;
+//					}
+//				}
+//				int posDiff = 2 - longPos;
+//				if(posDiff<0) {
+//					log.error("仓位异常，应开仓数小于0");
+//					stopTrading();
+//					return;
+//				}else if(posDiff == 0) {
+//					log.warn("无需开仓");
+//				}else {
+//					//buy(icSymbol, posDiff, bar.getClose()+1, "a62c17309a8d4565a87b35792bbc1763.CNY.888888");
+//				}
+//
+//			}else if(bar.getRtSymbol().equals(ihSymbol)) {
+//				LocalPosition pd = positionMap.get(ihSymbol);
+//				int shortPos = 0;
+//				if( pd != null ) {
+//					shortPos = pd.getShortPos()+pd.getShortPosFrozen();
+//					if(shortPos<0) {
+//						log.error("检测到仓位异常，shortPos不应小于0");
+//						stopTrading();
+//						return;
+//					}
+//				}
+//				int posDiff = 2 - shortPos;
+//				if(posDiff<0) {
+//					log.error("仓位异常，应开仓数小于0");
+//					stopTrading();
+//					return;
+//				}else if(posDiff == 0) {
+//					log.warn("无需开仓");
+//				}else {
+//					//sellShort(ihSymbol, posDiff,  bar.getClose()-1, "a62c17309a8d4565a87b35792bbc1763.CNY.666666");
+//				}
+//
+//			}
+//		}else if(tradeTime == 1315 && tradingStatus) {
+//			if(bar.getRtSymbol().equals(icSymbol)) {
+//				LocalPosition pd = positionMap.get(icSymbol);
+//				if( pd != null ) {
+//					int longPos = pd.getLongPos()-pd.getLongPosFrozen();
+//					if(longPos<0) {
+//						log.error("检测到仓位异常，longPos不应小于0");
+//						stopTrading();
+//						return;
+//					}else if(longPos == 0) {
+//						log.error("无有效多头持仓");
+//					}else {
+//						//sell(icSymbol, longPos,  bar.getClose()-1, "a62c17309a8d4565a87b35792bbc1763.CNY.888888");
+//					}
+//				}else {
+//					log.warn("无持仓");
+//				}
+//			}else if(bar.getRtSymbol().equals(ihSymbol)) {
+//
+//				LocalPosition pd = positionMap.get(ihSymbol);
+//				if( pd != null ) {
+//					int shortPos = pd.getShortPos()-pd.getShortPosFrozen();
+//					if(shortPos<0) {
+//						log.error("检测到仓位异常，shortPos不应小于0");
+//						stopTrading();
+//						return;
+//					}else if(shortPos == 0) {
+//						log.error("无有效多头持仓");
+//					}else {
+//						//buyToCover(ihSymbol, 2, bar.getClose()+1, "a62c17309a8d4565a87b35792bbc1763.CNY.666666");
+//					}
+//				}else {
+//					log.warn("无持仓");
+//				}
+//			}
+//		}else if(tradeTime == 1445 && tradingStatus) {
+//			if(bar.getRtSymbol().equals(icSymbol)) {
+//				LocalPosition pd = positionMap.get(icSymbol);
+//				int longPos = 0;
+//				if( pd != null ) {
+//					longPos = pd.getLongPos()+pd.getLongPosFrozen();
+//					if(longPos<0) {
+//						log.error("检测到仓位异常，longPos不应小于0");
+//						stopTrading();
+//						return;
+//					}
+//				}
+//				int posDiff = 2 - longPos;
+//				if(posDiff<0) {
+//					log.error("仓位异常，应开仓数小于0");
+//					stopTrading();
+//					return;
+//				}else if(posDiff == 0) {
+//					log.warn("无需开仓");
+//				}else {
+//					//buy(icSymbol, posDiff, bar.getClose()+1, "a62c17309a8d4565a87b35792bbc1763.CNY.888888");
+//				}
+//
+//			}else if(bar.getRtSymbol().equals(ihSymbol)) {
+//				LocalPosition pd = positionMap.get(ihSymbol);
+//				int shortPos = 0;
+//				if( pd != null ) {
+//					shortPos = pd.getShortPos()+pd.getShortPosFrozen();
+//					if(shortPos<0) {
+//						log.error("检测到仓位异常，shortPos不应小于0");
+//						stopTrading();
+//						return;
+//					}
+//				}
+//				int posDiff = 2 - shortPos;
+//				if(posDiff<0) {
+//					log.error("仓位异常，应开仓数小于0");
+//					stopTrading();
+//					return;
+//				}else if(posDiff == 0) {
+//					log.warn("无需开仓");
+//				}else {
+//					//sellShort(ihSymbol, posDiff,  bar.getClose()-1, "a62c17309a8d4565a87b35792bbc1763.CNY.666666");
+//				}
+//
+//			}
 //		}
 		
-		int tradeTime = bar.getDateTime().getMinute() + bar.getDateTime().getHour()*100;
-		
-		String icSymbol = strategySetting.getContractByAlias("IC").getRtSymbol();
-		String ihSymbol = strategySetting.getContractByAlias("IH").getRtSymbol();
-		if(tradeTime == 945 && tradingStatus) {
-			if(bar.getRtSymbol().equals(icSymbol)) {
-				PositionDetail pd = contractPositionMap.get(icSymbol);
-				int longPos = 0;
-				if( pd != null ) {
-					longPos = pd.getLongPos()+pd.getLongOpenFrozen();
-					if(longPos<0) {
-						log.error("检测到仓位异常，longPos不应小于0");
-						stopTrading(false);
-						return;
-					}
-				}
-				int posDiff = 2 - longPos;
-				if(posDiff<0) {
-					log.error("仓位异常，应开仓数小于0");
-					stopTrading(false);
-					return;
-				}else if(posDiff == 0) {
-					log.warn("无需开仓");
-				}else {
-					buy(icSymbol, posDiff, bar.getClose()+1, "a62c17309a8d4565a87b35792bbc1763.CNY.888888");
-				}
-	
-			}else if(bar.getRtSymbol().equals(ihSymbol)) {
-				PositionDetail pd = contractPositionMap.get(ihSymbol);
-				int shortPos = 0;
-				if( pd != null ) {
-					shortPos = pd.getShortPos()+pd.getShortOpenFrozen();
-					if(shortPos<0) {
-						log.error("检测到仓位异常，shortPos不应小于0");
-						stopTrading(false);
-						return;
-					}
-				}
-				int posDiff = 2 - shortPos;
-				if(posDiff<0) {
-					log.error("仓位异常，应开仓数小于0");
-					stopTrading(false);
-					return;
-				}else if(posDiff == 0) {
-					log.warn("无需开仓");
-				}else {
-					sellShort(ihSymbol, posDiff,  bar.getClose()-1, "a62c17309a8d4565a87b35792bbc1763.CNY.666666");
-				}
-				
-			}
-		}else if(tradeTime == 1315 && tradingStatus) {
-			if(bar.getRtSymbol().equals(icSymbol)) {
-				PositionDetail pd = contractPositionMap.get(icSymbol);
-				if( pd != null ) {
-					int longPos = pd.getLongPos()-pd.getLongPosFrozen();
-					if(longPos<0) {
-						log.error("检测到仓位异常，longPos不应小于0");
-						stopTrading(false);
-						return;
-					}else if(longPos == 0) {
-						log.error("无有效多头持仓");
-					}else {
-						sell(icSymbol, longPos,  bar.getClose()-1, "a62c17309a8d4565a87b35792bbc1763.CNY.888888");
-					}
-				}else {
-					log.warn("无持仓");
-				}
-			}else if(bar.getRtSymbol().equals(ihSymbol)) {
-				
-				PositionDetail pd = contractPositionMap.get(ihSymbol);
-				if( pd != null ) {
-					int shortPos = pd.getShortPos()-pd.getShortPosFrozen();
-					if(shortPos<0) {
-						log.error("检测到仓位异常，shortPos不应小于0");
-						stopTrading(false);
-						return;
-					}else if(shortPos == 0) {
-						log.error("无有效多头持仓");
-					}else {
-						buyToCover(ihSymbol, 2, bar.getClose()+1, "a62c17309a8d4565a87b35792bbc1763.CNY.666666");
-					}
-				}else {
-					log.warn("无持仓");
-				}
-			}
-		}else if(tradeTime == 1445 && tradingStatus) {
-			if(bar.getRtSymbol().equals(icSymbol)) {
-				PositionDetail pd = contractPositionMap.get(icSymbol);
-				int longPos = 0;
-				if( pd != null ) {
-					longPos = pd.getLongPos()+pd.getLongOpenFrozen();
-					if(longPos<0) {
-						log.error("检测到仓位异常，longPos不应小于0");
-						stopTrading(false);
-						return;
-					}
-				}
-				int posDiff = 2 - longPos;
-				if(posDiff<0) {
-					log.error("仓位异常，应开仓数小于0");
-					stopTrading(false);
-					return;
-				}else if(posDiff == 0) {
-					log.warn("无需开仓");
-				}else {
-					buy(icSymbol, posDiff, bar.getClose()+1, "a62c17309a8d4565a87b35792bbc1763.CNY.888888");
-				}
-	
-			}else if(bar.getRtSymbol().equals(ihSymbol)) {
-				PositionDetail pd = contractPositionMap.get(ihSymbol);
-				int shortPos = 0;
-				if( pd != null ) {
-					shortPos = pd.getShortPos()+pd.getShortOpenFrozen();
-					if(shortPos<0) {
-						log.error("检测到仓位异常，shortPos不应小于0");
-						stopTrading(false);
-						return;
-					}
-				}
-				int posDiff = 2 - shortPos;
-				if(posDiff<0) {
-					log.error("仓位异常，应开仓数小于0");
-					stopTrading(false);
-					return;
-				}else if(posDiff == 0) {
-					log.warn("无需开仓");
-				}else {
-					sellShort(ihSymbol, posDiff,  bar.getClose()-1, "a62c17309a8d4565a87b35792bbc1763.CNY.666666");
-				}
-				
-			}
-		}
-		
 	}
 
-	@Override
-	public void onXMinBar(Bar bar) throws Exception {
-		log.info("################## X Min BAR #########################");
-		log.info(JSON.toJSONString(bar));
-	}
-
-	@Override
-	public void onOrder(Order order) throws Exception {
-		log.info("################## ORDER #########################");
-		log.info(JSON.toJSONString(order));
-	}
-
-	@Override
-	public void onTrade(Trade trade) throws Exception {
-		log.info("################## Trade #########################");
-		log.info(JSON.toJSONString(trade));
-		
-	}
 
 }

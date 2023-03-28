@@ -8,14 +8,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @author sun0x00@gmail.com
+ * 账户
  */
 @Data
 public class Account implements Serializable {
 
 	private static final long serialVersionUID = 6823946394104654905L;
 
-	private LoginInfo loginInfo;
+	private LoginInfo loginInfo;//登录信息
 
 	private String id;//账户编号，唯一标识
 	private String name;//账户名称
@@ -33,26 +33,7 @@ public class Account implements Serializable {
 	private double withdraw; // 出金
 
 
-	//合约信息
-	private Map<String, Contract> contractMap = new HashMap<>();
-	//报单与持仓
-	private Map<String, Position> positionMap = new HashMap<>();
 
-	private Map<String, Order> orderMap = new HashMap<>();
-	private Map<String, Order> workingOrderMap = new HashMap<>();
-	private Map<String, Trade> tradeMap = new HashMap<>();
-	private Map<String, LocalPositionDetail> localPositionDetailMap = new HashMap<>();
-
-	private TdGateway tdGateway;
-
-
-	public LocalPositionDetail createLocalPositionDetail(String accountID, String symbol) {
-		String positionDetailKey = symbol + "." + accountID;
-		LocalPositionDetail localPositionDetail = new LocalPositionDetail(){
-
-		};
-		localPositionDetailMap.put(positionDetailKey, localPositionDetail);
-		return localPositionDetail;
-
-	}
+	//账户持仓(用于校验)
+	private Map<String, AccoPosition> accoPositionMap = new HashMap<>();
 }

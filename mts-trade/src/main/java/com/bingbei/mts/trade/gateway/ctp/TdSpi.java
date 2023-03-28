@@ -2,7 +2,6 @@ package com.bingbei.mts.trade.gateway.ctp;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -43,7 +42,7 @@ public class TdSpi extends CThostFtdcTraderSpi {
 	private int frontID = 0; // 前置机编号
 	private int sessionID = 0; // 会话编号
 
-	private HashMap<String, Position> positionMap = new HashMap<>();
+	private HashMap<String, AccoPosition> positionMap = new HashMap<>();
 	private Map<String,Contract> contractMap=new HashMap<>();
 	private Map<String,Order> orderMap = new HashMap<>();
 
@@ -118,7 +117,7 @@ public class TdSpi extends CThostFtdcTraderSpi {
 			loginStatus = false;
 			log.warn("{} 交易接口实例关闭并异步释放", tdName);
 			// 通知停止其他关联实例
-			ctpGateway.close();
+			ctpGateway.onClose();
 		}else {
 			log.warn("{} 交易接口实例为null,无需关闭",tdName);
 		}
@@ -179,10 +178,10 @@ public class TdSpi extends CThostFtdcTraderSpi {
 	 * @param orderReq
 	 * @return
 	 */
-	public String insertOrder(Order orderReq) {
+	public boolean insertOrder(Order orderReq) {
 		if (cThostFtdcTraderApi == null) {
 			log.info("{}尚未初始化,无法发单", tdName);
-			return null;
+			return false;
 		}
 		CThostFtdcInputOrderField cThostFtdcInputOrderField = new CThostFtdcInputOrderField();
 		cThostFtdcInputOrderField.setInstrumentID(orderReq.getSymbol());
@@ -210,11 +209,11 @@ public class TdSpi extends CThostFtdcTraderSpi {
 		cThostFtdcInputOrderField.setMinVolume(1);
 
 		// 判断FAK FOK市价单
-		if (RtConstant.PRICETYPE_FAK.equals(orderReq.getPriceType())) {
+		if (Constant.PRICETYPE_FAK.equals(orderReq.getPriceType())) {
 			cThostFtdcInputOrderField.setOrderPriceType(jctpv6v3v19p1x64apiConstants.THOST_FTDC_OPT_LimitPrice);
 			cThostFtdcInputOrderField.setTimeCondition(jctpv6v3v19p1x64apiConstants.THOST_FTDC_TC_IOC);
 			cThostFtdcInputOrderField.setVolumeCondition(jctpv6v3v19p1x64apiConstants.THOST_FTDC_VC_AV);
-		} else if (RtConstant.PRICETYPE_FOK.equals(orderReq.getPriceType())) {
+		} else if (Constant.PRICETYPE_FOK.equals(orderReq.getPriceType())) {
 			cThostFtdcInputOrderField.setOrderPriceType(jctpv6v3v19p1x64apiConstants.THOST_FTDC_OPT_LimitPrice);
 			cThostFtdcInputOrderField.setTimeCondition(jctpv6v3v19p1x64apiConstants.THOST_FTDC_TC_IOC);
 			cThostFtdcInputOrderField.setVolumeCondition(jctpv6v3v19p1x64apiConstants.THOST_FTDC_VC_CV);
@@ -222,7 +221,7 @@ public class TdSpi extends CThostFtdcTraderSpi {
 
 		cThostFtdcTraderApi.ReqOrderInsert(cThostFtdcInputOrderField, reqID.incrementAndGet());
 		orderMap.put(orderReq.getOrderRef(),orderReq);
-		return cThostFtdcInputOrderField.getOrderRef();
+		return true;
 	}
 
 	// 撤单
@@ -376,32 +375,18 @@ public class TdSpi extends CThostFtdcTraderSpi {
 	public void OnRspOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo, int nRequestID,
 			boolean bIsLast) {
 
-		String symbol = pInputOrder.getInstrumentID();
-		String exchange = CtpConstant.exchangeMapReverse.get(pInputOrder.getExchangeID());
-		String rtSymbol = symbol + "." + exchange;
-		String orderID = pInputOrder.getOrderRef();
-		String direction = CtpConstant.directionMapReverse.getOrDefault(pInputOrder.getDirection(),
-				RtConstant.DIRECTION_UNKNOWN);
-		String offset = CtpConstant.offsetMapReverse.getOrDefault(pInputOrder.getCombOffsetFlag(),
-				RtConstant.OFFSET_UNKNOWN);
-		double price = pInputOrder.getLimitPrice();
-		int totalVolume = pInputOrder.getVolumeTotalOriginal();
-		int tradedVolume = 0;
-		String status = RtConstant.STATUS_REJECTED;
-		String tradingDay = tradingDayStr;
-		String orderDate = null;
-		String orderTime = null;
-		String cancelTime = null;
-		String activeTime = null;
-		String updateTime = null;
+		String orderRef = pInputOrder.getOrderRef();
+		if(this.orderMap.containsKey(orderRef)){
+			Order order=this.orderMap.get(orderRef);
+			order.setStatus(Enums.ORDER_STATUS.ERROR);
+			order.setStatusMsg(pRspInfo.getErrorMsg());
+			ctpGateway.emitOrder(order);
 
-		Order errorOrder=new Order();
-		//todo
-		ctpGateway.emitOrder(errorOrder);
+			// 发送委托事件
+			log.error("{}交易接口发单错误回报(柜台)! ErrorID:{},ErrorMsg:{}", tdName, pRspInfo.getErrorID(),
+					pRspInfo.getErrorMsg());
 
-		// 发送委托事件
-		log.error("{}交易接口发单错误回报(柜台)! ErrorID:{},ErrorMsg:{}", tdName, pRspInfo.getErrorID(),
-				pRspInfo.getErrorMsg());
+		}
 
 	}
 
@@ -508,11 +493,11 @@ public class TdSpi extends CThostFtdcTraderSpi {
 		// 获取持仓缓存
 		String posName = symbol + "-" + pInvestorPosition.getPosiDirection();
 
-		Position position;
+		AccoPosition position;
 		if (positionMap.containsKey(posName)) {
 			position = positionMap.get(posName);
 		} else {
-			position = new Position();
+			position = new AccoPosition();
 			positionMap.put(posName, position);
 			position.setPositionID(posName);
 			position.setSymbol(symbol);
@@ -520,7 +505,7 @@ public class TdSpi extends CThostFtdcTraderSpi {
 			position.setMultiple(this.contractMap.get(symbol).getMultiple());
 
 			position.setDirection(
-					CtpConstant.posiDirectionMapReverse.getOrDefault(pInvestorPosition.getPosiDirection(), ""));
+					CtpConstant.posiDirectionMapReverse.getOrDefault(pInvestorPosition.getPosiDirection(), Enums.POS_DIRECTION.NONE));
 
 			position.setAccountID(tdName);
 		}
@@ -530,7 +515,7 @@ public class TdSpi extends CThostFtdcTraderSpi {
 
 		position.setPosition(position.getPosition() + pInvestorPosition.getPosition());
 
-		if (RtConstant.DIRECTION_LONG.equals(position.getDirection())) {
+		if (Constant.DIRECTION_LONG.equals(position.getDirection())) {
 			position.setFrozen(pInvestorPosition.getShortFrozen());
 		} else {
 			position.setFrozen(pInvestorPosition.getLongFrozen());
@@ -542,7 +527,7 @@ public class TdSpi extends CThostFtdcTraderSpi {
 
 				position.setYdPosition(position.getYdPosition() + pInvestorPosition.getPosition());
 
-				if (RtConstant.DIRECTION_LONG.equals(position.getDirection())) {
+				if (Constant.DIRECTION_LONG.equals(position.getDirection())) {
 					position.setYdFrozen(position.getYdFrozen() + pInvestorPosition.getShortFrozen());
 				} else {
 					position.setYdFrozen(position.getYdFrozen() + pInvestorPosition.getLongFrozen());
@@ -550,7 +535,7 @@ public class TdSpi extends CThostFtdcTraderSpi {
 			} else {
 				position.setTdPosition(position.getTdPosition() + pInvestorPosition.getPosition());
 
-				if (RtConstant.DIRECTION_LONG.equals(position.getDirection())) {
+				if (Constant.DIRECTION_LONG.equals(position.getDirection())) {
 					position.setTdFrozen(position.getTdFrozen() + pInvestorPosition.getShortFrozen());
 				} else {
 					position.setTdFrozen(position.getTdFrozen() + pInvestorPosition.getLongFrozen());
@@ -603,13 +588,13 @@ public class TdSpi extends CThostFtdcTraderSpi {
 
 		// 回报结束
 		if (bIsLast) {
-			for (Position tmpPosition : positionMap.values()) {
+			for (AccoPosition tmpPosition : positionMap.values()) {
 				if(tmpPosition.getPosition()!=0) {
 					tmpPosition.setPriceDiff(tmpPosition.getPositionProfit() / tmpPosition.getMultiple()
 							/ tmpPosition.getPosition());
 	
-					if (RtConstant.DIRECTION_LONG.equals(tmpPosition.getDirection()) || (tmpPosition.getPosition() > 0
-							&& RtConstant.DIRECTION_NET.equals(tmpPosition.getDirection()))) {
+					if (Constant.DIRECTION_LONG.equals(tmpPosition.getDirection()) || (tmpPosition.getPosition() > 0
+							&& Constant.DIRECTION_NET.equals(tmpPosition.getDirection()))) {
 
 						// 计算最新价格
 						tmpPosition.setLastPrice(tmpPosition.getAvgPrice() + tmpPosition.getPriceDiff());
@@ -619,9 +604,9 @@ public class TdSpi extends CThostFtdcTraderSpi {
 						tmpPosition.setOpenPositionProfit(
 								tmpPosition.getOpenPriceDiff() * tmpPosition.getPosition() * tmpPosition.getMultiple());
 	
-					} else if (RtConstant.DIRECTION_SHORT.equals(tmpPosition.getDirection())
+					} else if (Constant.DIRECTION_SHORT.equals(tmpPosition.getDirection())
 							|| (tmpPosition.getPosition() < 0
-									&& RtConstant.DIRECTION_NET.equals(tmpPosition.getDirection()))) {
+									&& Constant.DIRECTION_NET.equals(tmpPosition.getDirection()))) {
 						
 						// 计算最新价格
 						tmpPosition.setLastPrice(tmpPosition.getAvgPrice() - tmpPosition.getPriceDiff());
@@ -726,7 +711,7 @@ public class TdSpi extends CThostFtdcTraderSpi {
 		contract.setPriceTick(pInstrument.getPriceTick());
 		contract.setStrikePrice(pInstrument.getStrikePrice());
 		contract.setType(CtpConstant.productClassMapReverse.getOrDefault(pInstrument.getProductClass(),
-				RtConstant.PRODUCT_UNKNOWN));
+				Constant.PRODUCT_UNKNOWN));
 		contract.setExpiryDate(pInstrument.getExpireDate());
 		// 针对商品期权
 		contract.setUnderlyingSymbol(pInstrument.getUnderlyingInstrID());
@@ -734,11 +719,11 @@ public class TdSpi extends CThostFtdcTraderSpi {
 		// pInstrument.getExpireDate().length()-2));
 
 		contractMap.put(contract.getSymbol(),contract);
-		if (RtConstant.PRODUCT_OPTION.equals(contract.getType())) {
+		if (Constant.PRODUCT_OPTION.equals(contract.getType())) {
 			if (pInstrument.getOptionsType() == '1') {
-				contract.setOptionType(RtConstant.OPTION_CALL);
+				contract.setOptionType(Constant.OPTION_CALL);
 			} else if (pInstrument.getOptionsType() == '2') {
-				contract.setOptionType(RtConstant.OPTION_PUT);
+				contract.setOptionType(Constant.OPTION_PUT);
 			}
 		}
 
@@ -928,75 +913,39 @@ public class TdSpi extends CThostFtdcTraderSpi {
 
 	// 成交回报
 	public void OnRtnTrade(CThostFtdcTradeField pTrade) {
+		if(!this.orderMap.containsKey(pTrade.getOrderRef()))
+			return;
+		//Order order=this.orderMap.get(pTrade.getOrderRef());
 
-		String symbol = pTrade.getInstrumentID();
-		String exchange = CtpConstant.exchangeMapReverse.get(pTrade.getExchangeID());
-		String tradeID = pTrade.getTradeID();
-		String orderID = pTrade.getOrderRef();
-		String direction = CtpConstant.directionMapReverse.getOrDefault(pTrade.getDirection(), "");
-		String offset = CtpConstant.offsetMapReverse.getOrDefault(pTrade.getOffsetFlag(), "");
-		double price = pTrade.getPrice();
-		int volume = pTrade.getVolume();
-		String tradingDay = tradingDayStr;
-		String tradeDate = pTrade.getTradeDate();
-		String tradeTime = pTrade.getTradeTime();
+		Trade trade=new Trade();
+		trade.setAccountID(this.loginInfo.getAccoutId());
+		trade.setSymbol(pTrade.getInstrumentID());
+		trade.setExchange(pTrade.getExchangeID());
+		trade.setOrderRef(pTrade.getOrderRef());
+		trade.setTradeID(pTrade.getTradeID());
+		trade.setDirection(CtpConstant.directionMapReverse.getOrDefault(pTrade.getDirection(), Enums.TRADE_DIRECTION.NONE));
+		trade.setOffset(CtpConstant.offsetMapReverse.getOrDefault(pTrade.getOffsetFlag(), Enums.OFFSET.NONE));
+		trade.setPrice(pTrade.getPrice());
+		trade.setVolume(pTrade.getVolume());
+		trade.setTradeDate(pTrade.getTradeDate());
+		trade.setTradeTime(pTrade.getTradeTime());
 
-		// 除回测外很少用到，不统一解析
-		LocalDateTime dateTime = null;
-
-//		String originalOrderID = originalOrderIDMap.get(rtOrderID);
-//
-//		if (instrumentQueried) {
-//			ctpGateway.emitTrade(gatewayID, gatewayDisplayName, accountID, rtAccountID, symbol, exchange, rtSymbol,
-//					contractName, tradeID, rtTradeID, orderID, rtOrderID, originalOrderID, direction, offset, price,
-//					volume, tradingDay, tradeDate, tradeTime, dateTime);
-//		} else {
-//			Trade trade = new Trade();
-//			trade.setAllValue(gatewayID, gatewayDisplayName, accountID, rtAccountID, symbol, exchange, rtSymbol,
-//					contractName, tradeID, rtTradeID, orderID, rtOrderID, originalOrderID, direction, offset, price,
-//					volume, tradingDay, tradeDate, tradeTime, dateTime);
-//			tradeCacheList.add(trade);
-//		}
+		ctpGateway.emitTrade(trade);
 	}
 
 	// 发单错误回报（交易所）
 	public void OnErrRtnOrderInsert(CThostFtdcInputOrderField pInputOrder, CThostFtdcRspInfoField pRspInfo) {
-		// 无法获取币种信息
-		// String rtAccountID = pOrder.getAccountID() + "." + pOrder.getCurrencyID() +"."+ gatewayID;
-		// 使用特定值
-		String symbol = pInputOrder.getInstrumentID();
-		String exchange = CtpConstant.exchangeMapReverse.get(pInputOrder.getExchangeID());
-		String orderID = pInputOrder.getOrderRef();
-		String direction = CtpConstant.directionMapReverse.get(pInputOrder.getDirection());
-		String offset = CtpConstant.offsetMapReverse.get(pInputOrder.getCombOffsetFlag().toCharArray()[0]);
-		double price = pInputOrder.getLimitPrice();
-		int totalVolume = pInputOrder.getVolumeTotalOriginal();
-		int tradedVolume = 0;
-		String status = RtConstant.STATUS_REJECTED;
-		String tradingDay = tradingDayStr;
-		String orderDate = null;
-		String orderTime = null;
-		String cancelTime = null;
-		String activeTime = null;
-		String updateTime = null;
+		String orderRef = pInputOrder.getOrderRef();
+		if(this.orderMap.containsKey(orderRef)){
+			Order order=this.orderMap.get(orderRef);
+			order.setStatus(Enums.ORDER_STATUS.ERROR);
+			order.setStatusMsg(pRspInfo.getErrorMsg());
+			ctpGateway.emitOrder(order);
 
-		//String originalOrderID = originalOrderIDMap.get(rtOrderID);
-
-//		if (instrumentQueried) {
-//			ctpGateway.emitOrder(originalOrderID, gatewayID, gatewayDisplayName, accountID, rtAccountID, symbol,
-//					exchange, rtSymbol, contractName, orderID, rtOrderID, direction, offset, price, totalVolume,
-//					tradedVolume, status, tradingDay, orderDate, orderTime, cancelTime, activeTime, updateTime, frontID,
-//					sessionID);
-//		} else {
-//			Order order = new Order();
-//			order.setAllValue(originalOrderID, null, null, accountID, rtAccountID, symbol, exchange,
-//					rtSymbol, contractName, orderID, rtOrderID, direction, offset, price, totalVolume, tradedVolume,
-//					status, tradingDay, orderDate, orderTime, cancelTime, activeTime, updateTime, frontID, sessionID);
-//			orderCacheList.add(order);
-//		}
-
-		log.error("{}交易接口发单错误回报（交易所）! ErrorID:{},ErrorMsg:{}", tdName, pRspInfo.getErrorID(),
-				pRspInfo.getErrorMsg());
+			// 发送委托事件
+			log.error("{}交易接口发单错误回报（交易所）! ErrorID:{},ErrorMsg:{}", tdName, pRspInfo.getErrorID(),
+					pRspInfo.getErrorMsg());
+		}
 
 	}
 

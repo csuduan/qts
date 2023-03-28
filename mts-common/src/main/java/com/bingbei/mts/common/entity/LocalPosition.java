@@ -1,27 +1,29 @@
 package com.bingbei.mts.common.entity;
 
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.Serializable;
 import java.util.HashMap;
 
+import static com.bingbei.mts.common.entity.Enums.POS_DIRECTION.*;
+
 
 /**
- * @author sun0x00@gmail.com
+ * 本地仓位
  */
 @Data
-public class LocalPositionDetail implements Serializable {
+@Slf4j
+public class LocalPosition implements Serializable {
 
 	private static final long serialVersionUID = 3912578572233290138L;
 
-
-	public LocalPositionDetail() {
+	public LocalPosition(String accountID,String symbol) {
 	}
 
 
 	private String accountID;
 	private String symbol;
-	private String exchange;
 	private int multiple;//合约乘数
 
 
@@ -31,7 +33,7 @@ public class LocalPositionDetail implements Serializable {
 	private int longPosFrozen;
 	private int longYdFrozen;
 	private int longTdFrozen;
-	private double longPnl;
+	private double longProfit;
 	private double longPrice;
 
 	private int shortPos;
@@ -40,7 +42,7 @@ public class LocalPositionDetail implements Serializable {
 	private int shortPosFrozen;
 	private int shortYdFrozen;
 	private int shortTdFrozen;
-	private double shortPnl;
+	private double shortProfit;
 	private double shortPrice;
 	private double lastPrice;
 
@@ -52,42 +54,62 @@ public class LocalPositionDetail implements Serializable {
 	 * @param trade
 	 */
 	public void updateTrade(Trade trade) {
-		if (RtConstant.DIRECTION_LONG.equals(trade.getDirection())) {// 多头
-			if (RtConstant.OFFSET_OPEN.equals(trade.getOffset())) {// 开仓
-				longTd += trade.getVolume();
-			} else if (RtConstant.OFFSET_CLOSETODAY.equals(trade.getOffset())) {// 平今
-				shortTd -= trade.getVolume();
-			} else if (RtConstant.OFFSET_CLOSEYESTERDAY.equals(trade.getOffset())) {// 平昨
-				shortYd -= trade.getVolume();
-			} else if (RtConstant.OFFSET_CLOSE.equals(trade.getOffset())) {// 平仓
-				if (RtConstant.EXCHANGE_SHFE.equals(exchange)) {// 上期所等同于平昨
-					shortYd -= trade.getVolume();
-				} else {
-					// 非上期所,优先平今
-					shortTd -= trade.getVolume();
-					if (shortTd < 0) {
-						shortYd += shortTd;
-						shortTd = 0;
+		if (LONG == trade.getPosDirection()) {
+			// 多头
+			switch (trade.getOffset()){
+				case OPEN ->{
+					// 开仓
+					longTd += trade.getVolume();
+				}
+				case CLOSETD -> {
+					// 平今
+					longTd -= trade.getVolume();
+				}
+				case CLOSEYD -> {
+					// 平昨
+					longYd -= trade.getVolume();
+				}
+				case CLOSE -> {
+					if (Constant.EXCHANGE_SHFE.equals(trade.getExchange())) {
+						// 上期所等同于平昨
+						longYd -= trade.getVolume();
+					} else {
+						// 非上期所,优先平今
+						longTd -= trade.getVolume();
+						if (longTd < 0) {
+							longYd += longTd;
+							longTd = 0;
+						}
 					}
 				}
 			}
 
-		} else if (RtConstant.DIRECTION_SHORT.equals(trade.getDirection())) { // 空头
-			// 开仓
-			if (RtConstant.OFFSET_OPEN.equals(trade.getOffset())) {
-				shortTd += trade.getVolume();
-			} else if (RtConstant.OFFSET_CLOSETODAY.equals(trade.getOffset())) {// 平今
-				longTd -= trade.getVolume();
-			} else if (RtConstant.OFFSET_CLOSEYESTERDAY.equals(trade.getOffset())) {// 平昨
-				longYd -= trade.getVolume();
-			} else if (RtConstant.OFFSET_CLOSE.equals(trade.getOffset())) {// 平仓
-				if (RtConstant.EXCHANGE_SHFE.equals(exchange)) {// 上期所等同于平昨
-					longYd -= trade.getVolume();
-				} else {// 非上期所,优先平今
-					longTd -= trade.getVolume();
-					if (longTd < 0) {
-						longYd += longTd;
-						longTd = 0;
+		} else {
+			// 空头
+			switch (trade.getOffset()){
+				case OPEN ->{
+					// 开仓
+					shortTd += trade.getVolume();
+				}
+				case CLOSETD -> {
+					// 平今
+					shortTd -= trade.getVolume();
+				}
+				case CLOSEYD -> {
+					// 平昨
+					shortYd -= trade.getVolume();
+				}
+				case CLOSE -> {
+					if (Constant.EXCHANGE_SHFE.equals(trade.getExchange())) {
+						// 上期所等同于平昨
+						shortYd -= trade.getVolume();
+					} else {
+						// 非上期所,优先平今
+						shortTd -= trade.getVolume();
+						if (shortTd < 0) {
+							shortYd += shortTd;
+							shortTd = 0;
+						}
 					}
 				}
 			}
@@ -95,7 +117,7 @@ public class LocalPositionDetail implements Serializable {
 		// 汇总今昨
 		calculatePrice(trade);
 		calculatePosition();
-		calculatePnl();
+		calculateProfit();
 	}
 
 	/**
@@ -105,38 +127,19 @@ public class LocalPositionDetail implements Serializable {
 	 */
 	public void updateOrder(Order order) {
 		// 将活动委托缓存下来
-		if (RtConstant.STATUS_WORKING.contains(order.getStatus())) {
+		if (order.isFinished()==false) {
 			workingOrderMap.put(order.getOrderRef(), order);
 
-			// 移除缓存中已经完成的委托
 		} else {
+			// 移除缓存中已经完成的委托
 			if (workingOrderMap.containsKey(order.getOrderRef())) {
 				workingOrderMap.remove(order.getOrderRef());
 			}
 		}
-
 		// 计算冻结
 		calculateFrozen();
 	}
 
-	/**
-	 * 发单更新
-	 * 
-	 * @param orderReq
-	 */
-	public void updateOrderReq(OrderReq orderReq, String rtOrderID) {
-		// 基于请求创建委托对象
-		Order order = new Order();
-		order.setSymbol(orderReq.getSymbol());
-		order.setExchange(orderReq.getExchange());
-		order.setOffset(orderReq.getOffset());
-		order.setDirection(orderReq.getDirection());
-		order.setTotalVolume(orderReq.getVolume());
-		order.setStatus(RtConstant.STATUS_UNKNOWN);
-		workingOrderMap.put(order.getOrderRef(), order);
-		calculateFrozen();
-
-	}
 
 	/**
 	 * 价格更新
@@ -145,15 +148,15 @@ public class LocalPositionDetail implements Serializable {
 	 */
 	public void updateLastPrice(double lastPrice) {
 		this.lastPrice = lastPrice;
-		calculatePnl();
+		calculateProfit();
 	}
 
 	/**
 	 * 计算持仓盈亏
 	 */
-	public void calculatePnl() {
-		longPnl = longPos * (lastPrice - longPrice) * multiple;
-		shortPnl = shortPos * (shortPrice - lastPrice) * multiple;
+	public void calculateProfit() {
+		longProfit = longPos * (lastPrice - longPrice) * multiple;
+		shortProfit = shortPos * (shortPrice - lastPrice) * multiple;
 	}
 
 	/**
@@ -163,10 +166,10 @@ public class LocalPositionDetail implements Serializable {
 	 */
 	public void calculatePrice(Trade trade) {
 		// 只有开仓会影响持仓均价
-		if (RtConstant.OFFSET_OPEN.equals(trade.getOffset())) {
+		if (Constant.OFFSET_OPEN.equals(trade.getOffset())) {
 			double cost = 0;
 			int newPos = 0;
-			if (RtConstant.DIRECTION_LONG.equals(trade.getDirection())) {
+			if (Constant.DIRECTION_LONG.equals(trade.getDirection())) {
 				cost = longPrice * longPos;
 				cost += trade.getVolume() * trade.getPrice();
 				newPos = longPos + trade.getVolume();
@@ -202,6 +205,7 @@ public class LocalPositionDetail implements Serializable {
 		longPosFrozen = 0;
 		longYdFrozen = 0;
 		longTdFrozen = 0;
+
 		shortPosFrozen = 0;
 		shortYdFrozen = 0;
 		shortTdFrozen = 0;
@@ -212,24 +216,24 @@ public class LocalPositionDetail implements Serializable {
 		for (Order order : workingOrderMap.values()) {
 			// 计算剩余冻结量
 			frozenVolume = order.getTotalVolume() - order.getTradedVolume();
-			if (RtConstant.DIRECTION_LONG.equals(order.getDirection())) {// 多头委托
-				if (RtConstant.OFFSET_CLOSETODAY.equals(order.getOffset())) {// 平今
+			if (Constant.DIRECTION_LONG.equals(order.getDirection())) {// 多头委托
+				if (Constant.OFFSET_CLOSETODAY.equals(order.getOffset())) {// 平今
 					shortTdFrozen += frozenVolume;
-				} else if (RtConstant.OFFSET_CLOSEYESTERDAY.equals(order.getOffset())) {// 平昨
+				} else if (Constant.OFFSET_CLOSEYESTERDAY.equals(order.getOffset())) {// 平昨
 					shortYdFrozen += frozenVolume;
-				} else if (RtConstant.OFFSET_CLOSE.equals(order.getOffset())) {// 平仓
+				} else if (Constant.OFFSET_CLOSE.equals(order.getOffset())) {// 平仓
 					shortTdFrozen += frozenVolume;
 					if (shortTdFrozen > shortTd) {
 						shortYdFrozen += (shortTdFrozen - shortTd);
 						shortTdFrozen = shortTd;
 					}
 				}
-			} else if (RtConstant.DIRECTION_SHORT.equals(order.getDirection())) {// 空头委托
-				if (RtConstant.OFFSET_CLOSETODAY.equals(order.getOffset())) { // 平今
+			} else if (Constant.DIRECTION_SHORT.equals(order.getDirection())) {// 空头委托
+				if (Constant.OFFSET_CLOSETODAY.equals(order.getOffset())) { // 平今
 					longTdFrozen += frozenVolume;
-				} else if (RtConstant.OFFSET_CLOSEYESTERDAY.equals(order.getOffset())) { // 平昨
+				} else if (Constant.OFFSET_CLOSEYESTERDAY.equals(order.getOffset())) { // 平昨
 					longYdFrozen += frozenVolume;
-				} else if (RtConstant.OFFSET_CLOSE.equals(order.getOffset())) {// 平仓
+				} else if (Constant.OFFSET_CLOSE.equals(order.getOffset())) {// 平仓
 					longTdFrozen += frozenVolume;
 					if (longTdFrozen > longTd) {
 						longYdFrozen += (longTdFrozen - longTd);
@@ -249,19 +253,19 @@ public class LocalPositionDetail implements Serializable {
 	 * 
 	 * @param position
 	 */
-	public void updatePosition(Position position) {
-		if (RtConstant.DIRECTION_LONG.equals(position.getDirection())) {
+	public void updatePosition(AccoPosition position) {
+		if (Constant.DIRECTION_LONG.equals(position.getDirection())) {
 			longPos = position.getPosition();
 			longYd = position.getYdPosition();
 			longTd = longPos - longYd;
-			longPnl = position.getPositionProfit();
+			longProfit = position.getPositionProfit();
 			longPrice = position.getAvgPrice();
 
-		} else if (RtConstant.DIRECTION_SHORT.equals(position.getDirection())) {
+		} else if (Constant.DIRECTION_SHORT.equals(position.getDirection())) {
 			shortPos = position.getPosition();
 			shortYd = position.getYdPosition();
 			shortTd = shortPos - shortYd;
-			shortPnl = position.getPositionProfit();
+			shortProfit = position.getPositionProfit();
 			shortPrice = position.getAvgPrice();
 		}
 

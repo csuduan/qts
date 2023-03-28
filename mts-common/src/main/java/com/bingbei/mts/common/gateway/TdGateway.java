@@ -23,7 +23,7 @@ public interface TdGateway {
 	 * 
 	 * @param orderReq
 	 */
-	String insertOrder(Order orderReq);
+	boolean insertOrder(Order orderReq);
 
 	/**
 	 * 撤单
@@ -35,7 +35,7 @@ public interface TdGateway {
 	 * 
 	 * @param position
 	 */
-	void emitPosition(Position position);
+	void emitPosition(AccoPosition position);
 
 	/**
 	 * 发送账户事件

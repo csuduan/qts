@@ -3,13 +3,15 @@ package com.bingbei.mts.trade.engine;
 import com.alibaba.fastjson.JSON;
 import com.bingbei.mts.common.entity.*;
 import com.bingbei.mts.common.gateway.MdGateway;
-import com.bingbei.mts.common.service.FastEventEngineService;
 import com.bingbei.mts.common.service.PersistSerivce;
 import com.bingbei.mts.common.service.extend.event.EventConstant;
 import com.bingbei.mts.common.service.extend.event.FastEvent;
 import com.bingbei.mts.common.service.extend.event.FastEventDynamicHandlerAbstract;
+import com.bingbei.mts.common.service.impl.FastEventEngineServiceImpl;
+import com.bingbei.mts.common.utils.BarGenerator;
+import com.bingbei.mts.common.utils.SpringUtils;
 import com.bingbei.mts.trade.gateway.GatwayFactory;
-import com.bingbei.mts.trade.strategy.StrategyEngine;
+import com.bingbei.mts.trade.strategy.StrategySetting;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
@@ -17,33 +19,31 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * TradeEngine是一个交易单元，维护着一个策略引擎，一个行情及多个账户
+ * 交易引擎
  */
 @Slf4j
 public class TradeEngine extends FastEventDynamicHandlerAbstract {
     private String id;
+    private EngineContext engineContext;
+
     private MdInfo mdInfo;
     private MdGateway mdGateway;
-    //一个交易引擎支持多个账户的交易
-    private Map<String, Account> accountMap=new HashMap<>();
-    private Map<String, Tick> tickMap = new HashMap<>();
-
-
-    private StrategyEngine strategyEngine;
-    private GatwayFactory gatwayFactory;
-    private PersistSerivce persistSerivce;
-
-    //private FastEventEngineService fastEventEngineService;
+    //account-tradeExecutor
+    Map<String, TradeExecutor> tradeExecutorMap=new HashMap<>();
     public String getId(){
         return this.id;
     }
 
-    public TradeEngine(String engineId, GatwayFactory gatwayFactory, FastEventEngineService fastEventEngineService, PersistSerivce persistSerivce,MdInfo mdInfo){
+    private Map<String, BarGenerator> barGeneratorMap=new HashMap<>();
+
+    public TradeEngine(String engineId, MdInfo mdInfo){
         this.id=engineId;
-        this.gatwayFactory=gatwayFactory;
-        this.persistSerivce=persistSerivce;
-        this.changeMd(mdInfo);
-        fastEventEngineService.addHandler(this);
+        this.engineContext=new EngineContext();
+        this.engineContext.setPersistSerivce(SpringUtils.getBean(PersistSerivce.class));
+        this.engineContext.setGatwayFactory(SpringUtils.getBean(GatwayFactory.class));
+        String waitStrategy=SpringUtils.getContext().getEnvironment().getProperty("fastEventEngine.WaitStrategy");
+        this.engineContext.setFastEventEngineService(new FastEventEngineServiceImpl(waitStrategy));
+        this.engineContext.getFastEventEngineService().addHandler(this);
         subscribeEvent(EventConstant.EVENT_TICK);
         subscribeEvent(EventConstant.EVENT_TRADE);
         subscribeEvent(EventConstant.EVENT_ORDER);
@@ -53,40 +53,55 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
         subscribeEvent(EventConstant.EVENT_ERROR);
         subscribeEvent(EventConstant.EVENT_GATEWAY);
 
+        this.changeMd(mdInfo);
         this.loadContract();
     }
     private void loadContract(){
-        List<Contract> contracts=persistSerivce.getContracts();
+        List<Contract> contracts=engineContext.getPersistSerivce().getContracts();
     }
     public void changeMd(MdInfo mdInfo){
         if(this.mdGateway!=null)
             this.mdGateway.close();
         this.mdInfo=mdInfo;
-        this.mdGateway=this.gatwayFactory.createMdGateway(mdInfo);
+        this.mdGateway=engineContext.getGatwayFactory().createMdGateway(mdInfo,this.engineContext.getFastEventEngineService());
         this.mdGateway.connect();
+        engineContext.setMdGateway(this.mdGateway);
     }
-    public void addAccount(Account account){
-        this.accountMap.put(account.getId(),account);
-        var tdGateway=gatwayFactory.createTdGateway(account);
-        account.setTdGateway(tdGateway);
+    public void createTradeExecutor(Account account){
+        this.tradeExecutorMap.put(account.getId(),new TradeExecutor(account,this.engineContext));
         log.info("交易引擎添加账户{}成功",account.getId());
 
     }
+
+    public void createStrategy(StrategySetting strategySetting){
+        TradeExecutor tradeExecutor=this.tradeExecutorMap.get(strategySetting.getAccountId());
+        tradeExecutor.createStrategy(strategySetting);
+    }
     public void connect(String accountId){
-        Account account=accountMap.get(accountId);
-        if(account==null){
-            log.warn("找不到账户-{}",accountId);
+        var tradeExecutor=this.tradeExecutorMap.get(accountId);
+        if(tradeExecutor==null){
+            log.warn("找不到账户交易执行器-{}",accountId);
             return;
         }
+        tradeExecutor.connect();
 
-        account.getTdGateway().connect();
-
-
-    }
-    public void close(String accountId){
 
     }
+    public void discount(String accountId){
+        var tradeExecutor=this.tradeExecutorMap.get(accountId);
+        if(tradeExecutor==null){
+            log.warn("找不到账户交易执行器-{}",accountId);
+            return;
+        }
+        tradeExecutor.disconnect();
 
+    }
+    public void connnectMd(){
+        this.mdGateway.connect();
+    }
+    public void disconnectMd(){
+        this.mdGateway.close();
+    }
 
 
     @Override
@@ -94,19 +109,23 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
         if (!subscribedEventSet.contains(fastEvent.getEvent())) {
             return;
         }
+        if(EventConstant.EVENT_TICK.equals(fastEvent.getEventType())){
+            Tick tick = fastEvent.getTick();
+            tick.setTimeStampOnEvent(System.nanoTime());
+            //log.info("{}",tick);
+            onTick(tick);
+        }
+        //以下为账户相关事件
+        TradeExecutor tradeExecutor=this.tradeExecutorMap.get(fastEvent.getAccountId());
+        if(tradeExecutor==null)
+            return;
+
+
         switch (fastEvent.getEventType()){
-            case EventConstant.EVENT_TICK -> {
-                try {
-                    Tick tick = fastEvent.getTick();
-                    onTick(tick);
-                } catch (Exception e) {
-                    log.error("onTick发生异常", e);
-                }
-            }
             case EventConstant.EVENT_TRADE ->{
                 try {
                     Trade trade = fastEvent.getTrade();
-                    onTrade(trade);
+                    tradeExecutor.onTrade(trade);
                 } catch (Exception e) {
                     log.error("onTrade发生异常", e);
                 }
@@ -114,7 +133,7 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
             case EventConstant.EVENT_ORDER ->{
                 try {
                     Order order = fastEvent.getOrder();
-                    onOrder(order);
+                    tradeExecutor.onOrder(order);
                 } catch (Exception e) {
                     log.error("onOrder发生异常", e);
                 }
@@ -122,15 +141,15 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
             case EventConstant.EVENT_CONTRACT ->{
                 try {
                     Contract contract = fastEvent.getContract();
-                    onContract(contract);
+                    tradeExecutor.onContract(contract);
                 } catch (Exception e) {
                     log.error("onContract发生异常", e);
                 }
             }
             case EventConstant.EVENT_POSITION ->{
                 try {
-                    Position position = fastEvent.getPosition();
-                    onPosition(position);
+                    AccoPosition position = fastEvent.getPosition();
+                    tradeExecutor.onAccoPosition(position);
                 } catch (Exception e) {
                     log.error("onPosition发生异常", e);
                 }
@@ -148,99 +167,28 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
             }
         }
     }
-    private void onContract(Contract contract) {
-        var account=accountMap.get(contract.getAccountId());
-        if(account==null){
-            log.error("找不到账户{}",contract.getAccountId());
-            return;
-        }
-        account.getContractMap().put(contract.getSymbol(),contract);
-        //todo CTP重连时Trade可能先于Contract到达,在此处重新赋值
-//        String exchange = contract.getExchange();
-//        String symbol = contract.getSymbol();
-//        LocalPositionDetail localPositionDetail = localPositionDetailMap.get(contract.getSymbol());
-//        if (localPositionDetail != null) {
-//            localPositionDetail.setExchange(exchange);
-//            localPositionDetail.setSymbol(symbol);
-//            localPositionDetail.setMultiple(contract.getMultiple());
-//        }
-
-    }
-    private void onOrder(Order order) {
-        Account account=accountMap.get(order.getAccountID());
-        if(account==null)
-            return;
-        account.getOrderMap().put(order.getOrderRef(), order);
-        if (RtConstant.STATUS_FINISHED.contains(order.getStatus())) {
-            if (account.getWorkingOrderMap().containsKey(order.getOrderRef())) {
-                account.getWorkingOrderMap().remove(order.getOrderRef());
-            }
-        } else {
-            account.getWorkingOrderMap().put(order.getOrderRef(), order);
-        }
-
-        LocalPositionDetail localPositionDetail;
-        if (account.getLocalPositionDetailMap().containsKey(order.getOrderRef())) {
-            localPositionDetail = account.getLocalPositionDetailMap().get(order.getOrderRef());
-        } else {
-            localPositionDetail = account.createLocalPositionDetail(order.getAccountID(),order.getSymbol());
-        }
-
-        localPositionDetail.updateOrder(order);
-    }
-
-    private void onTrade(Trade trade) {
-        Account account=accountMap.get(trade.getAccountID());
-        if(account==null)
-            return;
-        account.getTradeMap().put(trade.getTradeID(), trade);
-        LocalPositionDetail localPositionDetail;
-        if (account.getLocalPositionDetailMap().containsKey(trade.getSymbol())) {
-            localPositionDetail = account.getLocalPositionDetailMap().get(trade.getSymbol());
-        } else {
-            localPositionDetail = account.createLocalPositionDetail(trade.getAccountID(),trade.getSymbol());
-        }
-
-        localPositionDetail.updateTrade(trade);
-    }
-
-    private void onPosition(Position position) {
-        Account account=accountMap.get(position.getAccountID());
-        if(account==null)
-            return;
-
-        account.getPositionMap().put(position.getPositionID(), position);
-        //todo
-//        LocalPositionDetail localPositionDetail;
-//        String positionDetailKey = position.getRtSymbol() + "." + position.getRtAccountID();
-//        if (localPositionDetailMap.containsKey(positionDetailKey)) {
-//            localPositionDetail = localPositionDetailMap.get(positionDetailKey);
-//        } else {
-//            localPositionDetail = createLocalPositionDetail(position.getGatewayID(), position.getGatewayDisplayName(),
-//                    position.getAccountID(), position.getRtAccountID(), position.getExchange(), position.getRtSymbol(),
-//                    position.getSymbol());
-//        }
-//
-//        localPositionDetail.updatePosition(position);
-
-    }
 
     private void onTick(Tick tick) {
-        tickMap.put(tick.getSymbol(), tick);
-        //推送给策略
-        //this.strategyEngine.
-
-
-        for(Account account:accountMap.values()){
-            // 刷新持仓盈亏
-            for (LocalPositionDetail localPositionDetail : account.getLocalPositionDetailMap().values()) {
-                if (localPositionDetail.getSymbol().equals(tick.getSymbol())) {
-                    localPositionDetail.updateLastPrice(tick.getLastPrice());
+        this.engineContext.getLastTickMap().put(tick.getSymbol(), tick);
+        this.tradeExecutorMap.values().forEach(x->{
+            x.onTick(tick);
+        });
+        BarGenerator barGenerator;
+        if(!barGeneratorMap.containsKey(tick.getSymbol())){
+            //创建bar
+            barGenerator = new BarGenerator(new BarGenerator.CommonBarCallBack() {
+                @Override
+                public void call(Bar bar) {
+                    tradeExecutorMap.values().forEach(x->{
+                        x.onBar(bar);
+                    });
                 }
-            }
-        }
-
-
+            });
+            barGeneratorMap.put(tick.getSymbol(), barGenerator);
+        }else
+            barGenerator = barGeneratorMap.get(tick.getSymbol());
+        //更新bar
+        barGenerator.updateTick(tick);
     }
 
 

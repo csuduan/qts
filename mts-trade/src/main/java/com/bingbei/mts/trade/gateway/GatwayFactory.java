@@ -17,8 +17,6 @@ import java.io.File;
 @Component
 @Slf4j
 public class GatwayFactory {
-    private FastEventEngineService fastEventEngineService;
-
     @PostConstruct
     public void init(){
         try {
@@ -69,17 +67,16 @@ public class GatwayFactory {
             log.error("加载库失败!", e);
         }
     }
-    public GatwayFactory(FastEventEngineService fastEventEngineService){
-        this.fastEventEngineService=fastEventEngineService;
+    public GatwayFactory(){
     }
 
-    public TdGateway createTdGateway(Account account){
+    public TdGateway createTdGateway(Account account, FastEventEngineService fastEventEngineService){
         if("CTP".equals(account.getLoginInfo().getTdType()))
             return new CtpTdGateway(fastEventEngineService,account.getLoginInfo());
         return null;
     }
 
-    public MdGateway createMdGateway(MdInfo mdInfo){
+    public MdGateway createMdGateway(MdInfo mdInfo,FastEventEngineService fastEventEngineService){
         return new CtpMdGateway(fastEventEngineService,mdInfo);
     }
 }

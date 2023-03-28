@@ -1,29 +1,32 @@
 package com.bingbei.mts.admin.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.bingbei.mts.admin.entity.Operate;
 import com.bingbei.mts.admin.entity.OrderReq;
 import com.bingbei.mts.admin.entity.config.TradeConfig;
 import com.bingbei.mts.common.entity.Account;
 import com.bingbei.mts.common.entity.LoginInfo;
 import com.bingbei.mts.common.entity.MdInfo;
 import com.bingbei.mts.common.utils.ResourceUtil;
+import com.bingbei.mts.trade.engine.TradeEngine;
 import com.bingbei.mts.trade.engine.TradeEngineFactory;
+import com.bingbei.mts.trade.strategy.StrategySetting;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
 @Slf4j
+@DependsOn("springUtils")
 public class TradeManager {
     @Autowired
     private TradeEngineFactory tradeEngineFactory;
-    private Map<String,String> accountEngineMap=new HashMap<>();
-    private Map<String,Account> accountMap=new HashMap<>();
-
 
     @PostConstruct
     public  void init() throws Exception{
@@ -31,49 +34,56 @@ public class TradeManager {
         String txt=ResourceUtil.getFileJson("trade.json");
         TradeConfig tradeConfig= JSON.parseObject(txt,TradeConfig.class);
         Map<String,MdInfo> mdInfoMap=new HashMap<>();
-        if(tradeConfig.getMdConfigs()!=null){
-            tradeConfig.getMdConfigs().forEach(x->{
+        if(tradeConfig.getMds()!=null){
+            tradeConfig.getMds().forEach(x->{
                 MdInfo mdInfo=new MdInfo(x.getMdId(),x.getAddress());
                 mdInfoMap.put(mdInfo.getId(),mdInfo);
             });
         }
 
         //create tradeEngine
-        if(tradeConfig.getTradeEngineConfigs()!=null){
-            tradeConfig.getTradeEngineConfigs().forEach(x->{
+        if(tradeConfig.getTradeEngines()!=null){
+            tradeConfig.getTradeEngines().forEach(x->{
                 var mdInfo=mdInfoMap.get(x.getMdId());
                 tradeEngineFactory.createTradeEngine(x.getEngineId(),mdInfo);
+                //create account
+                x.getAccounts().forEach(accountConfig->{
+                    Account account=new Account();
+                    account.setId(accountConfig.getId());
+                    account.setName(accountConfig.getName());
+                    account.setLoginInfo(new LoginInfo(accountConfig.getId(),accountConfig.getUser(),accountConfig.getTdAddress()));
+                    tradeEngineFactory.createAccount(x.getEngineId(),account);
+                });
             });
         }
 
-        //create tradeEngine
-        if(tradeConfig.getAccountConfigs()!=null){
-            tradeConfig.getAccountConfigs().forEach(x->{
-                Account account=new Account();
-                account.setId(x.getId());
-                account.setName(x.getName());
-                account.setLoginInfo(new LoginInfo(x.getId(),x.getUser(),x.getTdAddress()));
-                var tradeEngine=tradeEngineFactory.getTradeEngine(x.getGroup());
-                if(tradeEngine!=null){
-                    tradeEngine.addAccount(account);
-                    accountEngineMap.put(account.getId(),tradeEngine.getId());
-                }
-                else
-                    log.error("找不到分组{}对应的交易引擎",x.getGroup());
-            });
-        }
+        //创建策略
+        String strategyTxt=ResourceUtil.getFileJson("strategy.json");
+        List<StrategySetting> strategySettings= JSON.parseArray(strategyTxt, StrategySetting.class);
+        strategySettings.forEach(x->{
+            TradeEngine tradeEngine=this.tradeEngineFactory.getTradeEngineByAccount(x.getAccountId());
+            if(tradeEngine!=null){
+                tradeEngine.createStrategy(x);
+            }
+        });
+
 
     }
-    public boolean connect(String accountId){
-        String engineId=accountEngineMap.get(accountId);
-        var engine=tradeEngineFactory.getTradeEngine(engineId);
-        engine.connect(accountId);
+    public boolean accountOperate(String accountId, Operate.Account operate){
+        var engine=tradeEngineFactory.getTradeEngineByAccount(accountId);
+        switch (operate){
+            case CONNECT -> engine.connect(accountId);
+            case DISCONNECT -> engine.discount(accountId);
+        }
         return true;
     }
-    public boolean disconnect(String accountId){
-        String engineId=accountEngineMap.get(accountId);
+
+    public boolean tradeEngineOperate(String engineId,Operate.TradeEngine operate){
         var engine=tradeEngineFactory.getTradeEngine(engineId);
-        engine.close(accountId);
+        switch (operate){
+            case CONNECT_MD -> engine.connnectMd();
+            case DISCONNECT_MD -> engine.disconnectMd();
+        }
         return true;
     }
     public String order(OrderReq orderReq){

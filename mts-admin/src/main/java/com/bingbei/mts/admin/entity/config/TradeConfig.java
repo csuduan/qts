@@ -7,8 +7,7 @@ import java.util.List;
 
 @Data
 public class TradeConfig implements Serializable {
-    private List<AccountConfig> accountConfigs;
-    private List<MdConfig> mdConfigs;
-    private List<TradeEngineConfig> tradeEngineConfigs;
+    private List<MdConfig> mds;
+    private List<TradeEngineConfig> tradeEngines;
 
 }

@@ -5,7 +5,8 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * @author sun0x00@gmail.com
+ * 合约信息
+ * 不同账户合约信息可能不同，比如保证金，手续费率等
  */
 @Data
 public class Contract implements Serializable {

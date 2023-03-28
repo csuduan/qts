@@ -46,5 +46,11 @@ public interface MdGateway {
      *
      * @param tick
      */
-    public void emitTick(Tick tick);
+    void emitTick(Tick tick);
+
+
+    /**
+     * 响应连接事件
+     */
+    void onConnect();
 }

@@ -7,9 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.lmax.disruptor.RingBuffer;
 
-
-import java.time.LocalDateTime;
-
 /**
  * @author sun0x00@gmail.com
  */
@@ -31,7 +28,7 @@ public abstract class TdGatewayAbstract implements TdGateway {
 	}
 
 	@Override
-	public void emitPosition(Position position) {
+	public void emitPosition(AccoPosition position) {
 
 		RingBuffer<FastEvent> ringBuffer = fastEventEngineService.getRingBuffer();
 		long sequence = ringBuffer.next(); // Grab the next sequence
@@ -108,7 +105,6 @@ public abstract class TdGatewayAbstract implements TdGateway {
 
 	@Override
 	public void emitOrder(Order order) {
-
 		// 发送带委托ID的事件
 		RingBuffer<FastEvent> ringBuffer = fastEventEngineService.getRingBuffer();
 		long sequence = ringBuffer.next(); // Grab the next sequence

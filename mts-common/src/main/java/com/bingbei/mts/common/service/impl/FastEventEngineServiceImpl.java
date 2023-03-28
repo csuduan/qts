@@ -30,9 +30,8 @@ import com.lmax.disruptor.util.DaemonThreadFactory;
 
 
 
-@Service
 //@PropertySource(value = { "classpath:rt-core.properties" })
-public class FastEventEngineServiceImpl implements FastEventEngineService, InitializingBean {
+public class FastEventEngineServiceImpl implements FastEventEngineService {
 
 	private static Logger log = LoggerFactory.getLogger(FastEventEngineServiceImpl.class);
 
@@ -44,23 +43,23 @@ public class FastEventEngineServiceImpl implements FastEventEngineService, Initi
 
 	private RingBuffer<FastEvent> ringBuffer;
 
-	@Value("${engine.event.FastEventEngine.WaitStrategy}")
-	private String waitStrategy;
+	//@Value("${engine.event.FastEventEngine.WaitStrategy}")
+	//private String waitStrategy;
 
-	@Override
-	public void afterPropertiesSet() throws Exception {
+	public  FastEventEngineServiceImpl(String waitStrategy) {
+		log.info("fastEventEngine start,{}",waitStrategy);
 		if ("BusySpinWaitStrategy".equals(waitStrategy)) {
 			disruptor = new Disruptor<FastEvent>(new FastEventFactory(), 65536, DaemonThreadFactory.INSTANCE,
-					ProducerType.MULTI, new BusySpinWaitStrategy());
+					ProducerType.SINGLE, new BusySpinWaitStrategy());
 		} else if ("SleepingWaitStrategy".equals(waitStrategy)) {
 			disruptor = new Disruptor<FastEvent>(new FastEventFactory(), 65536, DaemonThreadFactory.INSTANCE,
-					ProducerType.MULTI, new SleepingWaitStrategy());
+					ProducerType.SINGLE, new SleepingWaitStrategy());
 		} else if ("BlockingWaitStrategy".equals(waitStrategy)) {
 			disruptor = new Disruptor<FastEvent>(new FastEventFactory(), 65536, DaemonThreadFactory.INSTANCE,
-					ProducerType.MULTI, new BlockingWaitStrategy());
+					ProducerType.SINGLE, new BlockingWaitStrategy());
 		} else {
 			disruptor = new Disruptor<FastEvent>(new FastEventFactory(), 65536, DaemonThreadFactory.INSTANCE,
-					ProducerType.MULTI, new YieldingWaitStrategy());
+					ProducerType.SINGLE, new YieldingWaitStrategy());
 		}
 		ringBuffer = disruptor.start();
 

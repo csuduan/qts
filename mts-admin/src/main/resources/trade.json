@@ -1,27 +1,39 @@
 {
-  "tradeEngineConfigs": [
+  "tradeEngines": [
     {
       "engineId": "SIM",
-      "mdId": "sim"
-    }
-  ],
-  "accountConfigs": [
+      "mdId": "sim-24",
+      "accounts": [
+        {
+          "id": "DQ",
+          "name": "SimNow-DQ",
+          "user": "048997|123456!",
+          "tdAddress": "CTP|tcp://180.168.146.187:10201|9999:simnow_client_test:0000000000000000"
+        }
+      ]
+    },
     {
-      "id": "DQ",
-      "name": "SimNow-DQ",
-      "group": "SIM",
-      "user": "048997|123456!",
-      "tdAddress": "CTP|tcp://180.168.146.187:10201|9999:simnow_client_test:0000000000000000"
+      "engineId": "SIM-24",
+      "mdId": "sim-24",
+      "accounts": [
+        {
+          "id": "DQ-24",
+          "name": "SimNow-DQ-24",
+          "user": "048997|123456!",
+          "tdAddress": "CTP|tcp://180.168.146.187:10130|9999:simnow_client_test:0000000000000000"
+        }
+      ]
     }
   ],
-  "mdConfigs": [
+
+  "mds": [
     {
       "mdId": "sim",
       "address": "CTP|tcp://180.168.146.187:10211"
     },
     {
       "mdId": "sim-24",
-      "address": "CTP|tcp://180.168.146.187:10211"
+      "address": "CTP|tcp://180.168.146.187:10131"
     }
   ]
 }

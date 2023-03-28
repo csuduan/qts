@@ -47,13 +47,16 @@ public class CtpTdGateway extends TdGatewayAbstract {
 		// 在这里发送事件主要是由于接口可能自动断开，需要广播通知
 		fastEventEngineService.emitSimpleEvent(EventConstant.EVENT_GATEWAY, EventConstant.EVENT_GATEWAY,null);
 	}
+	public void onClose(){
+		this.tdSpi=null;
+	}
 
 	@Override
-	public String insertOrder(Order orderReq) {
+	public boolean insertOrder(Order orderReq) {
 		if (tdSpi != null) {
 			return tdSpi.insertOrder(orderReq);
 		} else {
-			return null;
+			return false;
 		}
 
 	}

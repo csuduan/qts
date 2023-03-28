@@ -22,50 +22,46 @@ public class Order implements Serializable {
 	private String exchange; // 交易所代码
 	private String orderRef; // 订单编号
 	// 报单相关
-	private String direction; // 报单方向
-	private String offset; // 报单开平仓
+	private Enums.POS_DIRECTION direction; // 报单方向
+	private Enums.OFFSET offset; // 报单开平仓
 	private double price; // 报单价格
-	private String priceType;//报单价格类型
+	private Enums.ORDER_TYPE priceType;//报单价格类型
 	private int totalVolume; // 报单总数量
 	private int tradedVolume; // 报单成交数量
-	private String status; // 报单状态
+	private Enums.ORDER_STATUS status; // 报单状态
+	private String statusMsg;
 	private String tradingDay;
 	private String orderDate; // 发单日期
 	private String orderTime; // 发单时间
 	private String cancelTime; // 撤单时间
 	private String activeTime; // 激活时间
 	private String updateTime; // 最后修改时间
+	private boolean canceling = false;//测单中
 
 	// CTP/LTS相关
 	private int frontID; // 前置机编号
 	private int sessionID; // 连接编号
 
-	public Order setAllValue(String accountID, String symbol, String exchange, String orderID,
-			String direction, String offset, double price, int totalVolume, int tradedVolume,
-			String status, String tradingDay, String orderDate, String orderTime, String cancelTime, String activeTime,
-			String updateTime, int frontID, int sessionID) {
-		this.accountID = accountID;
-		this.symbol = symbol;
-		this.exchange = exchange;
-		this.orderRef = orderID;
-		this.direction = direction;
-		this.offset = offset;
-		this.price = price;
-		this.totalVolume = totalVolume;
-		this.tradedVolume = tradedVolume;
-		this.status = status;
-		this.tradingDay = tradingDay;
-		this.orderDate = orderDate;
-		this.orderTime = orderTime;
-		this.cancelTime = cancelTime;
-		this.activeTime = activeTime;
-		this.updateTime = updateTime;
-		this.frontID = frontID;
-		this.sessionID = sessionID;
-		return this;
+	public Order(String accountID, String symbol, Enums.OFFSET offset, Enums.POS_DIRECTION direction, Enums.ORDER_TYPE priceType, double price, int volume){
+		this.orderRef = orderRefGen.incrementAndGet()+"";
+		this.accountID=accountID;
+		this.symbol=symbol;
+		this.offset=offset;
+		this.direction=direction;
+		this.price=price;
+		this.totalVolume=volume;
+		this.priceType=priceType;
 	}
+
 	public Order(){
 		this.orderRef = orderRefGen.incrementAndGet()+"";
+	}
+
+	public boolean isFinished(){
+		if(Enums.STATUS_FINISHED.contains(this.getStatus()))
+			return true;
+		else
+			return false;
 	}
 
 }

@@ -91,8 +91,7 @@ public class MdSpi extends CThostFtdcMdSpi {
 			connectionStatus = false;
 			loginStatus = false;
 			log.warn("{} 行情接口实例关闭并释放", mdName);
-			// 通知停止其他关联实例
-			ctpGateway.close();
+			ctpGateway.onClose();
 		}else{
 			log.warn("{} 行情接口实例为null,无需关闭", mdName);
 		}
@@ -173,6 +172,7 @@ public class MdSpi extends CThostFtdcMdSpi {
 					pRspUserLogin.getUserID());
 			// 修改登录状态为true
 			this.loginStatus = true;
+			this.ctpGateway.onConnect();
 			tradingDayStr = pRspUserLogin.getTradingDay();
 			log.info("{}行情接口获取到的交易日为{}", mdName, tradingDayStr);
 			// 重新订阅之前的合约
@@ -233,7 +233,10 @@ public class MdSpi extends CThostFtdcMdSpi {
 		}
 	}
 
-	// 合约行情推送
+	/**
+	 * 合约行情推送
+	 * @param pDepthMarketData
+	 */
 	public void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField pDepthMarketData) {
 		if (pDepthMarketData != null) {
 
@@ -249,9 +252,11 @@ public class MdSpi extends CThostFtdcMdSpi {
 			Long updateTime = Long.valueOf(pDepthMarketData.getUpdateTime().replaceAll(":", ""));
 			Long updateMillisec = (long) pDepthMarketData.getUpdateMillisec();
 			double datetIime=updateTime+updateMillisec/1000.0;
+			//LocalDateTime.parse(pDepthMarketData.getActionDay())
 
 
 			Tick tickData=new Tick();
+
 			tickData.setSymbol(symbol);
 			tickData.setExchange(pDepthMarketData.getExchangeID());
 			tickData.setTradingDay(tradingDayStr);
@@ -301,6 +306,7 @@ public class MdSpi extends CThostFtdcMdSpi {
 
 			log.info("tick:{}",tickData);
 			//todo 对象池
+			tickData.setTimeStampRecv(System.nanoTime());
 			ctpGateway.emitTick(tickData);
 		} else {
 			log.warn("{}OnRtnDepthMarketData! 收到行情信息为空", mdName);

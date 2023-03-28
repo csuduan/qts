@@ -30,6 +30,7 @@ public class CtpMdGateway extends MdGatewayAbstract {
         //仅释放接口
         if(this.mdSpi!=null)
             this.mdSpi.close();
+        this.mdSpi=null;
     }
 
 
@@ -38,15 +39,26 @@ public class CtpMdGateway extends MdGatewayAbstract {
     @Override
     public void subscribe(String symbol) {
         this.subscribedSymbols.add(symbol);
-        if(this.mdSpi.isConnected())
+        if(this.mdSpi!=null && this.mdSpi.isConnected())
             this.mdSpi.subscribe(symbol);
     }
 
     @Override
     public void unSubscribe(String stdSymbol) {
         this.subscribedSymbols.remove(stdSymbol);
-        if(this.mdSpi.isConnected())
+        if(this.mdSpi!=null && this.mdSpi.isConnected())
             this.mdSpi.unSubscribe(stdSymbol);
+    }
+
+    public void onConnect(){
+        this.subscribedSymbols.forEach(x->{
+            this.mdSpi.unSubscribe(x);
+        });
+
+    }
+
+    public void onClose(){
+        this.mdSpi=null;
     }
 
 
