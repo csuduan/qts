@@ -1,7 +1,6 @@
 project(depends)
-set(LIBRARY_OUTPUT_PATH ../lib)
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
+add_subdirectory(fmtlog)
+add_subdirectory(jsoncpp)
 
-AUX_SOURCE_DIRECTORY(jsoncpp SOURCE_JSONCPP)
-
-add_library (jsoncpp  ${SOURCE_JSONCPP})

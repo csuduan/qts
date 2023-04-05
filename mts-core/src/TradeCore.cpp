@@ -4,10 +4,14 @@
 
 #include <iostream>
 #include <time.h>
-#include "Util.h"
-#include "Logger.h"
-#include "TradeEngine.h"
+#include "util/Util.h"
+#include "define.h"
+#include "engine/TradeExecutor.h"
 #include "thread"
+#include "Monitor.h"
+#include "util/UdsServer.h"
+
+#include "message.h"
 //#include <stdio.h>
 using namespace std;
 
@@ -15,16 +19,38 @@ void add(int a,int b){
     a+=b;
 }
 
+void testJson(){
+    msg::Message msg;
+    msg.no=1;
+    msg.type=msg::MD_CONNECT;
+    msg.data="{}";
+    string json = xpack::json::encode(msg);
+
+    msg::Message msg1;
+    xpack::json::decode(json, msg1);
+    cout<<json<<endl;
+
+}
+
 int main(int argc,char *argv[]) {
+    //testJson();
+
+    fmtlog::setLogFile(stdout, false);
+    fmtlog::startPollingThread(5e9);
+    //fmtlog::poll(true);
+
     if(argc !=2){
-        Logger::getLogger().error("args error");
+        loge("args error");
         return -1;
     }
-    string engineId=argv[1];
-    Logger::getLogger().info("trade-core %s  start...",engineId.c_str());
+    Monitor::init();
 
-    TradeEngine* tradeEngine=new TradeEngine(engineId);
-    tradeEngine->start();
+    string acctId=argv[1];
+    TradeExecutor * tradeExecutor =new TradeExecutor(acctId);
+    tradeExecutor->init();
+    tradeExecutor->start();
+
+
 
     return 0;
 }

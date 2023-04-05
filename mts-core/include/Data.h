@@ -5,21 +5,48 @@
 #include <set>
 #include <list>
 #include "Enums.h"
+#include "LockFreeQueue.hpp"
 
 using namespace std;
 
-struct AccoPosition;
+struct AcctPosition;
 struct MdInfo{
     std::string id;
     std::string type;
     std::string mdAddress;
 };
 
+struct Contract{
+    std::string accountId;
+    //通用
+    std::string name;// 合约中文名
+    std::string type; // 合约类型
+    std::string symbol; // 合约代码
+    std::string exchange; // 交易所代码
+    std::string stdSymbol; // 标准代码,通常是 合约代码.交易所代码(大写，如CU2201.SHF)
+    std::string posDateType;//持仓日期类型（可用于判断是否区分今昨仓）
+
+
+    //期货相关
+    double priceTick; // 最小变动价位
+    double longMarginRatio; // 多头保证金率
+    double shortMarginRatio; // 空头保证金率
+    bool maxMarginSideAlgorithm; // 最大单边保证金算法
+    int multiple;//合约乘数
+
+    // 期权相关
+    double strikePrice; // 期权行权价
+    std::string underlyingSymbol; // 标的物合约代码
+    std::string optionType; /// 期权类型
+    std::string expiryDate; // 到期日
+};
+
 struct LoginInfo {
     std::string tdType;
-    std::string address;
+    std::string tdAddress;
+    std::string mdType;
+    std::string mdAddress;
     std::string brokerId;
-    std::string accoutId;
     std::string userId;
     std::string useName;
     std::string password;
@@ -28,7 +55,6 @@ struct LoginInfo {
 };
 
 struct Account {
-
     std::string id;
     std::string name;
     LoginInfo loginInfo;
@@ -44,44 +70,44 @@ struct Account {
     double withdraw; // 出金
 
     //账户持仓(用于校验)
-    std::map<std::string, AccoPosition> accoPositionMap;
+    std::map<std::string, AcctPosition*> accoPositionMap;
+    LockFreeQueue<Event> eventQueue ={1 << 10};
+    //合约信息
+    std::map<string, Contract *> contractMap;
 };
 
 
-struct AccoPosition {
+struct AcctPosition {
     // 账号代码相关
-    std::string accountID; // 账户代码
-    std::string positionID;//持仓编号（合约代码-方向）
-
+    std::string positionId;//持仓编号（合约代码-方向）
     // 代码编号相关
     std::string symbol; // 代码
+    POS_DIRECTION direction; // 持仓方向
+
     std::string exchange; // 交易所代码
     int multiple;//合约乘数
-
     // 持仓相关
-    POS_DIRECTION direction; // 持仓方向
-    int position; // 持仓量
-    int frozen; // 冻结数量
-    int ydPosition; // 昨持仓
-    int ydFrozen; // 冻结数量
-    int tdPosition; // 今持仓
-    int tdFrozen; // 冻结数量
+    int pos; // 持仓量
+    int onway; // 在途数量(>0在途开仓，<0在途平仓)
+    int ydPos; // 昨仓（=pos-tdPos）
+    int tdPos; // 今仓
+    int ydPosition;//昨仓(静态)
 
     double lastPrice; // 计算盈亏使用的行情最后价格
     double avgPrice; // 持仓均价
-    double priceDiff; // 持仓价格差
     double openPrice; // 开仓均价
-    double openPriceDiff; // 开仓价格差
     double positionProfit; // 持仓盈亏
-    double positionProfitRatio; // 持仓盈亏率
     double openPositionProfit; // 开仓盈亏
-    double openPositionProfitRatio; // 开仓盈亏率
-
 
     double useMargin; // 占用的保证金
     double exchangeMargin; // 交易所的保证金
     double contractValue; // 最新合约价值
+    AcctPosition(string symbol, POS_DIRECTION direction){
+        this->direction=direction;
+        this->positionId=symbol+"-"+ to_string(static_cast<int>(direction));
+    }
 };
+
 
 /**
  * 数据结构
@@ -102,11 +128,14 @@ struct Order {
     std::string symbol; // 代码
     std::string exchange; // 交易所代码
     std::string orderRef; // 订单编号
+    std::string orderSysId;//交易所报单编号
     // 报单相关
-    POS_DIRECTION direction; // 报单方向
+    POS_DIRECTION posDirection; // 持仓方向
+    TRADE_DIRECTION direction;//报单方向
+    string positionId;//持仓代码（合约-方向）
     OFFSET offset; // 报单开平仓
+    ORDER_TYPE orderType;//报单方式
     double price; // 报单价格
-    ORDER_TYPE priceType;//报单价格类型
     int totalVolume; // 报单总数量
     int tradedVolume; // 报单成交数量
     ORDER_STATUS status; // 报单状态
@@ -118,6 +147,7 @@ struct Order {
     std::string activeTime; // 激活时间
     std::string updateTime; // 最后修改时间
     bool canceling = false;//测单中
+    bool finished = false;
 
     // CTP/LTS相关
     int frontID; // 前置机编号
@@ -125,8 +155,6 @@ struct Order {
 };
 
 struct Trade {
-// 账号代码相关
-    std::string accountID; // 账户代码
     // 代码编号相关
     std::string symbol; // 代码
     std::string exchange; // 交易所代码
@@ -236,29 +264,13 @@ struct Bar {
 };
 
 struct StrategySetting{
-
+    string accountId;
+    string strategyId;
+    string className;
+    map<string,string> paramMap;
+    set<string> contracts;
 };
 
-struct Contract{
- std::string accountId;
-    //通用
- std::string name;// 合约中文名
- std::string type; // 合约类型
- std::string symbol; // 合约代码
- std::string exchange; // 交易所代码
- std::string stdSymbol; // 标准代码,通常是 合约代码.交易所代码(大写，如CU2201.SHF)
 
 
-    //期货相关
- double priceTick; // 最小变动价位
- double longMarginRatio; // 多头保证金率
- double shortMarginRatio; // 空头保证金率
- bool maxMarginSideAlgorithm; // 最大单边保证金算法
- int multiple;//合约乘数
 
-    // 期权相关
- double strikePrice; // 期权行权价
- std::string underlyingSymbol; // 标的物合约代码
- std::string optionType; /// 期权类型
- std::string expiryDate; // 到期日
-};

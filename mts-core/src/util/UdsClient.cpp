@@ -16,6 +16,9 @@
 #include<sys/un.h>
 #include "UdsClient.h"
 #include <functional>
+#include "Util.h"
+#include "Enums.h"
+#include "Data.h"
 using namespace  std;
 using namespace std::placeholders;
 
@@ -32,6 +35,14 @@ void read_cb(struct bufferevent *bev, void *arg){
     tcpClient->read_callback(bev);
 }
 
+void usage(){
+    cout<<"support cmd:"<<endl;
+    cout<<"1. [START_ENG|STOP_ENG|CONNECT_MD|DISCOUNT_MD]"<<endl;
+    cout<<"2. [CONNECT_ACT|DISCOUNT_ACT|PAUSE_OPEN|PAUSE_CLOSE] [accountId]"<<endl;
+
+}
+
+
 void read_terminal(evutil_socket_t fd, short what, void *arg)
 {
     //UdsClient* udsClient=(UdsClient *) arg;
@@ -39,12 +50,21 @@ void read_terminal(evutil_socket_t fd, short what, void *arg)
     //读数据
     char buf[1024] = {0};
     int len = read(fd, buf, sizeof(buf));
+    if(len==0){
+        usage();
+        return;
+    }
+    //命令行转义为json再发送
+    string cmdline= string(buf);
+    string msg= cmdline;
+    //cout<<"==>"<<msg<<endl;
+    int length=cmdline.length();
     char header[4+1]={0};
-    sprintf(header,"%04d",len);
+    sprintf(header,"%04d",length);
 
     //发送数据
     bufferevent_write(connEv, header, 4);
-    bufferevent_write(connEv, buf, len);
+    bufferevent_write(connEv, msg.c_str(), length);
 }
 
 void UdsClient::start() {

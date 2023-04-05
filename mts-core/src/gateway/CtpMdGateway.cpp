@@ -3,9 +3,10 @@
 //
 
 #include <thread>
+#include <netdb.h>
 #include "CtpMdGateway.h"
 #include "Data.h"
-#include "Util.h"
+#include "util/Util.h"
 
 int CtpMdGateway::nRequestID;
 
@@ -16,13 +17,13 @@ int CtpMdGateway::connect() {
         CreateApiMdFunc pfnCreateFtdcMdApiFunc = (CreateApiMdFunc) dlsym(handle,
                                                                          "_ZN15CThostFtdcMdApi15CreateFtdcMdApiEPKcbb");
         if (pfnCreateFtdcMdApiFunc == nullptr) {
-            Logger::getLogger().info("load thosttraderapi.so fail [%d] [%s]", errno, hstrerror(errno));
+            logi("load thosttraderapi.so fail [{}] [{}]", errno, hstrerror(errno));
             return -1;
         }
         m_pUserApi = pfnCreateFtdcMdApiFunc(".");
         m_pUserApi->RegisterSpi(this);
     } else {
-        Logger::getLogger().info("load thosttraderapi.dll fail  [%s]", errno, dlerror());
+        logi("load thosttraderapi.dll fail  [{}]", errno, dlerror());
         return -1;
     }
 
@@ -42,69 +43,56 @@ void CtpMdGateway::disconnect() {
 }
 
 void CtpMdGateway::Run() {
-    const char *address = this->mdInfo.mdAddress.c_str();
+    const char *address = account->loginInfo.mdAddress.c_str();
     m_pUserApi->RegisterFront(const_cast<char *>(address));
     m_pUserApi->Init();
-    Logger::getLogger().info("ctp connecting...%s", address);
+    logi("ctp connecting...{}", address);
     m_pUserApi->Join();
 }
 
 void CtpMdGateway::ReqUserLogin() {
     CThostFtdcReqUserLoginField reqUserLogin;
     int ret = m_pUserApi->ReqUserLogin(&reqUserLogin, nRequestID++);
-    Logger::getLogger().info("\tlogin ret = %d\n", ret);
+    logi("\tlogin ret = {}\n", ret);
 }
 
-void CtpMdGateway::subscribe(vector<string> &subContracts) {
-    char **str = new char *[subContracts.size() + 1];
-    int i = 0;
-    for (string &item: subContracts) {
-        if (this->contracts.contains(item))
-            continue;
-        this->contracts.insert(item);
-        str[i++] = const_cast<char *>(item.c_str());
-    }
-    if (i > 0) {
-        int ret = this->m_pUserApi->SubscribeMarketData(str, i);
-        Logger::getLogger().info("%s subscribeContract count:%d ret = %d", mdInfo.id.c_str(), i, ret);
-    }
-}
 
 void CtpMdGateway::OnFrontConnected() {
-    Logger::getLogger().info("%s OnFrontConnected", mdInfo.id.c_str());
+    fmtlog::setThreadName("MdGateway");
+    logi("MD OnFrontConnected");
     this->ReqUserLogin();
 }
 
 void CtpMdGateway::OnFrontDisconnected(int nReason) {
-    Logger::getLogger().info("%s OnFrontDisconnected reson=[%d]", mdInfo.id.c_str(), nReason);
+    logi("MD OnFrontDisconnected reson=[{}]", nReason);
     this->isConnected = false;
 }
 
 void CtpMdGateway::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CThostFtdcRspInfoField *pRspInfo,
                                   int nRequestID, bool bIsLast) {
+    logi("MD OnRspUserLogin");
     if (bIsLast && pRspInfo->ErrorID == 0) {
         this->tradingDay = this->m_pUserApi->GetTradingDay();
-        Logger::getLogger().info("%s OnRspUserLogin 行情接口 连接[成功] 获取当前行情日 = {%s}", mdInfo.id.c_str(),
-                                 this->tradingDay.c_str());
+        logi("MD  行情接口连接成功,交易日 = {}", this->tradingDay);
         this->isConnected = true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         //重新订阅
         this->reSubscribe();
     } else {
-        Logger::getLogger().error("%s OnRspUserLogin ErrorID={%s}, ErrorMsg={%s}", mdInfo.id.c_str(), pRspInfo->ErrorID,
-                                  pRspInfo->ErrorMsg);
+        loge("MD 行情接口连接失败, ErrorMsg={}", pRspInfo->ErrorMsg);
     }
 }
 
 void CtpMdGateway::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument,
                                       CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
     if (pSpecificInstrument && pRspInfo->ErrorID == 0) {
-        Logger::getLogger().info("%s OnRspSubMarketData [%s]", mdInfo.id.c_str(), pSpecificInstrument);
+        logi("MD OnRspSubMarketData {}",pSpecificInstrument->InstrumentID);
     }
 }
 
 void CtpMdGateway::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData) {
-    Logger::getLogger().info("%s OnRtnDepthMarketData instrument=[%s] time=[%s]", mdInfo.id.c_str(),
-                             pDepthMarketData->InstrumentID, pDepthMarketData->UpdateTime);
+    //logi("MD OnRtnTick instrument=[{}] time=[{}] price=[{}]",
+    //                         pDepthMarketData->InstrumentID, pDepthMarketData->UpdateTime,pDepthMarketData->LastPrice);
     Tick *tickData = new Tick();
     tickData->tradingDay = pDepthMarketData->TradingDay;
     tickData->symbol = pDepthMarketData->InstrumentID;
@@ -114,21 +102,54 @@ void CtpMdGateway::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMa
     tickData->openPrice = pDepthMarketData->OpenPrice;
     tickData->volume = pDepthMarketData->Volume;
     tickData->actionTime = pDepthMarketData->UpdateTime;
+    tickData->bidPrice1=pDepthMarketData->BidPrice1;
+    tickData->bidPrice2=pDepthMarketData->BidPrice2;
+    tickData->bidPrice3=pDepthMarketData->BidPrice3;
+    tickData->bidPrice4=pDepthMarketData->BidPrice4;
+    tickData->bidPrice5=pDepthMarketData->BidPrice5;
+    tickData->askPrice1=pDepthMarketData->AskPrice1;
+    tickData->askPrice2=pDepthMarketData->AskPrice2;
+    tickData->askPrice3=pDepthMarketData->AskPrice3;
+    tickData->askPrice4=pDepthMarketData->AskPrice4;
+    tickData->askPrice5=pDepthMarketData->AskPrice5;
+
     //todo
     Util::getTime(&tickData->timeStampRecv);
+    //fmtlog::TSCNS().rdtsc();
     //this->OnTickData(tickData);
     this->queue->push(Event(EventType::TICK,tickData));
 }
 
+
+void CtpMdGateway::subscribe(set<string> &subContracts) {
+    char **str = new char *[subContracts.size() + 1];
+    int i = 0;
+    for (auto &item: subContracts) {
+        if (this->contracts.contains(item))
+            continue;
+        this->contracts.insert(item);
+        str[i++] = const_cast<char *>(item.c_str());
+    }
+    if (i > 0 && this->isConnected) {
+        int ret = this->m_pUserApi->SubscribeMarketData(str, i);
+        logi("MD subscribeContract count:{} ret = {}", i, ret);
+    }
+}
+
 void CtpMdGateway::reSubscribe() {
     if (contracts.size() > 0) {
-        Logger::getLogger().info("%s reSubscribe count:[%d]", mdInfo.id.c_str(), contracts.size());
         char **str = new char *[contracts.size() + 1];
         int i = 0;
         for (auto &item: contracts) {
             str[i++] = const_cast<char *>(item.c_str());
         }
-        int ret = this->m_pUserApi->SubscribeMarketData(str, contracts.size());
-        Logger::getLogger().info("%s reSubscribe  ret = %d", mdInfo.id.c_str(), ret);
+        //char **ppInstrumentID = new char*[2];
+        //ppInstrumentID[0]="ni2203";
+        int ret = this->m_pUserApi->SubscribeMarketData(str, i);
+        logi("{} reSubscribe  count={} ret = {}", account->id, contracts.size(),ret);
     }
+}
+
+void CtpMdGateway::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+    loge("MD OnRspError {}",pRspInfo->ErrorMsg);
 }

@@ -5,24 +5,24 @@
 #include "GatewayFactory.h"
 #include "CtpTdGateway.h"
 #include "CtpMdGateway.h"
-#include "Logger.h"
+#include "define.h"
 #include <unistd.h>
-#include "LockFreeQueue.h"
+#include "LockFreeQueue.hpp"
 
 
-MdGateway *GatewayFactory::createMdGateway(MdInfo &mdInfo, LockFreeQueue<Event> * queue) {
-    Logger::getLogger().info("create mdGateway %s",mdInfo.id.c_str());
+MdGateway *GatewayFactory::createMdGateway(Account *account) {
+    logi("create mdGateway {}",account->id);
     MdGateway *mdGateway = nullptr;
-    mdGateway=new CtpMdGateway(mdInfo,queue);
+    mdGateway=new CtpMdGateway(account);
     mdGateway->connect();
     return mdGateway;
 }
 
-TdGateway *GatewayFactory::createTdGateway(Account &account,LockFreeQueue<Event> * queue ) {
-    Logger::getLogger().info("create tdGateway %s",account.id.c_str());
+TdGateway *GatewayFactory::createTdGateway(Account *account) {
+    logi("create tdGateway {}",account->id);
     TdGateway *gateway= nullptr;
-    if(account.loginInfo.tdType=="CTP"){
-        gateway=new CtpTdGateway(account.loginInfo,queue);
+    if(account->loginInfo.tdType=="CTP"){
+        gateway=new CtpTdGateway(account);
     }
     gateway->connect();
     return gateway;

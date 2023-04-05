@@ -18,6 +18,7 @@
  */
 
 // IDelegate   提供接口的基类
+#include <list>
 
 template<typename ReturnType, typename ...ParamType>
 class IDelegate

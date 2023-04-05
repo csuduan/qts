@@ -1,0 +1,4 @@
+project(jsoncpp)
+
+AUX_SOURCE_DIRECTORY(. SOURCE_JSONCPP)
+add_library (${PROJECT_NAME} SHARED ${SOURCE_JSONCPP})

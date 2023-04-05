@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "json/json.h"
+#include "message.h"
 
 
 
@@ -20,7 +21,7 @@
 #include <arpa/inet.h>
 #include <thread>
 #include <functional>
-#include "Logger.h"
+#include "define.h"
 
 using namespace std;
 using namespace  std::placeholders;
@@ -28,10 +29,8 @@ using namespace  std::placeholders;
 void UdsServer::start() {
     //std::thread t(std::bind(&UdsServer::run,this));
     //t.detach();
-    Logger::getLogger().info("uds server start...");
+    logi("uds server start..");
     run();
-
-
 }
 void UdsServer::run() {
     struct sockaddr_un un;
@@ -73,23 +72,57 @@ void UdsServer::listern_callback(evconnlistener *listener, int fd, sockaddr *soc
     bufferevent_enable(bev, EV_READ | EV_PERSIST);
 }
 
+int headtoi(unsigned char * head,int n){
+    int msgLen=0;
+    for(int i=n-1;i>=0;i--)
+        msgLen+=head[i]* pow(256,n-1-i);
+    return msgLen;
+}
+
+/**
+ * 字节序号反转
+ * @param p
+ * @param size
+ */
+void reverse(unsigned char *p,int size){
+    for(int i=0;i<size/2;++i){
+        int temp = p[i];
+        p[i]=p[size-1-i];
+        p[size-1-i] = temp;
+    }
+}
+
+
 void UdsServer::read_callback(struct bufferevent *bev) {
     int headLen=4;
-    //请求格式：4位消息长度+消息体
+    //请求格式：headLen位消息长度+消息体
+    //head类似256进制数
     struct evbuffer *input = bufferevent_get_input(bev);
     while(true){
         //循环处理
         size_t len = evbuffer_get_length(input);
-        if(len>=4){
-            char head[5]={0};
+        if(len>=headLen){
+            unsigned char head[headLen];
             bufferevent_read(bev, head, headLen);
-            int msgLen = atoi(head);
+            reverse(head,headLen);//大端转小端
+            unsigned int msgLen;
+            memcpy(&msgLen,head,headLen);
+
+            //int msgLen = headtoi(head,headLen);
             char msg[msgLen+1];
             len = bufferevent_read(bev, msg, msgLen);
             msg[len] = '\0';
             //cout<<"recv:"<<msg<<endl;
-            //消息解析
-            this->msg_handler(msg);
+            logi("recv msg: {}", string(msg));
+
+            try{
+                msg::Message message;
+                xpack::json::decode(msg, message);
+                if(this->callback!= nullptr)
+                    callback(message);
+            }catch(exception ex){
+                loge("valid json message");
+            }
 
         }else{
             break;
@@ -106,36 +139,26 @@ void UdsServer::write_callback(struct bufferevent *bev) {
 void UdsServer::event_callback(struct bufferevent *bev, short events) {
     if (events & BEV_EVENT_EOF)
     {
-        cout << "connection closed !" <<  endl;
+        logi("connection closed !" );
     }
     else if (events & BEV_EVENT_ERROR)
     {
-        cout << "some other error !" << endl;
+        loge("some other error !") ;
     }
     else if(events & BEV_EVENT_CONNECTED)
     {
-        cout << "connection connected !" <<  endl;
+        logi( "connection connected !");
     }else{
-        cout<<"unkonw event:"<<events <<endl;
+        logw("unkonw event:{}",events);
 
     }
 
     //bufferevent_free(bev);
     //cout << "bufferevent 资源已经被释放..." << endl;
 }
-
 void UdsServer::msg_handler(std::string msg) {
     cout<<"handle msg:"<<msg<<endl;
-    try {
-        Json::Value root;
-        Json::Reader reader;
-        reader.parse(msg, root);
-        const std::string cmd = root["cmd"].asString();
-        const std::string data= root["data"].asString();
-        cout<<"cmd:"<<cmd<<" "<<"data:"<<data<<endl;
-    }catch (exception ex){
-        cout<<"parse json error" <<ex.what()<<endl;
-    }
+
 
 }
 
