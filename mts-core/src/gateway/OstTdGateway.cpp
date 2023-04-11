@@ -1,7 +1,7 @@
 //
 // Created by 段晴 on 2022/2/15.
 //
-
+#include <dlfcn.h>
 #include "OstTdGateway.h"
 #include "Timer.hpp"
 #include "magic_enum.hpp"
@@ -26,13 +26,31 @@ map<int, string> OstTdGateway::qryRetMsgMap = {
 
 
 int OstTdGateway::connect() {
+//    void *handle = dlopen("../lib/ost/libutapi.so", RTLD_LAZY);
+//    if (handle != nullptr) {
+//        typedef CUTApi *(*CreateTdApiFunc)(const char *);
+//        CreateTdApiFunc pfnCreateFtdcTdApiFunc = (CreateTdApiFunc) dlsym(handle,
+//                                                                                 "_ZN6CUTApi9CreateApiEPKci");
+//        if (pfnCreateFtdcTdApiFunc == nullptr) {
+//            logi("load libutapi.so fail [{}] [{}]", errno, strerror(errno));
+//            return -1;
+//        }
+//        m_pUserApi = pfnCreateFtdcTdApiFunc("./flow");
+//        m_pUserApi->RegisterSpi(this);
+//        m_pUserApi->SubscribePrivateTopic(UT_TERT_QUICK);
+//
+//    } else {
+//        logi("load thosttraderapi.dll fail [{}] [{}]", errno, strerror(errno));
+//        return -1;
+//    }
+
     //创建api;将参数nCPUID设置为需要绑定的CPU,可开启极速模式
     //如果同一进程内创建多个api，参数pszFlowPath必须设置为不同的路径
-    CUTApi* api = CUTApi::CreateApi();
+    m_pUserApi = CUTApi::CreateApi();
     //创建并注册spi
-    api->RegisterSpi(this);
+    m_pUserApi->RegisterSpi(this);
     //订阅私有流;这个函数也可以在登录成功后的任何地方调用
-    api->SubscribePrivateTopic(UT_TERT_QUICK);
+    m_pUserApi->SubscribePrivateTopic(UT_TERT_QUICK);
     //暂时没有公有流
     //api->SubscribePublicTopic(UT_TERT_QUICK);
 
@@ -59,6 +77,33 @@ int OstTdGateway::disconnect() {
 }
 
 void OstTdGateway::insertOrder(Order *order) {
+
+    CUTInputOrderField* pInputOrderField;
+    memset(pInputOrderField, 0, sizeof(CUTInputOrderField));
+    strcpy(pInputOrderField->InvestorID, account->loginInfo.userId.c_str());
+    strcpy(pInputOrderField->InstrumentID, order->symbol.c_str());
+    //pInputOrderField->ExchangeID = order->exchange; //todo
+    //OrderRef必须设置,同一会话内必须递增,可以不连续
+    pInputOrderField->OrderRef=atol(order->orderRef.c_str());
+    pInputOrderField->OrderPriceType = UT_OPT_LimitPrice;
+
+    //股票,基金，债券买:HedgeFlag = UT_HF_Speculation,Direction = UT_D_Buy,OffsetFlag = UT_OF_Open
+    //股票, 基金，债券卖:HedgeFlag = UT_HF_Speculation, Direction = UT_D_Sell, OffsetFlag = UT_OF_Close
+    //债券逆回购:HedgeFlag = UT_HF_Speculation, Direction = UT_D_Sell, OffsetFlag = UT_OF_Open
+    //ETF申购:HedgeFlag = UT_HF_Redemption,Direction = UT_D_Buy,OffsetFlag = UT_OF_Open
+    //ETF赎回:HedgeFlag = UT_HF_Redemption,Direction = UT_D_Sell,OffsetFlag = UT_OF_Close
+    pInputOrderField->HedgeFlag = UT_HF_Speculation;
+    pInputOrderField->Direction = UT_D_Buy;
+    pInputOrderField->OffsetFlag = UT_OF_Open;
+    pInputOrderField->LimitPrice = 3.5;
+    pInputOrderField->VolumeTotalOriginal = 100;
+    pInputOrderField->TimeCondition = UT_TC_GFD;
+    pInputOrderField->VolumeCondition = UT_VC_AV;
+    pInputOrderField->MinVolume = 0;
+    pInputOrderField->ContingentCondition = UT_CC_Immediately;
+    pInputOrderField->StopPrice = 0;
+    pInputOrderField->IsAutoSuspend = 0;memset(pInputOrderField, 0, sizeof(CUTInputOrderField));
+    int ret=m_pUserApi->ReqOrderInsert(pInputOrderField,0);
 }
 
 void OstTdGateway::cancelOrder(Order *order) {
@@ -95,6 +140,7 @@ void OstTdGateway::Run() {
 }
 
 void OstTdGateway::OnFrontConnected() {
+    fmtlog::setThreadName("TdGateway");
     logi("OnFrontConnected!");
 
     //登录请求

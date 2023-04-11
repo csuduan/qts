@@ -1,11 +1,15 @@
-[{
+[
+  {
     "accountId": "sim",
     "strategyId": "DEMO-AU_AG",
-    "className" : "GoldStrategy",
-    "contracts": ["cu2206","ni2203"],
-    "paramMap" : {
-        "P0" : "0",
-        "P1" : "1"
+    "className": "GoldStrategy",
+    "contracts": [
+      "cu2206",
+      "ni2203"
+    ],
+    "paramMap": {
+      "P0": "0",
+      "P1": "1"
     }
-}
+  }
 ]

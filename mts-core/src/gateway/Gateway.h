@@ -11,7 +11,6 @@ public:
     /// 订阅合约
     /// \param contracts
     virtual void subscribe(set<string> &contracts){};
-    virtual void unSubscribe(string contract){};
     virtual int connect(){return 0;};
     virtual void disconnect(){};
 };

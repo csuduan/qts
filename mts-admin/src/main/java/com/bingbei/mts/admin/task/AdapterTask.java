@@ -1,4 +1,4 @@
-package com.qts.manager.task;
+package com.bingbei.mts.admin.task;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

@@ -49,12 +49,17 @@ void TradeExecutor::init() {
     Util::split(actConf->tdAddress,tmp,"|");
     string tdType=tmp[0];
     string tdAddress=tmp[1];
-    string authInfo=tmp[2];
-    tmp.clear();
-    Util::split(authInfo,tmp,":");
-    string brokerId=tmp[0];
-    string appId=tmp[1];
-    string authCode=tmp[2];
+    string brokerId;
+    string appId;
+    string authCode;
+    if(tmp.size()>=3){
+        string authInfo=tmp[2];
+        tmp.clear();
+        Util::split(authInfo,tmp,":");
+        brokerId=tmp[0];
+        appId=tmp[1];
+        authCode=tmp[2];
+    }
     tmp.clear();
     Util::split(actConf->mdAddress,tmp,"|");
     string mdType=tmp[0];
@@ -77,6 +82,14 @@ void TradeExecutor::init() {
     this->account=account;
     this->mdGateway=GatewayFactory::createMdGateway(account);
     this->tdGateway=GatewayFactory::createTdGateway(account);
+
+    //初始化订阅
+    std::set<string> subList;
+    for(auto & item :actConf->sublist){
+        subList.insert(item);
+    }
+    this->mdGateway->subscribe(subList);
+
 
     try {
         logi("start load strategy.json");

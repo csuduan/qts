@@ -15,6 +15,11 @@ public class BizException extends RuntimeException{
         this.errCode=SYS_ERROR;
         this.errMsg=errMsg;
     }
+    public BizException(Exception ex){
+        this.errCode=SYS_ERROR;
+        this.errMsg=ex.getMessage();
+    }
+
     public BizException(ReturnCode returnCode){
         this.errCode=returnCode.getCode();
         this.errMsg= returnCode.getMessage();

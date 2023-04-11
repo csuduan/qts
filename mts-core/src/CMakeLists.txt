@@ -10,7 +10,7 @@ AUX_SOURCE_DIRECTORY(strategy SOURCE_STRATEGY)
 AUX_SOURCE_DIRECTORY(util SOURCE_UTIL)
 
 
-link_directories(./ost)
+#link_directories(./ost)
 add_library (${PROJECT_NAME} SHARED
         ${SOURCE_ENGINE}
         ${SOURCE_GATEWAY}
@@ -18,4 +18,4 @@ add_library (${PROJECT_NAME} SHARED
         ${SOURCE_UTIL}
         )
 
-#TARGET_LINK_LIBRARIES(${PROJECT_NAME}  utapi)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME}  utmdapi utapi)

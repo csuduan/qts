@@ -56,14 +56,14 @@ public:
 
 	///转账错误回报
 	virtual void OnRspTransferInsert(CUTInputTransferField *pInputTransfer, CUTRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {};
-	
+
 
 	///转账
 	virtual void OnRtnTransfer(CUTTransferField *pTransfer) {};
 
 	///直接还款错误回报
 	virtual void OnRspFundPaybackInsert(CUTInputFundPaybackField *pInputFundPayback, CUTRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {};
-	
+
 
 	///直接还款
 	virtual void OnRtnFundPayback(CUTFundPaybackField *pFundPayback) {};

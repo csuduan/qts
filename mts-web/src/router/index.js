@@ -1,31 +1,139 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import {formatRoutes} from '@/utils/routerUtil'
 
 Vue.use(Router)
 
-// 不需要登录拦截的路由配置
-const loginIgnore = {
-  names: ['404', '403'],      //根据路由名称匹配
-  paths: ['/login'],   //根据路由fullPath匹配
-  /**
-   * 判断路由是否包含在该配置中
-   * @param route vue-router 的 route 对象
-   * @returns {boolean}
-   */
-  includes(route) {
-    return this.names.includes(route.name) || this.paths.includes(route.path)
-  }
-}
+/* Layout */
+import Layout from '@/layout'
 
 /**
- * 初始化路由实例
- * @param isAsync 是否异步路由模式
- * @returns {VueRouter}
+ * Note: sub-menu only appear when route children.length >= 1
+ * Detail see: https://panjiachen.github.io/vue-element-admin-site/guide/essentials/router-and-nav.html
+ *
+ * hidden: true                   if set true, item will not show in the sidebar(default is false)
+ * alwaysShow: true               if set true, will always show the root menu
+ *                                if not set alwaysShow, when item has more than one children route,
+ *                                it will becomes nested mode, otherwise not show the root menu
+ * redirect: noRedirect           if set noRedirect will no redirect in the breadcrumb
+ * name:'router-name'             the name is used by <keep-alive> (must set!!!)
+ * meta : {
+    roles: ['admin','editor']    control the page roles (you can set multiple roles)
+    title: 'title'               the name show in sidebar and breadcrumb (recommend set)
+    icon: 'svg-name'/'el-icon-x' the icon show in the sidebar
+    breadcrumb: false            if set false, the item will hidden in breadcrumb(default is true)
+    activeMenu: '/example/list'  if set path, the sidebar will highlight the path you set
+  }
  */
-function initRouter(isAsync) {
-  const options = isAsync ? require('./async/config.async').default : require('./config').default
-  formatRoutes(options.routes)
-  return new Router(options)
+
+/**
+ * constantRoutes
+ * a base page that does not have permission requirements
+ * all roles can be accessed
+ */
+export const constantRoutes = [
+  {
+    path: '/login',
+    component: () => import('@/views/login/index'),
+    hidden: true
+  },
+
+  {
+    path: '/404',
+    component: () => import('@/views/404'),
+    hidden: true
+  },
+
+  {
+    path: '/',
+    component: Layout,
+    redirect: '/dashboard',
+    children: [{
+      path: 'dashboard',
+      name: 'Dashboard',
+      component: () => import('@/views/dashboard/index'),
+      meta: { title: '首页', icon: 'dashboard' }
+    }]
+  },
+  {
+    path: '/setting',
+    component: Layout,
+    redirect: 'noRedirect',
+    meta: {
+      title: '设置',
+      icon: 'el-icon-s-tools'
+    },
+    children: [
+      {
+        path: 'account',
+        component: () => import('@/views/setting/setting-account'),
+        name: 'account',
+        meta: { title: '账户设置'}
+      },
+      {
+        path: 'sys',
+        component: () => import('@/views/setting/setting-sys'),
+        name: 'sys',
+        meta: { title: '系统设置' }
+      },
+      {
+        path: 'task',
+        component: () => import('@/views/setting/setting-task'),
+        name: 'task',
+        meta: { title: '任务设置' }
+      }
+    ]
+  },{
+    path: '/account',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/account'),
+        name: 'account',
+        meta: { title: '账户',icon: 'tree' }
+      }
+    ]
+  },
+  {
+    path: '/trade',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/trade'),
+        name: 'index',
+        meta: { title: '交易',icon: 'example' }
+      }
+    ]
+  },
+
+  {
+    path: 'external-link',
+    component: Layout,
+    children: [
+      {
+        path: 'https://panjiachen.github.io/vue-element-admin-site/#/',
+        meta: { title: '外链', icon: 'link' }
+      }
+    ]
+  },
+
+  // 404 page must be placed at the end !!!
+  { path: '*', redirect: '/404', hidden: true }
+]
+
+const createRouter = () => new Router({
+  // mode: 'history', // require service support
+  scrollBehavior: () => ({ y: 0 }),
+  routes: constantRoutes
+})
+
+const router = createRouter()
+
+// Detail see: https://github.com/vuejs/vue-router/issues/1234#issuecomment-357941465
+export function resetRouter() {
+  const newRouter = createRouter()
+  router.matcher = newRouter.matcher // reset router
 }
-export {loginIgnore, initRouter}
+
+export default router

@@ -13,6 +13,8 @@ int CtpMdGateway::nRequestID;
 int CtpMdGateway::connect() {
     void *handle = dlopen("../lib/ctp/thostmduserapi_se.so", RTLD_LAZY);
     if (handle != nullptr) {
+        //查看函数符号  objdump -tT ctp/thostmduserapi_se.so  |grep CreateFtdcMdApi
+        //或者nm -D   （-T 的行表示导出函数）
         typedef CThostFtdcMdApi *(*CreateApiMdFunc)(const char *);
         CreateApiMdFunc pfnCreateFtdcMdApiFunc = (CreateApiMdFunc) dlsym(handle,
                                                                          "_ZN15CThostFtdcMdApi15CreateFtdcMdApiEPKcbb");
@@ -85,9 +87,11 @@ void CtpMdGateway::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CT
 
 void CtpMdGateway::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument,
                                       CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
-    if (pSpecificInstrument && pRspInfo->ErrorID == 0) {
+    if (pRspInfo->ErrorID == 0) {
         logi("MD OnRspSubMarketData {}",pSpecificInstrument->InstrumentID);
-    }
+    }else
+        loge("MD OnRspSubMarketData fail {} {}",pSpecificInstrument->InstrumentID,pRspInfo->ErrorMsg);
+
 }
 
 void CtpMdGateway::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData) {

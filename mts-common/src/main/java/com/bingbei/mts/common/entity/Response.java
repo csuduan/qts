@@ -5,22 +5,22 @@ import lombok.Data;
 
 @Data
 public class Response <T>{
-    private int returnCode;
-    private String returnMsg;
-    private T body;
+    private int code;
+    private String message;
+    private T data;
 
     public Response(){
-        this.returnCode= ReturnCode.SUCCESS.getCode();
-        this.returnMsg=ReturnCode.SUCCESS.getMessage();
+        this.code = ReturnCode.SUCCESS.getCode();
+        this.message =ReturnCode.SUCCESS.getMessage();
     }
     public Response(ReturnCode returnCode){
-        this.returnCode=returnCode.getCode();
-        this.returnMsg=returnCode.getMessage();
+        this.code =returnCode.getCode();
+        this.message =returnCode.getMessage();
     }
 
     public Response(int returnCode,String returnMsg){
-        this.returnCode=returnCode;
-        this.returnMsg=returnMsg;
+        this.code =returnCode;
+        this.message =returnMsg;
     }
 
 }

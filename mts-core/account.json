@@ -16,5 +16,14 @@
     "mdAddress": "CTP|tcp://180.168.146.187:10211",
     "mdAddress_bak": "CTP|tcp://180.168.146.187:10131",
     "sublist": ["ag2203","cu2206","au2203","zn2203","ni2203"]
+  },
+  {
+    "id": "ost",
+    "name": "ost-test",
+    "user": "00122899|123456",
+    "tdAddress": "OST|tcp://47.100.124.2:8888",
+    "mdAddress": "OST|tcp://47.100.124.2:33008",
+    "mdAddress_bak": "CTP|tcp://180.168.146.187:10131",
+    "sublist": ["000001","000002"]
   }
 ]

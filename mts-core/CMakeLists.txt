@@ -48,11 +48,13 @@ add_executable(usd-client  ${SRC}/UdsClient.cpp)
 #        /usr/local/lib/
 #)
 FIND_LIBRARY(FMT fmt /usr/local/lib)
-FIND_LIBRARY(OST utapi ${CMAKE_BINARY_DIR}/lib/ost)
+#FIND_LIBRARY(OST utapi ${CMAKE_BINARY_DIR}/lib/ost)
+#FIND_LIBRARY(OMD utmdapi ${CMAKE_BINARY_DIR}/lib/ost)
+
 
 
 #添加链接库文件（-l）
-target_link_libraries(${PROJECT_NAME} trade-engine fmtlog ${FMT} jsoncpp ${OST} dl rt pthread event)
+target_link_libraries(${PROJECT_NAME} trade-engine fmtlog ${FMT} jsoncpp utmdapi utapi  dl rt pthread event)
 
 target_link_libraries(usd-client trade-engine fmtlog ${FMT} jsoncpp  dl rt pthread event)
 

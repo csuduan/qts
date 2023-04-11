@@ -1,168 +1,85 @@
 import axios from 'axios'
-import Cookie from 'js-cookie'
+import { MessageBox, Message } from 'element-ui'
+import store from '@/store'
+import { getToken } from '@/utils/auth'
 
-// 跨域认证信息 header 名
-const xsrfHeaderName = 'Authorization'
+// create an axios instance
+const service = axios.create({
+  baseURL: process.env.VUE_APP_BASE_API, // url = base url + request url
+  // withCredentials: true, // send cookies when cross-domain requests
+  timeout: 5000 // request timeout
+})
 
-axios.defaults.timeout = 5000
-axios.defaults.withCredentials= true
-axios.defaults.xsrfHeaderName= xsrfHeaderName
-axios.defaults.xsrfCookieName= xsrfHeaderName
+// request interceptor
+service.interceptors.request.use(
+  config => {
+    // do something before request is sent
 
-// 认证类型
-const AUTH_TYPE = {
-  BEARER: 'Bearer',
-  BASIC: 'basic',
-  AUTH1: 'auth1',
-  AUTH2: 'auth2',
-}
-
-// http method
-const METHOD = {
-  GET: 'get',
-  POST: 'post'
-}
-
-/**
- * axios请求
- * @param url 请求地址
- * @param method {METHOD} http method
- * @param params 请求参数
- * @returns {Promise<AxiosResponse<T>>}
- */
-async function request(url, method, params, config) {
-  switch (method) {
-    case METHOD.GET:
-      return axios.get(url, {params, ...config})
-    case METHOD.POST:
-      return axios.post(url, params, config)
-    default:
-      return axios.get(url, {params, ...config})
+    if (store.getters.token) {
+      // let each request carry token
+      // ['X-Token'] is a custom headers key
+      // please modify it according to the actual situation
+      config.headers['X-Token'] = getToken()
+    }
+    return config
+  },
+  error => {
+    // do something with request error
+    console.log(error) // for debug
+    return Promise.reject(error)
   }
-}
+)
 
-/**
- * 设置认证信息
- * @param auth {Object}
- * @param authType {AUTH_TYPE} 认证类型，默认：{AUTH_TYPE.BEARER}
- */
-function setAuthorization(auth, authType = AUTH_TYPE.BEARER) {
-  switch (authType) {
-    case AUTH_TYPE.BEARER:
-      Cookie.set(xsrfHeaderName, 'Bearer ' + auth.token, {expires: auth.expireAt})
-      break
-    case AUTH_TYPE.BASIC:
-    case AUTH_TYPE.AUTH1:
-    case AUTH_TYPE.AUTH2:
-    default:
-      break
-  }
-}
+// response interceptor
+service.interceptors.response.use(
+  /**
+   * If you want to get http information such as headers or status
+   * Please return  response => response
+  */
 
-/**
- * 移出认证信息
- * @param authType {AUTH_TYPE} 认证类型
- */
-function removeAuthorization(authType = AUTH_TYPE.BEARER) {
-  switch (authType) {
-    case AUTH_TYPE.BEARER:
-      Cookie.remove(xsrfHeaderName)
-      break
-    case AUTH_TYPE.BASIC:
-    case AUTH_TYPE.AUTH1:
-    case AUTH_TYPE.AUTH2:
-    default:
-      break
-  }
-}
+  /**
+   * Determine the request status by custom code
+   * Here is just an example
+   * You can also judge the status by HTTP Status Code
+   */
+  response => {
+    const res = response.data
 
-/**
- * 检查认证信息
- * @param authType
- * @returns {boolean}
- */
-function checkAuthorization(authType = AUTH_TYPE.BEARER) {
-  switch (authType) {
-    case AUTH_TYPE.BEARER:
-      if (Cookie.get(xsrfHeaderName)) {
-        return true
+    // if the custom code is not 20000, it is judged as an error.
+    if (res.code !== 0) {
+      Message({
+        message: res.message || 'Error',
+        type: 'error',
+        duration: 5 * 1000
+      })
+
+      // 50008: Illegal token; 50012: Other clients logged in; 50014: Token expired;
+      if (res.code === 50008 || res.code === 50012 || res.code === 50014) {
+        // to re-login
+        MessageBox.confirm('You have been logged out, you can cancel to stay on this page, or log in again', 'Confirm logout', {
+          confirmButtonText: 'Re-Login',
+          cancelButtonText: 'Cancel',
+          type: 'warning'
+        }).then(() => {
+          store.dispatch('user/resetToken').then(() => {
+            location.reload()
+          })
+        })
       }
-      break
-    case AUTH_TYPE.BASIC:
-    case AUTH_TYPE.AUTH1:
-    case AUTH_TYPE.AUTH2:
-    default:
-      break
+      return Promise.reject(new Error(res.message || 'Error'))
+    } else {
+      return res
+    }
+  },
+  error => {
+    console.log('err' + error) // for debug
+    Message({
+      message: error.message,
+      type: 'error',
+      duration: 5 * 1000
+    })
+    return Promise.reject(error)
   }
-  return false
-}
+)
 
-/**
- * 加载 axios 拦截器
- * @param interceptors
- * @param options
- */
-function loadInterceptors(interceptors, options) {
-  const {request, response} = interceptors
-  // 加载请求拦截器
-  request.forEach(item => {
-    let {onFulfilled, onRejected} = item
-    if (!onFulfilled || typeof onFulfilled !== 'function') {
-      onFulfilled = config => config
-    }
-    if (!onRejected || typeof onRejected !== 'function') {
-      onRejected = error => Promise.reject(error)
-    }
-    axios.interceptors.request.use(
-      config => onFulfilled(config, options),
-      error => onRejected(error, options)
-    )
-  })
-  // 加载响应拦截器
-  response.forEach(item => {
-    let {onFulfilled, onRejected} = item
-    if (!onFulfilled || typeof onFulfilled !== 'function') {
-      onFulfilled = response => response
-    }
-    if (!onRejected || typeof onRejected !== 'function') {
-      onRejected = error => Promise.reject(error)
-    }
-    axios.interceptors.response.use(
-      response => onFulfilled(response, options),
-      error => onRejected(error, options)
-    )
-  })
-}
-
-/**
- * 解析 url 中的参数
- * @param url
- * @returns {Object}
- */
-function parseUrlParams(url) {
-  const params = {}
-  if (!url || url === '' || typeof url !== 'string') {
-    return params
-  }
-  const paramsStr = url.split('?')[1]
-  if (!paramsStr) {
-    return params
-  }
-  const paramsArr = paramsStr.replace(/&|=/g, ' ').split(' ')
-  for (let i = 0; i < paramsArr.length / 2; i++) {
-    const value = paramsArr[i * 2 + 1]
-    params[paramsArr[i * 2]] = value === 'true' ? true : (value === 'false' ? false : value)
-  }
-  return params
-}
-
-export {
-  METHOD,
-  AUTH_TYPE,
-  request,
-  setAuthorization,
-  removeAuthorization,
-  checkAuthorization,
-  loadInterceptors,
-  parseUrlParams
-}
+export default service
