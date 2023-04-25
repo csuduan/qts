@@ -20,7 +20,7 @@ map<TThostFtdcOrderStatusType, ORDER_STATUS> CtpTdGateway::statusMap = {
         {THOST_FTDC_OST_NoTradeQueueing,       ORDER_STATUS::QUEUEING},
         {THOST_FTDC_OST_NoTradeNotQueueing,    ORDER_STATUS::NOTQUEUEING},
         {THOST_FTDC_OST_Canceled,              ORDER_STATUS::CANCELLED},
-        {THOST_FTDC_OST_Unknown,               ORDER_STATUS::ALLTRADED}
+        {THOST_FTDC_OST_Unknown,               ORDER_STATUS::UNKNOWN}
 };
 map<int, string> CtpTdGateway::qryRetMsgMap = {
         {0,  "成功"},
@@ -30,28 +30,24 @@ map<int, string> CtpTdGateway::qryRetMsgMap = {
 
 };
 
-void sigHandler(int signo) {
-    logw("recv sig {}", signo);
-}
 
 int CtpTdGateway::connect() {
-    void *handle = dlopen("../lib/ctp/thosttraderapi_se.so", RTLD_LAZY);
-    if (handle != nullptr) {
-        typedef CThostFtdcTraderApi *(*CreateFtdcTdApiFunc)(const char *);
-        CreateFtdcTdApiFunc pfnCreateFtdcTdApiFunc = (CreateFtdcTdApiFunc) dlsym(handle,
-                                                                                 "_ZN19CThostFtdcTraderApi19CreateFtdcTraderApiEPKc");
-        if (pfnCreateFtdcTdApiFunc == nullptr) {
-            logi("load thosttraderapi.dll fail [{}] [{}]", errno, strerror(errno));
-            return -1;
-        }
-        m_pUserApi = pfnCreateFtdcTdApiFunc("./flow");
-        m_pUserApi->RegisterSpi(this);
-        m_pUserApi->SubscribePrivateTopic(THOST_TERT_QUICK);
-        m_pUserApi->SubscribePublicTopic(THOST_TERT_QUICK);
-    } else {
+    void *handle = dlopen("lib/ctp/thosttraderapi_se.so", RTLD_LAZY);
+    if(handle == nullptr){
         logi("load thosttraderapi.dll fail [{}] [{}]", errno, strerror(errno));
         return -1;
     }
+    typedef CThostFtdcTraderApi *(*CreateFtdcTdApiFunc)(const char *);
+    CreateFtdcTdApiFunc pfnCreateFtdcTdApiFunc = (CreateFtdcTdApiFunc) dlsym(handle,
+                                                                             "_ZN19CThostFtdcTraderApi19CreateFtdcTraderApiEPKc");
+    if (pfnCreateFtdcTdApiFunc == nullptr) {
+        logi("load thosttraderapi.dll fail [{}] [{}]", errno, strerror(errno));
+        return -1;
+    }
+    m_pUserApi = pfnCreateFtdcTdApiFunc("./flow");
+    m_pUserApi->RegisterSpi(this);
+    m_pUserApi->SubscribePrivateTopic(THOST_TERT_QUICK);
+    m_pUserApi->SubscribePublicTopic(THOST_TERT_QUICK);
 
     thread t(&CtpTdGateway::Run, this);
     t.detach();
@@ -74,11 +70,9 @@ int CtpTdGateway::disconnect() {
 }
 
 void CtpTdGateway::Run() {
-    signal(SIGUSR1, sigHandler);
     const char *address = this->loginInfo.tdAddress.c_str();
     m_pUserApi->RegisterFront(const_cast<char *>(address));
     m_pUserApi->Init();
-    logi("start connecting...");
     m_pUserApi->Join();
 }
 
@@ -96,20 +90,13 @@ void CtpTdGateway::reqQryPosition() {
 
 }
 
-void CtpTdGateway::insertOrder(Order *order) {
-    if (!this->isConnected()) {
-        loge("Not connected");
-        order->status = ORDER_STATUS::ERROR;
-        order->statusMsg = "未连接";
-        return;
-    }
-
+bool CtpTdGateway::insertOrder(Order *order) {
     CThostFtdcInputOrderField req = {0};
     strcpy(req.BrokerID, loginInfo.brokerId.c_str());
     strcpy(req.InvestorID, loginInfo.userId.c_str());
     strcpy(req.InstrumentID, order->symbol.c_str());
     strcpy(req.ExchangeID, order->exchange.c_str());
-    strcpy(req.OrderRef, order->orderRef.c_str());
+    strcpy(req.OrderRef, to_string(order->orderRef).c_str());
     req.RequestID = this->nRequestID++;
     req.Direction = order->direction == BUY ? THOST_FTDC_D_Buy : THOST_FTDC_D_Sell;//买/卖
     switch (order->offset) {
@@ -157,20 +144,19 @@ void CtpTdGateway::insertOrder(Order *order) {
     req.LimitPrice = order->price;
     int ret = this->m_pUserApi->ReqOrderInsert(&req, req.RequestID);
     logi("ReqOrder orderRef:{} symbol:{} offset:{} direction:{} price:{} volume:{}  ret={}",
-         order->orderRef, order->symbol, order->offset, order->direction, order->price, order->totalVolume,
+         order->orderRef, order->symbol, order->offset_s, order->direction_s, order->price, order->totalVolume,
          ret);
     if (ret != 0) {
         order->status = ORDER_STATUS::ERROR;
         order->statusMsg = "insert order fail";
     } else {
-        orderMap[order->orderRef] = order;
+        account->orderMap[order->orderRef] = order;
     }
-
-
+    return  ret==0;
 }
 
 
-void CtpTdGateway::cancelOrder(Order *order) {
+void CtpTdGateway::cancelOrder(Action *order) {
     if (!this->isConnected()) {
         loge("Not connected");
         return;
@@ -181,16 +167,16 @@ void CtpTdGateway::cancelOrder(Order *order) {
     strcpy(req.BrokerID, loginInfo.brokerId.c_str());
     strcpy(req.InvestorID, loginInfo.userId.c_str());
     //strcpy_s(req.UserID, g_chUserID);
-    strcpy(req.InstrumentID, order->symbol.c_str());
+    //strcpy(req.InstrumentID, order->symbol.c_str());
 
 
     //strcpy(req.OrderSysID, vector_OrderSysID.at(action_num - 1).c_str());
     //strcpy(req.ExchangeID, vector_ExchangeID.at(action_num - 1).c_str());
     req.FrontID = frontId;
     req.SessionID = sessionId;
-    strcpy(req.OrderRef, order->orderRef.c_str());
+    strcpy(req.OrderRef, to_string(order->orderRef).c_str());
 
-    this->orderMap[order->orderRef] = order;
+    //account->orderMap[order->orderRef] = order;
     int ret = m_pUserApi->ReqOrderAction(&req, this->nRequestID++);
     logi("ReqOrderAction orderRef:{} ret={}", order->orderRef, ret);
 }
@@ -277,16 +263,19 @@ void CtpTdGateway::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, 
 }
 
 void CtpTdGateway::OnRtnOrder(CThostFtdcOrderField *pOrder) {
-    if (!orderMap.contains(pOrder->OrderRef))
+    int orderRef=atoi(pOrder->OrderRef);
+    if (!account->orderMap.contains(orderRef))
         return;
-
-    Order *order = orderMap[pOrder->OrderRef];
+    long tsc=Context::get().tn.rdtsc();
+    Order *order = account->orderMap[orderRef];
     //order->tradedVolume = order.TradedVolume;
     order->orderSysId = pOrder->OrderSysID;
     order->tradedVolume = pOrder->VolumeTraded;
     order->status = statusMap[pOrder->OrderStatus];
-    order->statusMsg = Util::g2u(pOrder->StatusMsg);
+    order->status_s= enum_string(order->status);
+    order->statusMsg = pOrder->StatusMsg;
     order->updateTime = pOrder->UpdateTime;
+    order->updateTsc=tsc;
     //错单识别
     if (order->statusMsg.find("拒绝") != string::npos ||
         order->statusMsg.find("禁止") != string::npos ||
@@ -298,35 +287,37 @@ void CtpTdGateway::OnRtnOrder(CThostFtdcOrderField *pOrder) {
         order->statusMsg.find("最小单位的倍数") != string::npos) {
         order->status = ORDER_STATUS::ERROR;
     }
+    this->queue->push(Event{EvType::ORDER, tsc,order});
     logi("{} OnRtnOrder {} {} traded:{}/{} status:{} msg:{}", id, order->orderRef, order->symbol, order->tradedVolume,
-         order->totalVolume, magic_enum::enum_name(order->status), order->statusMsg);
-    Event event(EventType::ORDER, order);
-    this->queue->push(std::move(event));
+         order->totalVolume, order->status_s, order->statusMsg);
 }
 
 void CtpTdGateway::OnRtnTrade(CThostFtdcTradeField *pTrade) {
-    if (!orderMap.contains(pTrade->OrderRef))
+    int orderRef=atoi(pTrade->OrderRef);
+    if (!account->orderMap.contains(orderRef))
         return;
 
-    Order *order = orderMap[pTrade->OrderRef];
+    long tsc=Context::get().tn.rdtsc();
+    Order *order = account->orderMap[orderRef];
     Trade *trade = new Trade();
     trade->orderRef = order->orderRef;
-    trade->tradeID = pTrade->TradeID;
+    trade->tradeId = pTrade->TradeID;
     trade->tradingDay = pTrade->TradingDay;
     trade->tradeDate = pTrade->TradeDate;
     trade->tradeTime = pTrade->TradeTime;
     trade->symbol = pTrade->InstrumentID;
     trade->direction = order->direction;
+    trade->direction_s = enum_string(order->direction);
     trade->offset = order->offset;
+    trade->offset_s= enum_string(order->offset);
     trade->volume = pTrade->Volume;
     trade->price = pTrade->Price;
     trade->exchange = pTrade->ExchangeID;
+    trade->updateTsc=tsc;
 
-    logi("{} OnRtnTrade {} {} {}  traded:{}", id, trade->orderRef, trade->symbol, magic_enum::enum_name(trade->offset),
+    this->queue->push(Event{EvType::TRADE, tsc,trade});
+    logi("{} OnRtnTrade {} {} {} {} traded:{}", id, trade->orderRef, trade->symbol, magic_enum::enum_name(trade->offset),
          magic_enum::enum_name(trade->direction), pTrade->Volume);
-
-    Event event(EventType::TRADE, trade);
-    this->queue->push(std::move(event));
 
 
 }
@@ -336,23 +327,25 @@ void
 CtpTdGateway::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
                                bool bIsLast) {
     //CTP检测失败时触发
-    loge("{} OnRspOrderInsert", id);
-    if (this->orderMap.contains(pInputOrder->OrderRef)) {
-        Order *order = this->orderMap[pInputOrder->OrderRef];
+    int orderRef=atoi(pInputOrder->OrderRef);
+    loge("OnRspOrderInsert Error! orderRef:{} {}", pInputOrder->OrderRef,pRspInfo->ErrorMsg);
+    if (account->orderMap.contains(orderRef)) {
+        Order *order = account->orderMap[orderRef];
         order->status = ORDER_STATUS::ERROR;
         order->statusMsg = pRspInfo->ErrorMsg;
-        Event event(EventType::ORDER, order);
+        Event event{EvType::ORDER,0, order};
         this->queue->push(event);
     }
 }
 
 void CtpTdGateway::OnErrRtnOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo) {
-    loge("{} OnErrRtnOrderInsert", id);
-    if (this->orderMap.contains(pInputOrder->OrderRef)) {
-        Order *order = this->orderMap[pInputOrder->OrderRef];
+    int orderRef=atoi(pInputOrder->OrderRef);
+    loge("OnErrRtnOrderInsert Error! orderRef:{} {}", pInputOrder->OrderRef,pRspInfo->ErrorMsg);
+    if (account->orderMap.contains(orderRef)) {
+        Order *order = account->orderMap[orderRef];
         order->status = ORDER_STATUS::ERROR;
         order->statusMsg = pRspInfo->ErrorMsg;
-        Event event(EventType::ORDER, order);
+        Event event{EvType::ORDER,0, order};
         this->queue->push(event);
     }
 }
@@ -408,10 +401,10 @@ void CtpTdGateway::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pIn
              pInvestorPosition->Position);
         string key = symbol + "-" + to_string(direction);
         if (!account->accoPositionMap.contains(key)) {
-            AcctPosition *position = new AcctPosition(pInvestorPosition->InstrumentID, direction);
+            Position *position = new Position(pInvestorPosition->InstrumentID, direction);
             account->accoPositionMap[key] = position;
         }
-        AcctPosition *position = account->accoPositionMap[key];
+        Position *position = account->accoPositionMap[key];
         position->pos += pInvestorPosition->Position;
         position->tdPos += pInvestorPosition->TodayPosition;
         position->ydPos = position->pos - position->tdPos;
@@ -459,13 +452,14 @@ void CtpTdGateway::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CT
             contract->strikePrice = pInstrument->StrikePrice;
             contract->type = pInstrument->ProductClass;
             contract->expiryDate = pInstrument->ExpireDate;
-            contract->posDateType = pInstrument->PositionDateType;
+            //contract->posDateType = pInstrument->PositionDateType;
             contract->underlyingSymbol = pInstrument->UnderlyingInstrID;//针对商品期权
         }
     }
 
     if (bIsLast) {
         logi("{} OnRspQryInstrument Finish,cont:{}", id, account->contractMap.size());
+        this->queue->push(Event{EvType::CONTRACT});
 
         timer.delay(1000, [this]() {
             //查询持仓

@@ -1,62 +1,26 @@
 cmake_minimum_required(VERSION 3.16)
 project(mts-core)
-
-configure_file (
-        "${PROJECT_SOURCE_DIR}/config.h.in"
-        "${PROJECT_BINARY_DIR}/config.h"
-)
+add_definitions(-DUSE_SF)
 
 set(CMAKE_CXX_STANDARD 20)
-set(SRC ./src)
-#set(LIB ./lib)
-set(INC ./include)
-set(EXECUTABLE_OUTPUT_PATH  ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_CXX_FLAGS   "-Wno-write-strings -Wno-return-type")
+set(CMAKE_BUILD_TYPE Debug)
 
 
-include_directories(${INC} ${SRC})
+#build path
+set(EXECUTABLE_OUTPUT_PATH  ${CMAKE_BINARY_DIR}/build)
+#lib path
+set(LIBRARY_OUTPUT_PATH ${EXECUTABLE_OUTPUT_PATH}/lib)
+
+
+
+file(COPY conf DESTINATION ${EXECUTABLE_OUTPUT_PATH})
+file(COPY lib DESTINATION  ${EXECUTABLE_OUTPUT_PATH})
+
+#include_directories(${INC} ${SRC})
+include_directories(include src)
 
 add_subdirectory(depends)
-add_subdirectory(${SRC})
-
-#include(FindProtobuf)
-#find_package(Protobuf REQUIRED)
-#include_directories(${PROTOBUF_INCLUDE_DIR})
-#INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
-
-
-#find_package( json 3 REQUIRED )
-file(COPY strategy.json DESTINATION ${CMAKE_BINARY_DIR}/bin)
-file(COPY account.json DESTINATION ${CMAKE_BINARY_DIR}/bin)
-file(COPY lib DESTINATION ${CMAKE_BINARY_DIR})
-
-#添加静态库（add_executable之前）
-#link_libraries(trade-engine fmtlog fmt jsoncpp)
-
-#生成执行文件或者库
-add_executable(${PROJECT_NAME}  ${SRC}/TradeCore.cpp)
-add_executable(usd-client  ${SRC}/UdsClient.cpp)
-
-
-
-#添加头文件（-I）
-#target_include_directories( ${PROJECT_NAME} include ${subprojects_SOURCE_DIR}/include)
-
-#需要链接的库目录（-L）
-#link_directories(
-#        ./
-#        ${LIB}
-#        /usr/local/lib/
-#)
-FIND_LIBRARY(FMT fmt /usr/local/lib)
-#FIND_LIBRARY(OST utapi ${CMAKE_BINARY_DIR}/lib/ost)
-#FIND_LIBRARY(OMD utmdapi ${CMAKE_BINARY_DIR}/lib/ost)
-
-
-
-#添加链接库文件（-l）
-target_link_libraries(${PROJECT_NAME} trade-engine fmtlog ${FMT} jsoncpp utmdapi utapi  dl rt pthread event)
-
-target_link_libraries(usd-client trade-engine fmtlog ${FMT} jsoncpp  dl rt pthread event)
-
+add_subdirectory(src)
 
 

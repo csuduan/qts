@@ -20,8 +20,8 @@ class CtpMdGateway: public CThostFtdcMdSpi, public MdGateway
 public:
     //std::function<void(TickData *)> tickDataCallBack = nullptr;
     //std::list<std::function<void(TickData)>> tickDataCallBack;
-    CtpMdGateway(Account* account): account(account){
-        this->queue=&account->eventQueue;
+    CtpMdGateway(Quote* quote): MdGateway(quote){
+        //this->queue=account->eventQueue;
     }
     ~CtpMdGateway() {}
     void ReqUserLogin();
@@ -50,9 +50,7 @@ private:
     CThostFtdcMdApi* m_pUserApi;
     bool  isConnected;
     string tradingDay;
-    std::set<string> contracts;
-    LockFreeQueue<Event>* queue;
-    Account * account;
+    //LockFreeQueue<Event>* queue;
     void Run();
 };
 

@@ -13,6 +13,7 @@ import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.util.CharsetUtil;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +27,7 @@ public class NettyClient {
     private String unName;
     private boolean enable=true;
     private Channel channel;
+    private NettyClientHandler clientHandler;
 
     public NettyClient(String unName){
         this.unName=unName;
@@ -34,9 +36,10 @@ public class NettyClient {
         Thread thread=new Thread(()->{
             while (enable){
                 this.connect();
+                clientHandler.setConnected(false);
                 log.error("{}连接断开，稍后将自动重试",unName);
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(10000);
                 }catch (Exception ex){
 
                 }
@@ -70,6 +73,7 @@ public class NettyClient {
         try {
             Bootstrap bootstrap;
             bootstrap = new Bootstrap();
+            clientHandler=new NettyClientHandler(unName);
             bootstrap.group(group)
                     .remoteAddress(new DomainSocketAddress(socketPath))
                     //长链接
@@ -81,7 +85,7 @@ public class NettyClient {
                             socketChannel.pipeline().addLast("decoder", new StringDecoder(CharsetUtil.UTF_8));
                             socketChannel.pipeline().addLast("encoder", new StringEncoder(CharsetUtil.UTF_8));
                             // 处理接收到的请求
-                            socketChannel.pipeline().addLast(new NettyClientHandler(unName)); // 这里相当于过滤器，可以配置多个
+                            socketChannel.pipeline().addLast(clientHandler); // 这里相当于过滤器，可以配置多个
                         }
                     });
 
@@ -89,9 +93,13 @@ public class NettyClient {
             channel=channelFuture.channel();
             channel.closeFuture().sync();
         }catch (Exception ex){
-            log.error("netty client error",ex);
+            log.error("{} netty client error",unName,ex.getMessage());
         }finally {
 
         }
+    }
+
+    public boolean isConnected(){
+        return this.clientHandler.isConnected();
     }
 }

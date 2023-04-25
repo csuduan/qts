@@ -1,33 +1,35 @@
 #pragma  once
 #include <thread>
 #include "define.h"
-class Monitor{
-public:
-    static double avgQueueDelay;
-    static double avgTickToTrade;
-    static double avgRtnDelay;
-    static int orderCount;
-    static int  tickCount;
+#include "Singleton.h"
+class Monitor:public Singleton<Monitor>{
+    friend class Singleton<Monitor>;
 
-    static void init(){
-        thread t(display);
-        t.detach();
-    }
+public:
+    double avgQueueDelay=0;
+    double avgTickToTrade=0;
+    double avgRtnDelay=0;
+    int orderCount=0;
+    int  tickCount=0;
 
 private:
-    static void display(){
+    Monitor(){
+        thread t([this](){
+            this->display();
+        });
+        t.detach();
+    }
+    Monitor(const Monitor&)=delete;
+    Monitor& operator =(const Monitor&)= delete;
+
+
+     void display(){
         while (true){
             //logi("monitor--> avgQueueDelay:{}",avgQueueDelay);
             //logi("monitor--> tickCount:{}",tickCount);
-
             //清零
             sleep(10);
         }
 
     }
 };
-
-int Monitor::tickCount=0;
-double Monitor::avgQueueDelay=0;
-double Monitor::avgRtnDelay =0;
-int Monitor::orderCount=0;

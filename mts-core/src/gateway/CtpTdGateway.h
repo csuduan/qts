@@ -26,9 +26,8 @@ private:
     LockFreeQueue<Event> *queue;
     int frontId = 0;// 前置机编号
     int sessionId = 0;// 会话编号
-    vector<AcctPosition> tmpPositons;
+    vector<Position> tmpPositons;
     vector<Trade> tmpTrades;
-    map<string, Order *> orderMap;
     Timer timer;
 
     void Run();
@@ -37,7 +36,7 @@ public:
     CtpTdGateway(Account *account) : account(account) {
         this->loginInfo = account->loginInfo;
         this->id = account->id;
-        this->queue = &account->eventQueue;
+        this->queue = account->queue;
     }
 
     ~CtpTdGateway() {}
@@ -49,10 +48,10 @@ public:
     int disconnect() override;
 
     ///插入报单
-    void insertOrder(Order *order) override;
+    bool insertOrder(Order *order) override;
 
     ///撤销报单
-    void cancelOrder(Order *order) override;
+    void cancelOrder(Action *order) override;
 
     ///查询持仓
     void reqQryPosition();

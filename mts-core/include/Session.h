@@ -7,7 +7,7 @@
 
 #endif //TRADECORE_SESSION_H
 
-#include "util/UdsClient.h"
+#include "common/SocketClient.h"
 
 class Session{
 private:

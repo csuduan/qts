@@ -7,27 +7,32 @@
 
 
 #include "ost/UTApi.h"
-#include "Data.h"
 #include "Gateway.h"
 #include "LockFreeQueue.hpp"
 #include "Timer.hpp"
+#include "define.h"
 
 class OstTdGateway : public CUTSpi, public TdGateway {
 
 private:
     static int nRequestID;
     static map<TUTOrderStatusType, ORDER_STATUS> statusMap;
+    static map<TUTExchangeIDType,string> exgMap;
+    static map<string,TUTExchangeIDType> reExgMap;
+
     static map<int, string> qryRetMsgMap;
+    //map<string,TUTExchangeIDType> exgReverseMap;
+
     string id;
     CUTApi *m_pUserApi;
     Account *account;
     LoginInfo loginInfo;
     LockFreeQueue<Event> *queue;
     int frontId = 0;// 前置机编号
-    int sessionId = 0;// 会话编号
-    vector<AcctPosition> tmpPositons;
+    long long sessionId = 0;// 会话编号
+    vector<Position> tmpPositons;
     vector<Trade> tmpTrades;
-    map<string, Order *> orderMap;
+    //map<int, Order *> orderMap;
     Timer timer;
 
     void Run();
@@ -36,7 +41,11 @@ public:
     OstTdGateway(Account *account) : account(account) {
         this->loginInfo = account->loginInfo;
         this->id = account->id;
-        this->queue = &account->eventQueue;
+        this->queue = account->queue;
+
+//        for(auto &[key,value]:exgMap){
+//            exgReverseMap[value]=key;
+//        }
     }
 
     ~OstTdGateway() {}
@@ -45,9 +54,9 @@ public:
 
     int disconnect() override;
 
-    void insertOrder(Order *order) override;
+    bool insertOrder(Order *order) override;
 
-    void cancelOrder(Order *order) override;
+    void cancelOrder(Action *order) override;
 
     void reqQryPosition();
 

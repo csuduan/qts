@@ -7,19 +7,25 @@
 #include "OstTdGateway.h"
 #include "CtpMdGateway.h"
 #include "OstMdGateway.h"
+#include "EfhMdGateway.h"
 #include "define.h"
 #include <unistd.h>
 #include "LockFreeQueue.hpp"
+#include "Config.h"
 
-
-MdGateway *GatewayFactory::createMdGateway(Account *account) {
-    logi("create mdGateway {}",account->id);
+MdGateway *GatewayFactory::createMdGateway(Quote* quote) {
+    logi("create mdGateway {}",quote->name);
     MdGateway *mdGateway = nullptr;
-    if(account->loginInfo.mdType=="CTP")
-        mdGateway=new CtpMdGateway(account);
-    if(account->loginInfo.mdType=="OST")
-        mdGateway=new OstMdGateway(account);
-    mdGateway->connect();
+
+    if(quote->type=="CTP")
+        mdGateway=new CtpMdGateway(quote);
+    if(quote->type=="OST")
+        mdGateway=new OstMdGateway(quote);
+    if(quote->type=="EFH")
+        mdGateway=new ElfMdGateway(quote);
+    if(mdGateway!= nullptr){
+        mdGateway->connect();
+    }
     return mdGateway;
 }
 
@@ -32,6 +38,6 @@ TdGateway *GatewayFactory::createTdGateway(Account *account) {
     if(account->loginInfo.tdType=="OST"){
         gateway=new OstTdGateway(account);
     }
-    //gateway->connect();
+    gateway->connect();
     return gateway;
 }

@@ -1,0 +1,28 @@
+[
+  {
+    "id": "sim",
+    "name": "sim-DQ",
+    "user": "048997|123456!",
+    "tdAddress": "CTP|tcp://180.168.146.187:10201|9999:simnow_client_test:0000000000000000",
+    "quotes": ["sim"],
+    "autoStart": true
+  },
+  {
+    "id": "sim-24",
+    "name": "sim-DQ-24",
+    "user": "048997|123456!",
+    "tdAddress": "CTP|tcp://180.168.146.187:10201|9999:simnow_client_test:0000000000000000",
+    "quotes": ["sim-24"],
+    "autoStart": false
+  },
+  {
+    "id": "ost",
+    "name": "ost-test",
+    "user": "00122899|123456",
+    "tdAddress": "OST|tcp://47.100.124.2:8888",
+    "quotes": ["ost"],
+    "cpuNumTd": 2,
+    "cpuNumEvent":3,
+    "autoStart": true
+  }
+]

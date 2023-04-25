@@ -42,7 +42,6 @@ void Strategy::order(string symbol, OFFSET offset, POS_DIRECTION posDirection, O
     order->symbol=symbol;
     order->offset=offset;
     order->direction= getTradeDirection(offset,posDirection);
-    order->posDirection=posDirection;
     order->orderType = orderType;
     order->price=price;
     order->totalVolume=volume;

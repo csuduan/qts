@@ -14,7 +14,6 @@ class GoldStrategy: public Strategy{
 public:
     GoldStrategy(){
     }
-    void onBar(Bar * bar) override;
     void onTick(Tick * tick) override;
 };
 REGISTER_STRATEGY(GoldStrategy, "GoldStrategy");

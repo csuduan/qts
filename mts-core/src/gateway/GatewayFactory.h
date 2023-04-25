@@ -8,6 +8,7 @@
 #include "Gateway.h"
 #include "LockFreeQueue.hpp"
 
+#include "Config.h"
 class GatewayFactory {
 public:
     /**
@@ -21,7 +22,7 @@ public:
      * @param mdInfo
      * @return
      */
-    static MdGateway* createMdGateway(Account * account);
+    static MdGateway* createMdGateway(Quote* quote);
 };
 
 

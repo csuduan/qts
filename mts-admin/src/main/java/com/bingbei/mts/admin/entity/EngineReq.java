@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class EngineReq {
-    Operate.Cmd cmd;
+    Enums.MSG cmd;
     Object data;
 }

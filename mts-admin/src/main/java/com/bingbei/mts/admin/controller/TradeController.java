@@ -2,7 +2,7 @@ package com.bingbei.mts.admin.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.bingbei.mts.admin.entity.Message;
-import com.bingbei.mts.admin.entity.Operate;
+import com.bingbei.mts.admin.entity.Enums;
 import com.bingbei.mts.admin.manager.TradeManager;
 import com.bingbei.mts.common.entity.Response;
 import io.swagger.annotations.Api;
@@ -23,11 +23,12 @@ public class TradeController {
 
     @ApiOperation(value = "交易操作")
     @PostMapping(value = "/operate")
-    public Response<Boolean> engineOperate(@RequestParam String acctId, @RequestParam Operate.Cmd cmd, @RequestBody Map<String,Object> data){
+    public Response<Boolean> engineOperate(@RequestParam String acctId, @RequestParam Enums.MSG cmd, @RequestBody Map<String,Object> data){
         Response<Boolean> response=new Response<>();
         Message message=new Message();
         message.setType(cmd);
-        message.setData(JSON.toJSONString(data));
+        message.setActId(acctId);
+        message.setJson(JSON.toJSONString(data));
         response.setData(tradeEngineManager.tradeEngineOperate(acctId,message));
         return response;
     }

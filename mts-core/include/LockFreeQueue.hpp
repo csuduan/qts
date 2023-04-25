@@ -5,6 +5,13 @@
 #ifndef MTS_CORE_LOCKFREEQUEUE_HPP
 #define MTS_CORE_LOCKFREEQUEUE_HPP
 
+//#define USE_LOCK
+//开启spinlock锁，多生产者多消费者场景
+#define USE_MB
+//开启Memory Barrier
+#define USE_POT
+//开启队列大小的2的幂对齐
+
 
 
 #include <stdio.h>
@@ -17,7 +24,6 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/mman.h>
-#include "define.h"
 
 #define SHM_NAME_LEN 128
 #define MIN(a, b) ((a) > (b) ? (b) : (a))
@@ -217,24 +223,7 @@ protected:
     T* m_buffer;
 };
 
-enum EventType{
-    TICK,
-    ORDER,
-    TRADE,
-    POSITON,
-    CONTRACT,
-    CMD
-};
 
-class Event{
-public:
-    Event(EventType type= EventType::TICK,void * data = NULL):type(type),data(data){
-        clock_gettime(CLOCK_MONOTONIC, &this->time);
-    }
-    EventType type;
-    timespec time;
-    void* data;
-};
 
 #endif //MTS_CORE_LOCKFREEQUEUE_HPP
 

@@ -1,8 +1,35 @@
 #pragma once
 #include <set>
+#include <map>
+#include "magic_enum.hpp"
 using std::set;
 using std::string;
 using std::map;
+
+#define enum_string(A) magic_enum::enum_name(A)
+
+
+enum EvType {
+    TICK,
+    ORDER,
+    TRADE,
+    POSITON,
+    CONTRACT,
+    MSG,
+};
+
+//交易所
+enum EXCHANGE{
+    SSE,//上证
+    SZE,//深圳
+    SHFE,//上期
+    CFFEX,//中金
+    DCE,//大商
+    CZCE,//郑商
+    INE,//能源
+    HK//港交
+};
+
 //头寸方向
 enum  POS_DIRECTION {
     LONG,
@@ -47,10 +74,10 @@ static map<string,OFFSET> OFFSET_MAP={
 
 //BAR级别
 enum BAR_LEVEL{
-    M1,
-    M5,
-    M10,
-    D1
+    M1=1,
+    M5=5,
+    M15=15,
+    H1=60
 };
 //网关类型
 enum GATEWAY_TYPE{
@@ -89,7 +116,41 @@ static set<ORDER_STATUS> STATUS_FINISHED ={
         ORDER_STATUS::ERROR
 };
 
-template<typename T>
-typename std::underlying_type<T>::type PrintEnum(T const value) {
-    return static_cast<typename std::underlying_type<T>::type>(value);
-}
+enum MSG_TYPE{
+    EXIT =0,
+    START,
+    STOP,
+    PING,
+    PONG,
+
+    //行情操作消息
+    MD_CONNECT=10,
+    MD_DISCOUN,
+    MD_SUBS,
+
+    //账户操作消息
+    ACT_CONNECT=20,
+    ACT_DISCONN,
+    ACT_PAUSE_OPEN,
+    ACT_PAUSE_CLOSE,
+    ACT_ORDER,
+    ACT_CANCEL,
+
+    //查询消息
+    QRY_TRADE=30,
+    QRY_POSITION,
+    QRY_ACCOUNT,
+
+
+    //推送消息
+    ON_POSITION=40,
+    ON_TRADE,
+    ON_ORDER,
+    ON_CONTRACT,
+    ON_BAR,
+    ON_LOG,
+    ON_ACCOUNT,
+
+
+
+};

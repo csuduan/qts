@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class Message {
     private int no;
-    private Operate.Cmd type;
-    private String data;
+    private Enums.MSG type;
+    private String actId;
+    private String json;
 }

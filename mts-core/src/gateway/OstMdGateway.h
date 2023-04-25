@@ -15,13 +15,14 @@
 #include "ost/UTMdApi.h"
 #include <thread>
 #include <netdb.h>
+#include "Timer.hpp"
+#include "Shm.hpp"
 
 
 class OstMdGateway: public CUTMDSpi, public MdGateway
 {
 public:
-    OstMdGateway(Account* account): account(account){
-        this->queue=&account->eventQueue;
+    OstMdGateway(Quote* quote): MdGateway(quote){
     }
     ~OstMdGateway() {}
     void OnFrontConnected() override;
@@ -35,17 +36,19 @@ public:
     void subscribe(set<string> &contracts);
     void reSubscribe();
     int  connect();
+    //void init();
     void disconnect();
     CMultiDelegate<void, Tick*> OnTickData;
 
 private:
     static int nRequestID;
+    static map<TUTExchangeIDType,string> exgMap;
+    static map<string,TUTExchangeIDType> reExgMap;
+
     CUTMDApi* m_pUserApi;
     bool  isConnected;
     string tradingDay;
-    std::set<string> contracts;
-    LockFreeQueue<Event>* queue;
-    Account * account;
+    Timer timer;
     void Run();
 };
 #endif //TRADECORE_OSTMDAPI_H

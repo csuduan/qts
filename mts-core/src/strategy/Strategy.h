@@ -3,7 +3,7 @@
 #include <string>
 #include "Data.h"
 #include "define.h"
-#include "engine/TradeExecutor.h"
+#include "trade/TradeExecutor.h"
 class TradeExecutor;
 class Strategy
 {
@@ -13,7 +13,7 @@ protected:
     bool pauseClose = false;//暂停平仓
     StrategySetting* setting;
     TradeExecutor * tradeExecutor;
-    map<string,AcctPosition *> posMap;
+    map<string,Position *> posMap;
     void open();
     void closeTd();
     void closeYd();
@@ -28,8 +28,8 @@ public:
          this->tradeExecutor=tradeExecutor;
          //根据合约创建仓位
          for (const auto &item : this->setting->contracts){
-             AcctPosition * longPos=new AcctPosition(item, POS_DIRECTION::LONG);
-             AcctPosition * shortPos=new AcctPosition(item, POS_DIRECTION::SHORT);
+             Position * longPos=new Position(item, POS_DIRECTION::LONG);
+             Position * shortPos=new Position(item, POS_DIRECTION::SHORT);
              posMap[longPos->positionId] = longPos;
              posMap[shortPos->positionId] = shortPos;
          }
@@ -38,16 +38,19 @@ public:
      virtual void onTick(Tick * tick){
          //logi("base onTick:{}",tick->symbol);
      };
-     virtual void onBar(Bar * bar) {};
      virtual void onOrder(Order * order){
          //更新持仓
         this->updatePosition(order);
      };
      virtual void onTrade(Trade * trade) {};
 
+     StrategySetting* getSetting(){
+         return this->setting;
+     }
+
 private:
      void updatePosition(Order * order){
-         AcctPosition* position=posMap[order->positionId];
+         Position* position=posMap[order->positionId];
          if(order->finished){
              //刷新持仓
              position->onway=0;
