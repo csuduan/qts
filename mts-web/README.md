@@ -1,90 +1,60 @@
-# vue-admin-template
+<h1>vue-pure-admin精简版</h1>
 
-English | [简体中文](./README-zh.md)
+[![license](https://img.shields.io/github/license/xiaoxian521/vue-pure-admin.svg)](LICENSE)
 
-> A minimal vue admin template with Element UI & axios & iconfont & permission control & lint
+**中文** | [English](./README.en-US.md)
 
-**Live demo:** http://panjiachen.github.io/vue-admin-template
+## 介绍
 
+精简版是基于[vue-pure-admin](https://github.com/xiaoxian521/vue-pure-admin)提炼出的架子，包含主体功能，更适合实际项目开发，打包后的大小仅 `3MB`多
 
-**The current version is `v4.0+` build on `vue-cli`. If you want to use the old version , you can switch branch to [tag/3.11.0](https://github.com/PanJiaChen/vue-admin-template/tree/tag/3.11.0), it does not rely on `vue-cli`**
+## 配套视频
 
-## Build Setup
+- [点我查看教程](https://www.bilibili.com/video/BV1534y1S7HV)
+- [点我查看 UI 设计](https://www.bilibili.com/video/BV17g411T7rq)
 
-```bash
-# clone the project
-git clone https://github.com/PanJiaChen/vue-admin-template.git
+## 配套文档
 
-# enter the project directory
-cd vue-admin-template
+- [点我查看文档](https://pure-admin-doc.vercel.app)
 
-# install dependency
-npm install
+## 维护者
 
-# develop
-npm run dev
-```
+[xiaoxian521](https://github.com/xiaoxian521)
 
-This will automatically open http://localhost:9528
+## 捐赠
 
-## Build
+如果你觉得这个项目对您有帮助，可以帮作者买一杯果汁 🍹 表示支持
 
-```bash
-# build for test environment
-npm run build:stage
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f69bf13c5b854ed5b699807cafa0e3ce~tplv-k3u1fbpfcp-zoom-in-crop-mark:1304:0:0:0.awebp?" width="150px" height="150px" />
 
-# build for production environment
-npm run build:prod
-```
+## QQ 交流群
 
-## Advanced
+群里严禁`黄`、`赌`、`毒`、`vpn`等违法行为！
 
-```bash
-# preview the release environment effect
-npm run preview
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f0697596aec84661b724f6eebdf8db17~tplv-k3u1fbpfcp-watermark.awebp?" width="150px" height="225px" />
 
-# preview the release environment effect + static resource analysis
-npm run preview -- --report
+## 用法
 
-# code format check
-npm run lint
+### 安装依赖
 
-# code format check and auto fix
-npm run lint -- --fix
-```
+pnpm install
 
-Refer to [Documentation](https://panjiachen.github.io/vue-element-admin-site/guide/essentials/deploy.html) for more information
+### 安装一个包
 
-## Demo
+pnpm add 包名
 
-![demo](https://github.com/PanJiaChen/PanJiaChen.github.io/blob/master/images/demo.gif)
+### 卸载一个包
 
-## Extra
+pnpm remove 包名
 
-If you want router permission && generate menu by user roles , you can use this branch [permission-control](https://github.com/PanJiaChen/vue-admin-template/tree/permission-control)
+我认为你应该先 fork 项目去开发，以便我更新时您可以同步拉取更新！！！
 
-For `typescript` version, you can use [vue-typescript-admin-template](https://github.com/Armour/vue-typescript-admin-template) (Credits: [@Armour](https://github.com/Armour))
+## ⚠️ 注意
 
-## Related Project
+精简版不接受任何 issues 和 pr，如果有问题请到完整版 https://github.com/xiaoxian521/vue-pure-admin/issues/new/choose 去提，谢谢！！！
 
-- [vue-element-admin](https://github.com/PanJiaChen/vue-element-admin)
+## 许可证
 
-- [electron-vue-admin](https://github.com/PanJiaChen/electron-vue-admin)
+原则上不收取任何费用及版权，可以放心使用，不过如需二次开源（比如用此平台二次开发并开源）请联系作者获取许可！
 
-- [vue-typescript-admin-template](https://github.com/Armour/vue-typescript-admin-template)
-
-- [awesome-project](https://github.com/PanJiaChen/vue-element-admin/issues/2312)
-
-## Browsers support
-
-Modern browsers and Internet Explorer 10+.
-
-| [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/edge/edge_48x48.png" alt="IE / Edge" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)</br>IE / Edge | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/firefox/firefox_48x48.png" alt="Firefox" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)</br>Firefox | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/chrome/chrome_48x48.png" alt="Chrome" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)</br>Chrome | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/safari/safari_48x48.png" alt="Safari" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)</br>Safari |
-| --------- | --------- | --------- | --------- |
-| IE10, IE11, Edge| last 2 versions| last 2 versions| last 2 versions
-
-## License
-
-[MIT](https://github.com/PanJiaChen/vue-admin-template/blob/master/LICENSE) license.
-
-Copyright (c) 2017-present PanJiaChen
+[MIT © xiaoxian521-2020](./LICENSE)

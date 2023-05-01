@@ -1,15 +1,19 @@
+node_modules
 .DS_Store
-node_modules/
-dist/
+dist
+dist-ssr
+*.local
+.eslintcache
+.stylelintcache
+
+yarn.lock
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-package-lock.json
+.pnpm-error.log*
+.pnpm-debug.log
 tests/**/coverage/
 
 # Editor directories and files
 .idea
-.vscode
 *.suo
 *.ntvs*
 *.njsproj

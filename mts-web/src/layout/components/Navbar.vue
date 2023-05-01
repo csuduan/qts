@@ -1,142 +1,240 @@
+<script setup lang="ts">
+import { useI18n } from "vue-i18n";
+import { useNav } from "../hooks/nav";
+import { useRoute } from "vue-router";
+import Search from "./search/index.vue";
+import Notice from "./notice/index.vue";
+import mixNav from "./sidebar/mixNav.vue";
+import avatars from "/@/assets/avatars.jpg";
+import Hamburger from "./sidebar/hamBurger.vue";
+import { watch, getCurrentInstance } from "vue";
+import Breadcrumb from "./sidebar/breadCrumb.vue";
+import { deviceDetection } from "/@/utils/deviceDetection";
+import screenfull from "../components/screenfull/index.vue";
+import globalization from "/@/assets/svg/globalization.svg?component";
+
+const route = useRoute();
+const { locale, t } = useI18n();
+const instance =
+  getCurrentInstance().appContext.config.globalProperties.$storage;
+const {
+  logout,
+  onPanel,
+  changeTitle,
+  toggleSideBar,
+  pureApp,
+  username,
+  avatarsStyle,
+  getDropdownItemStyle
+} = useNav();
+
+watch(
+  () => locale.value,
+  () => {
+    changeTitle(route.meta);
+  }
+);
+
+function translationCh() {
+  instance.locale = { locale: "zh" };
+  locale.value = "zh";
+}
+
+function translationEn() {
+  instance.locale = { locale: "en" };
+  locale.value = "en";
+}
+</script>
+
 <template>
   <div class="navbar">
-    <hamburger :is-active="sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
+    <Hamburger
+      v-if="pureApp.layout !== 'mix'"
+      :is-active="pureApp.sidebar.opened"
+      class="hamburger-container"
+      @toggleClick="toggleSideBar"
+    />
 
-    <breadcrumb class="breadcrumb-container" />
+    <Breadcrumb v-if="pureApp.layout !== 'mix'" class="breadcrumb-container" />
 
-    <div class="right-menu">
-      <search id="header-search" class="right-menu-item" />
-      <el-dropdown class="avatar-container" trigger="click">
-        <div class="avatar-wrapper">
-          <img :src="avatar+'?imageView2/1/w/80/h/80'" class="user-avatar">
-          <i class="el-icon-caret-bottom" />
-        </div>
-        <el-dropdown-menu slot="dropdown" class="user-dropdown">
-          <router-link to="/">
-            <el-dropdown-item>
-              Home
+    <mixNav v-if="pureApp.layout === 'mix'" />
+
+    <div v-if="pureApp.layout === 'vertical'" class="vertical-header-right">
+      <!-- 菜单搜索 -->
+      <Search />
+      <!-- 通知 -->
+      <Notice id="header-notice" />
+      <!-- 全屏 -->
+      <screenfull id="header-screenfull" v-show="!deviceDetection()" />
+      <!-- 国际化 -->
+      <el-dropdown id="header-translation" trigger="click">
+        <globalization />
+        <template #dropdown>
+          <el-dropdown-menu class="translation">
+            <el-dropdown-item
+              :style="getDropdownItemStyle(locale, 'zh')"
+              @click="translationCh"
+              ><IconifyIconOffline
+                class="check-zh"
+                v-show="locale === 'zh'"
+                icon="check"
+              />简体中文</el-dropdown-item
+            >
+            <el-dropdown-item
+              :style="getDropdownItemStyle(locale, 'en')"
+              @click="translationEn"
+            >
+              <span class="check-en" v-show="locale === 'en'">
+                <IconifyIconOffline icon="check" /> </span
+              >English
             </el-dropdown-item>
-          </router-link>
-          <a target="_blank" href="https://github.com/PanJiaChen/vue-admin-template/">
-            <el-dropdown-item>Github</el-dropdown-item>
-          </a>
-          <a target="_blank" href="https://panjiachen.github.io/vue-element-admin-site/#/">
-            <el-dropdown-item>Docs</el-dropdown-item>
-          </a>
-          <el-dropdown-item divided @click.native="logout">
-            <span style="display:block;">Log Out</span>
-          </el-dropdown-item>
-        </el-dropdown-menu>
+          </el-dropdown-menu>
+        </template>
       </el-dropdown>
+      <!-- 退出登陆 -->
+      <el-dropdown trigger="click">
+        <span class="el-dropdown-link">
+          <img v-if="avatars" :src="avatars" :style="avatarsStyle" />
+          <p v-if="username">{{ username }}</p>
+        </span>
+        <template #dropdown>
+          <el-dropdown-menu class="logout">
+            <el-dropdown-item @click="logout">
+              <IconifyIconOffline
+                icon="logout-circle-r-line"
+                style="margin: 5px"
+              />{{ t("buttons.hsLoginOut") }}</el-dropdown-item
+            >
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+      <span
+        class="el-icon-setting"
+        :title="t('buttons.hssystemSet')"
+        @click="onPanel"
+      >
+        <IconifyIconOffline icon="setting" />
+      </span>
     </div>
   </div>
 </template>
 
-<script>
-import { mapGetters } from 'vuex'
-import Breadcrumb from '@/components/Breadcrumb'
-import Hamburger from '@/components/Hamburger'
-import Search from '@/components/HeaderSearch'
-
-export default {
-  components: {
-    Breadcrumb,
-    Hamburger,
-    Search
-  },
-  computed: {
-    ...mapGetters([
-      'sidebar',
-      'avatar'
-    ])
-  },
-  methods: {
-    toggleSideBar() {
-      this.$store.dispatch('app/toggleSideBar')
-    },
-    async logout() {
-      await this.$store.dispatch('user/logout')
-      this.$router.push(`/login?redirect=${this.$route.fullPath}`)
-    }
-  }
-}
-</script>
-
 <style lang="scss" scoped>
 .navbar {
-  height: 50px;
+  width: 100%;
+  height: 48px;
   overflow: hidden;
-  position: relative;
   background: #fff;
-  box-shadow: 0 1px 4px rgba(0,21,41,.08);
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
 
   .hamburger-container {
-    line-height: 46px;
+    line-height: 48px;
     height: 100%;
     float: left;
     cursor: pointer;
-    transition: background .3s;
-    -webkit-tap-highlight-color:transparent;
+    transition: background 0.3s;
+    -webkit-tap-highlight-color: transparent;
+  }
 
-    &:hover {
-      background: rgba(0, 0, 0, .025)
+  .vertical-header-right {
+    display: flex;
+    min-width: 280px;
+    height: 48px;
+    align-items: center;
+    color: #000000d9;
+    justify-content: flex-end;
+
+    :deep(.dropdown-badge) {
+      &:hover {
+        background: #f6f6f6;
+      }
+    }
+
+    .screen-full {
+      cursor: pointer;
+
+      &:hover {
+        background: #f6f6f6;
+      }
+    }
+
+    .globalization {
+      height: 48px;
+      width: 40px;
+      padding: 11px;
+      cursor: pointer;
+
+      &:hover {
+        background: #f6f6f6;
+      }
+    }
+
+    .el-dropdown-link {
+      height: 48px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      cursor: pointer;
+      color: #000000d9;
+
+      &:hover {
+        background: #f6f6f6;
+      }
+
+      p {
+        font-size: 14px;
+      }
+
+      img {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+      }
+    }
+
+    .el-icon-setting {
+      height: 48px;
+      width: 38px;
+      padding: 12px;
+      display: flex;
+      cursor: pointer;
+      align-items: center;
+
+      &:hover {
+        background: #f6f6f6;
+      }
     }
   }
 
   .breadcrumb-container {
     float: left;
   }
+}
 
-  .right-menu {
-    float: right;
-    height: 100%;
-    line-height: 50px;
+.translation {
+  ::v-deep(.el-dropdown-menu__item) {
+    padding: 5px 40px;
+  }
 
-    &:focus {
-      outline: none;
-    }
+  .check-zh {
+    position: absolute;
+    left: 20px;
+  }
 
-    .right-menu-item {
-      display: inline-block;
-      padding: 0 8px;
-      height: 100%;
-      font-size: 18px;
-      color: #5a5e66;
-      vertical-align: text-bottom;
+  .check-en {
+    position: absolute;
+    left: 20px;
+  }
+}
 
-      &.hover-effect {
-        cursor: pointer;
-        transition: background .3s;
+.logout {
+  max-width: 120px;
 
-        &:hover {
-          background: rgba(0, 0, 0, .025)
-        }
-      }
-    }
-
-    .avatar-container {
-      margin-right: 30px;
-
-      .avatar-wrapper {
-        margin-top: 5px;
-        position: relative;
-
-        .user-avatar {
-          cursor: pointer;
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
-        }
-
-        .el-icon-caret-bottom {
-          cursor: pointer;
-          position: absolute;
-          right: -20px;
-          top: 25px;
-          font-size: 12px;
-        }
-      }
-    }
+  ::v-deep(.el-dropdown-menu__item) {
+    min-width: 100%;
+    display: inline-flex;
+    flex-wrap: wrap;
   }
 }
 </style>
