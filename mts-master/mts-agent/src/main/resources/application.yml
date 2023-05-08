@@ -1,0 +1,13 @@
+server:
+  port: 8083
+  compression:
+    enabled: true
+    mime-types: application/javascript,text/css,application/json,application/xml,text/html,text/xml,text/plain
+logging:
+  config: classpath:log4j2.xml
+
+
+spring:
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:/opt/dev/mts/mts.db

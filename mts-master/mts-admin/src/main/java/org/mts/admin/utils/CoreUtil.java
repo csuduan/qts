@@ -1,16 +1,16 @@
 package org.mts.admin.utils;
 
 import com.lmax.disruptor.RingBuffer;
-import org.mts.admin.service.FastEventEngineService;
+import org.mts.admin.service.EventService;
 import org.mts.admin.service.extend.event.EventConstant;
 import org.mts.admin.service.extend.event.FastEvent;
-import org.mts.admin.service.impl.FastEventEngineServiceImpl;
+import org.mts.admin.service.impl.FastEventServiceImpl;
 
 
 public class CoreUtil {
-	private static FastEventEngineService fastEventEngineService;
+	private static EventService fastEventEngineService;
 
-	public static void setFastEventEngineService(FastEventEngineServiceImpl fastEventEngineService) {
+	public static void setFastEventEngineService(FastEventServiceImpl fastEventEngineService) {
 		CoreUtil.fastEventEngineService = fastEventEngineService;
 	}
 

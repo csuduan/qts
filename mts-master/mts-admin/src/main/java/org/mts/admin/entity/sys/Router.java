@@ -1,5 +1,6 @@
 package org.mts.admin.entity.sys;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
@@ -11,8 +12,10 @@ public class Router {
     private String path;
     private String name;
     private String redirect;
-    private RounterMeta meta;
+    private RounterMeta meta=new RounterMeta();
     private List<Router> children;
+    @JsonIgnore
+    private String parent;
 
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)

@@ -32,7 +32,7 @@ public class ScheduleConfig {
 
     @Bean
     public Trigger printTimeJobTrigger() {
-        CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule("0 * * * * ?");
+        CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule("0 0/5 * * * ?");
         return TriggerBuilder.newTrigger()
                 .forJob(testJobDetail())//关联上述的JobDetail
                 .withIdentity("quartzTaskService")//给Trigger起个名字

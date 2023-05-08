@@ -1,7 +1,8 @@
 package org.mts.admin.entity;
 
 import lombok.Data;
-import org.mts.admin.utils.CommonUtil;
+import org.mts.common.model.Enums;
+import org.mts.common.utils.CommonUtil;
 
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;

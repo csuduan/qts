@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.Serializable;
 import java.util.HashMap;
 
-import static org.mts.admin.entity.Enums.POS_DIRECTION.LONG;
+import static org.mts.common.model.Enums.POS_DIRECTION.LONG;
 
 
 /**

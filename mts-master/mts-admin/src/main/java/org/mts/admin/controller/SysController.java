@@ -5,15 +5,16 @@ import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.mts.admin.entity.Page;
 import org.mts.admin.entity.Response;
+import org.mts.admin.entity.sys.Agent;
 import org.mts.admin.entity.sys.Role;
-import org.mts.admin.entity.sys.RoleList;
 import org.mts.admin.entity.sys.Router;
 import org.mts.admin.entity.sys.UserInfo;
-import org.mts.admin.utils.ResourceUtil;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.mts.admin.service.AgentService;
+import org.mts.admin.service.SysService;
+import org.mts.admin.service.WebSocketService;
+import org.mts.common.model.Enums;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -24,6 +25,12 @@ import java.util.List;
 @RequestMapping(value = "/v1/sys/")
 public class SysController {
 
+    @Autowired
+    private SysService sysService;
+    @Autowired
+    private AgentService agentService;
+    @Autowired
+    private WebSocketService webSocketService;
 
     @PostMapping(path = "/user/login")
     public Response<String> login(String user, String pwd){
@@ -51,13 +58,31 @@ public class SysController {
     }
 
     @GetMapping(path = "/router")
-    public Response<List<Router>> getRouter(String name){
+    public Response<List<Router>> getRouters(String name){
         Response<List<Router>> response=new Response<>();
-        String routerJson= ResourceUtil.getFileJson("router.json");
-        List<Router> routers=JSON.parseArray(routerJson,Router.class);
+        List<Router> routers = sysService.getSysRouters(name);
         response.setData(routers);
         return response;
     }
+
+    @GetMapping(path = "/agent")
+    public Response<Page<Agent>> getAgents(String name){
+        Response<Page<Agent>> response=new Response<>();
+        List<Agent> agents = agentService.getAgents();
+        Page<Agent> res=new Page<>();
+        res.setList(agents);
+        res.setTotal(agents.size());
+        response.setData(res);
+        return response;
+    }
+
+    @PostMapping(path = "/agent/update")
+    public Response<Boolean> updateAgent(@RequestBody Agent agent){
+        Response<Boolean> response=new Response<>();
+        response.setData(agentService.updateAgent(agent));
+        return response;
+    }
+
 
     @GetMapping(path = "/role")
     public Response<Page<Role>> getRole(String name){
@@ -121,6 +146,13 @@ public class SysController {
         roleList.setList(JSON.parseArray(roleStr, Role.class));
         roleList.setTotal(roleList.getList().size());
         response.setData(roleList);
+        return response;
+    }
+
+    @PostMapping(path = "/ws/send")
+    public Response<Boolean> wsSendMsg(@RequestBody String msg) {
+        Response<Boolean> response=new Response<>();
+        webSocketService.push(msg);
         return response;
     }
 }
