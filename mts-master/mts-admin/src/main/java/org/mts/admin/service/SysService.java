@@ -1,13 +1,8 @@
 package org.mts.admin.service;
 
-import com.fasterxml.jackson.databind.util.BeanUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.mts.admin.dao.AgentMapper;
 import org.mts.admin.dao.RouterMapper;
-import org.mts.admin.entity.Page;
-import org.mts.admin.entity.po.AgentPo;
 import org.mts.admin.entity.po.RouterPo;
-import org.mts.admin.entity.sys.Agent;
 import org.mts.admin.entity.sys.Router;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;

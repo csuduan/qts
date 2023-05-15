@@ -5,14 +5,14 @@ import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.mts.admin.entity.Page;
 import org.mts.admin.entity.Response;
-import org.mts.admin.entity.sys.Agent;
+import org.mts.common.model.acct.Agent;
 import org.mts.admin.entity.sys.Role;
 import org.mts.admin.entity.sys.Router;
 import org.mts.admin.entity.sys.UserInfo;
 import org.mts.admin.service.AgentService;
 import org.mts.admin.service.SysService;
 import org.mts.admin.service.WebSocketService;
-import org.mts.common.model.Enums;
+import org.mts.common.model.rpc.Message;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -150,9 +150,16 @@ public class SysController {
     }
 
     @PostMapping(path = "/ws/send")
-    public Response<Boolean> wsSendMsg(@RequestBody String msg) {
+    public Response<Boolean> sendWsMsg(@RequestBody Message msg) {
         Response<Boolean> response=new Response<>();
         webSocketService.push(msg);
+        return response;
+    }
+
+    @PostMapping(path = "/agent/msg")
+    public Response<Message> sendMsgToAgent(String agentId, @RequestBody Message req) {
+        Response<Message> response=new Response<>();
+        agentService.request(agentId,req);
         return response;
     }
 }

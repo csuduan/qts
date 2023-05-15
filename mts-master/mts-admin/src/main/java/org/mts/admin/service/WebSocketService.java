@@ -3,6 +3,9 @@ package org.mts.admin.service;
 import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
 import org.mts.admin.entity.WsMessage;
+import org.mts.common.model.event.MessageEvent;
+import org.mts.common.model.rpc.Message;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import javax.websocket.*;
@@ -37,11 +40,8 @@ public class WebSocketService {
     public void onError(Session session ,Throwable throwable){
 
     }
-    public void push(WsMessage message){
+    public void push(Message message){
         String msg= JSON.toJSONString(message);
-        this.push(msg);
-    }
-    public void push(String msg){
         sessions.forEach(session -> {
             try {
                 if(session.isOpen())
@@ -50,6 +50,11 @@ public class WebSocketService {
                 log.error("push to session[{}]error!",session.getId(),ex);
             }
         });
+    }
+
+    @EventListener(MessageEvent.class)
+    public void eventHandler(MessageEvent messageEvent){
+        this.push((Message) messageEvent.getSource());
     }
 
 }

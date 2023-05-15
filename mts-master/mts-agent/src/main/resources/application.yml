@@ -1,11 +1,14 @@
 server:
   port: 8083
+  name: dev
   compression:
     enabled: true
     mime-types: application/javascript,text/css,application/json,application/xml,text/html,text/xml,text/plain
 logging:
   config: classpath:log4j2.xml
 
+trade:
+  path: /opt/dev/mts-core/cmake-build-debug-ucloud/build/mts-trade
 
 spring:
   datasource:

@@ -15,7 +15,7 @@ public class GloablExceptionHandler {
     @ExceptionHandler({BizException.class})
     @ResponseBody
     public <T>ResponseEntity<T> handlerBizException(BizException e){
-        log.error("handler bizException",e.getErrMsg());
+        log.error("handler bizException:{}",e.getErrMsg());
         Response<T> response =new Response<>(e.getErrCode(), e.getErrMsg());
         return new ResponseEntity(response, HttpStatus.OK);
     }

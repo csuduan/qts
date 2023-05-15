@@ -85,33 +85,43 @@ public interface Enums {
         }
     };
 
-    enum AGENT_CMD {
+    enum ACCT_OPERATE {
         CONNECT,
-        DISCONNECT
+        DISCONNECT,
+        PAUSE_TRADE,
+        RESUME_TRADE,
     }
     enum MSG_TYPE {
+        RETURN,
+        CONF,
+        SYNC,
+        PING,
         EXIT,
-        MD_CONNECT,
-        MD_DISCOUN,
+        RESTART,
+        CONNECT,
+
+        AGENT,
+
         MD_SUBS,
-        ACT_CONNECT,
-        ACT_DISCONN,
         ACT_PAUSE_OPEN,
         ACT_PAUSE_CLOSE,
         ACT_ORDER,
         ACT_CANCEL,
+        ACT_QRY_TRADE,
+        ACT_QRY_ORDER,
+        ACT_QRY_POSITION,
+        ACT_QRY_ACCOUNT,
 
-        QRY_POSITION,
-        QRY_TRADE,
-        QRY_ORDER,
-        QRY_CONTRACT,
 
-        RSP_LOG,
-        RSP_ORDER,
-        RSP_POSITION,
-        RSP_TRADE,
-        RSP_CONTRACT,
-        RSP_BAR
+        //推送消息
+        ON_STATUS,
+        ON_LOG,
+        ON_POSITION,
+        ON_TRADE,
+        ON_ORDER,
+        ON_CONTRACT,
+        ON_BAR,
+        ON_ACCOUNT,
     }
 
 }
