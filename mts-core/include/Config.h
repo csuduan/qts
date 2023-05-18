@@ -11,9 +11,7 @@
 using namespace  std;
 
 namespace config{
-
-
-    struct Quote{
+    struct QuoteConf{
         string name;
         string type;
         string address;
@@ -25,23 +23,23 @@ namespace config{
     };
     struct Setting{
         string dataPath;
-        int tcpPort;
-        vector<Quote> quoteGroups;
-        XPACK(M(dataPath,tcpPort,quoteGroups))
+        string logPath;
+        vector<QuoteConf> quoteGroups;
+        XPACK(M(dataPath,logPath,quoteGroups))
     };
 
-    struct Account{
+    struct AcctConf{
+        string agent;
         string id;
         string name;
         string user;
         string tdAddress;
         vector<string> quotes;
-        string dbPath;
         int cpuNumTd;
         int cpuNumEvent;
-        bool autoStart;
+        bool autoConnect;
         int queueSize=1<<10;
-    XPACK(M(id,name,user,tdAddress),O(quotes,dbPath,autoStart,queueSize,cpuNumTd,cpuNumEvent));
+    XPACK(M(agent,id,name,user,tdAddress),O(quotes,autoConnect,queueSize,cpuNumTd,cpuNumEvent));
     };
 
     struct StrategySetting{
@@ -52,6 +50,12 @@ namespace config{
         map<string,string> paramMap;
         set<string> contracts;
     XPACK(M(accountId,strategyId,className),O(paramMap,contracts,barLevel));
+    };
+
+    struct Config{
+        Setting setting;
+        AcctConf account;
+        vector<config::StrategySetting> strategySettings;
     };
 }
 

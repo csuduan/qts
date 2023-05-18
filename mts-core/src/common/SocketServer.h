@@ -17,6 +17,7 @@
 #include "SocketSession.h"
 #include "SocketData.h"
 #include "SocketBase.h"
+#include "Message.h"
 
 
 //typedef void (*msgCallback)(msg::Message);

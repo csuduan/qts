@@ -9,7 +9,7 @@
 #include "Config.h"
 #include "Util.h"
 
-Quote* buildQuote(config::Quote & quoteConf){
+Quote* buildQuote(config::QuoteConf & quoteConf){
     Quote *quote=new Quote();
     quote->name=quoteConf.name;
     quote->quoteType=quoteConf.type;
@@ -28,7 +28,7 @@ Quote* buildQuote(config::Quote & quoteConf){
     return quote;
 }
 
-Account * buildAccount(config::Account & actConf){
+Account * buildAccount(config::AcctConf & actConf){
     vector<string> tmp;
     Util::split(actConf.user,tmp,"|");
     string userId=tmp[0];
@@ -64,6 +64,8 @@ Account * buildAccount(config::Account & actConf){
     account->loginInfo.appId=appId;
     account->loginInfo.authCode=authCode;
     account->queue=new LockFreeQueue<Event>(actConf.queueSize);
+    account->autoConnect=actConf.autoConnect;
+    account->agent=actConf.agent;
     return account;
 }
 
@@ -78,13 +80,16 @@ StrategySetting * buildStrategySetting(config::StrategySetting &setting){
     return strategySetting;
 }
 
+
+
 template<class T>
-static Message *buildMsg(MSG_TYPE msgType,T & data){
-    string json = xpack::json::encode(data);
-    Message *msg = new Message();
-    msg->type= enum_string(msgType);
-    msg->data=json;
-    return msg;
+static string buildMsg(MSG_TYPE msgType, T & data,string actId){
+    MessageS<T> msg ={0};
+    msg.type= enum_string(msgType);
+    msg.data=data;
+    msg.sid=actId;
+    string json = xpack::json::encode(msg);
+    return json;
 }
 
 

@@ -135,7 +135,7 @@ void CtpMdGateway::subscribe(set<string> &subContracts) {
     char **str = new char *[subContracts.size() + 1];
     int i = 0;
     for (auto &item: subContracts) {
-        if (this->quote->subList.contains(item))
+        if (this->quote->subList.count(item)>0)
             continue;
         this->quote->subList.insert(item);
         str[i++] = const_cast<char *>(item.c_str());

@@ -23,7 +23,9 @@ MdGateway *GatewayFactory::createMdGateway(Quote* quote) {
         mdGateway=new OstMdGateway(quote);
     if(quote->type=="EFH")
         mdGateway=new ElfMdGateway(quote);
-    if(mdGateway!= nullptr){
+
+    if(mdGateway!= nullptr && quote->autoConnect){
+        logi("connect mdGateway {}",quote->name);
         mdGateway->connect();
     }
     return mdGateway;
@@ -38,6 +40,9 @@ TdGateway *GatewayFactory::createTdGateway(Account *account) {
     if(account->loginInfo.tdType=="OST"){
         gateway=new OstTdGateway(account);
     }
-    gateway->connect();
+    if(account->autoConnect){
+        logi("connect tdGateway {}",account->id);
+        gateway->connect();
+    }
     return gateway;
 }

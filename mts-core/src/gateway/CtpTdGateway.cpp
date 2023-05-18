@@ -264,7 +264,7 @@ void CtpTdGateway::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, 
 
 void CtpTdGateway::OnRtnOrder(CThostFtdcOrderField *pOrder) {
     int orderRef=atoi(pOrder->OrderRef);
-    if (!account->orderMap.contains(orderRef))
+    if (account->orderMap.count(orderRef)==0)
         return;
     long tsc=Context::get().tn.rdtsc();
     Order *order = account->orderMap[orderRef];
@@ -294,7 +294,7 @@ void CtpTdGateway::OnRtnOrder(CThostFtdcOrderField *pOrder) {
 
 void CtpTdGateway::OnRtnTrade(CThostFtdcTradeField *pTrade) {
     int orderRef=atoi(pTrade->OrderRef);
-    if (!account->orderMap.contains(orderRef))
+    if (!account->orderMap.count(orderRef)>0)
         return;
 
     long tsc=Context::get().tn.rdtsc();
@@ -329,7 +329,7 @@ CtpTdGateway::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtd
     //CTP检测失败时触发
     int orderRef=atoi(pInputOrder->OrderRef);
     loge("OnRspOrderInsert Error! orderRef:{} {}", pInputOrder->OrderRef,pRspInfo->ErrorMsg);
-    if (account->orderMap.contains(orderRef)) {
+    if (account->orderMap.count(orderRef)>0) {
         Order *order = account->orderMap[orderRef];
         order->status = ORDER_STATUS::ERROR;
         order->statusMsg = pRspInfo->ErrorMsg;
@@ -341,7 +341,7 @@ CtpTdGateway::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtd
 void CtpTdGateway::OnErrRtnOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo) {
     int orderRef=atoi(pInputOrder->OrderRef);
     loge("OnErrRtnOrderInsert Error! orderRef:{} {}", pInputOrder->OrderRef,pRspInfo->ErrorMsg);
-    if (account->orderMap.contains(orderRef)) {
+    if (account->orderMap.count(orderRef)>0) {
         Order *order = account->orderMap[orderRef];
         order->status = ORDER_STATUS::ERROR;
         order->statusMsg = pRspInfo->ErrorMsg;
@@ -400,7 +400,7 @@ void CtpTdGateway::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pIn
         logi("{} OnRspQryInvestorPosition {} {} pos:{}", id, symbol, magic_enum::enum_name(direction),
              pInvestorPosition->Position);
         string key = symbol + "-" + to_string(direction);
-        if (!account->accoPositionMap.contains(key)) {
+        if (!account->accoPositionMap.count(key)>0) {
             Position *position = new Position(pInvestorPosition->InstrumentID, direction);
             account->accoPositionMap[key] = position;
         }
@@ -438,7 +438,7 @@ void CtpTdGateway::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CT
         if (strlen(pInstrument->InstrumentID) <= 10) {
             //过滤掉组合合约
             Contract *contract;
-            if (account->contractMap.contains(pInstrument->InstrumentID))
+            if (account->contractMap.count(pInstrument->InstrumentID)>0)
                 contract = account->contractMap[pInstrument->InstrumentID];
             else {
                 contract = new Contract;

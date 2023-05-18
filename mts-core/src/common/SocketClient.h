@@ -11,6 +11,7 @@
 #include "SocketBase.h"
 #include "Enums.h"
 #include "Data.h"
+#include "Message.h"
 
 
 class SocketClient :public SocketBase{
@@ -26,12 +27,12 @@ public:
     void   event_callback(struct bufferevent *bev, short events);
     struct event_base* base;
 
-    void  request(const string & msg);
-    void  request(const Message & msg);
+    bool  request(const string & msg);
+    bool  request(const Message & msg);
     LockFreeQueue<Event> queue{1<<10};
+    bool  connected=false;
 
 private:
-    bool  connected=false;
     bufferevent * connEv;
     void   connect();
 

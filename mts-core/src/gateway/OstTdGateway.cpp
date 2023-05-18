@@ -6,7 +6,7 @@
 #include "Timer.hpp"
 #include "magic_enum.hpp"
 
-int OstTdGateway::nRequestID=0;
+//int OstTdGateway::nRequestID=0;
 map<TUTOrderStatusType, ORDER_STATUS> OstTdGateway::statusMap = {
         {UT_OST_AllTraded,             ORDER_STATUS::ALLTRADED},
         {UT_OST_PartTradedQueueing,    ORDER_STATUS::QUEUEING},
@@ -37,14 +37,6 @@ map<TUTExchangeIDType,string> OstTdGateway::exgMap ={
          {"INE",UT_EXG_INE},
          {"HK",UT_EXG_HKEX}
  };
-
-map<int, string> OstTdGateway::qryRetMsgMap = {
-        {0,  "成功"},
-        {-1, "网络连接失败"},
-        {-2, "未处理请求超过许可数"},
-        {-3, "每秒发送请求数超过许可数"}
-
-};
 
 
 int OstTdGateway::connect() {
@@ -77,6 +69,46 @@ int OstTdGateway::connect() {
         this->Run();
     });
     t.detach();
+
+
+    semaphore.wait();
+    //查询账户信息
+    CUTQryTradingAccountField QryTradingAccount={0};
+    int ret = m_pUserApi->ReqQryTradingAccount(&QryTradingAccount, this->nRequestID++);
+    logi("ReqQryTradingAccount  ret={}", ret);
+
+    semaphore.wait();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    //查询合约
+    CUTQryInstrumentField QryInstrument ={0};
+    ret = m_pUserApi->ReqQryInstrument(&QryInstrument, this->nRequestID++);
+    logi("{} ReqQryInstrument ret={},{}", id, ret, qryRetMsgMap[ret]);
+
+
+    semaphore.wait();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    //查询持仓
+    CUTQryInvestorPositionField a={0};
+    ret = m_pUserApi->ReqQryInvestorPosition(&a, this->nRequestID++);
+    logi("{} ReqQryInvestorPosition ret={},{}", id, ret, qryRetMsgMap[ret]);
+
+    semaphore.wait();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    //查询成交
+    CUTQryTradeField QryTrade={0};
+    ret = m_pUserApi->ReqQryTrade(&QryTrade, +this->nRequestID++);
+    logi("ReqQryTrade ret={},{}",ret,qryRetMsgMap[ret]);
+
+    semaphore.wait();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    //查询报单
+    CUTQryOrderField QryOrder={0};
+    ret =m_pUserApi->ReqQryOrder(&QryOrder, this->nRequestID++);
+    logi("ReqQryOrder ret={},{}",ret,qryRetMsgMap[ret]);
+
+    semaphore.wait();
+    logi("======账户[{}]准备就绪=======",this->id);
+
     return 0;
 }
 
@@ -157,14 +189,6 @@ void OstTdGateway::cancelOrder(Action *action) {
 }
 
 
-void OstTdGateway::reqQryPosition() {
-
-}
-
-void OstTdGateway::reqUserPasswordUpdate() {
-
-}
-
 void OstTdGateway::Run() {
     const char *address = this->loginInfo.tdAddress.c_str();
     m_pUserApi->RegisterFront(const_cast<char *>(address));
@@ -208,13 +232,8 @@ OstTdGateway::OnRspLogin(CUTRspLoginField *pRspUserLogin, CUTRspInfoField *pRspI
         this->connected = true;
         this->tradingDay = to_string(pRspUserLogin->TradingDay);
         logi("{} 交易接口登录成功,交易日={},frontId={},sessionId={}", id, tradingDay,frontId,sessionId);
+        semaphore.signal();
 
-        timer.delay(500, [this]() {
-            //查询账户信息
-            CUTQryTradingAccountField QryTradingAccount={0};
-            int ret = m_pUserApi->ReqQryTradingAccount(&QryTradingAccount, this->nRequestID++);
-            logi("ReqQryTradingAccount  ret={}", ret);
-        });
 
 
     } else {
@@ -233,7 +252,7 @@ void OstTdGateway::OnRspQryInstrument(CUTInstrumentField *pInstrument, CUTRspInf
         if (strlen(pInstrument->InstrumentID) <= 10) {
             //过滤掉组合合约
             Contract *contract;
-            if (account->contractMap.contains(pInstrument->InstrumentID))
+            if (account->contractMap.count(pInstrument->InstrumentID)>0)
                 contract = account->contractMap[pInstrument->InstrumentID];
             else {
                 contract = new Contract;
@@ -255,12 +274,8 @@ void OstTdGateway::OnRspQryInstrument(CUTInstrumentField *pInstrument, CUTRspInf
     if (bIsLast) {
         logi("{} OnRspQryInstrument Finish,cont:{}", id, account->contractMap.size());
         this->queue->push(Event{EvType::CONTRACT});
-        timer.delay(1000, [this]() {
-            //查询持仓
-            CUTQryInvestorPositionField a={0};
-            int ret = m_pUserApi->ReqQryInvestorPosition(&a, this->nRequestID++);
-            logi("{} ReqQryInvestorPosition ret={},{}", id, ret, qryRetMsgMap[ret]);
-        });
+        semaphore.signal();
+
     }
 }
 
@@ -287,13 +302,8 @@ OstTdGateway::OnRspQryTradingAccount(CUTTradingAccountField *pTradingAccount, CU
         account->available = pTradingAccount->Available;
         account->margin = pTradingAccount->CurrMargin;
 
+        semaphore.signal();
 
-        timer.delay(1000, [this]() {
-            //查询合约
-            CUTQryInstrumentField QryInstrument ={0};
-            int ret = m_pUserApi->ReqQryInstrument(&QryInstrument, this->nRequestID++);
-            logi("{} ReqQryInstrument ret={},{}", id, ret, qryRetMsgMap[ret]);
-        });
     }
 
 }
@@ -308,12 +318,8 @@ void OstTdGateway::OnRspQryInvestorPosition(CUTInvestorPositionField *pInvestorP
                 pInvestorPosition->PosiDirection == UT_PD_Long ? POS_DIRECTION::LONG : POS_DIRECTION::SHORT;
         logi("{} OnRspQryInvestorPosition {} {} pos:{},tdPos:{}", id, symbol, enum_string(direction),
              pInvestorPosition->Position,pInvestorPosition->TodayPosition);
-        string key = symbol + "-" + to_string(direction);
-        if (!account->accoPositionMap.contains(key)) {
-            Position *position = new Position(pInvestorPosition->InstrumentID, direction);
-            account->accoPositionMap[key] = position;
-        }
-        Position *position = account->accoPositionMap[key];
+
+        Position *position = account->getPosition(symbol,direction);
         position->pos += pInvestorPosition->Position;
         position->tdPos += pInvestorPosition->TodayPosition;
         position->ydPos = position->pos - position->tdPos;
@@ -334,14 +340,9 @@ void OstTdGateway::OnRspQryInvestorPosition(CUTInvestorPositionField *pInvestorP
 
 
     if (bIsLast) {
-        logi("{} OnRspQryInvestorPosition Finish!", id);
-
-        //查询持仓结束，查询报单
-//        CUTQryOrderField QryOrder;
-//        memset(&QryOrder, 0, sizeof(CUTQryOrderField));
-//        if (0 != m_pUserApi->ReqQryOrder(&QryOrder, this->nRequestID++)) {
-//            printf("ReqQryOrder: Error!\n");
-//        }
+        //更新到账户中
+        logi("OnRspQryInvestorPosition Finish! count:{}", account->accoPositionMap.size());
+        semaphore.signal();
     }
 
 
@@ -355,12 +356,7 @@ void OstTdGateway::OnRspQryOrder(CUTOrderField *pOrder, CUTRspInfoField *pRspInf
         } else {
             logi("OnRspQryOrder: OK");
         }
-        //查询报单结束，查询成交
-        CUTQryTradeField QryTrade;
-        memset(&QryTrade, 0, sizeof(CUTQryTradeField));
-        if (0 != m_pUserApi->ReqQryTrade(&QryTrade, +this->nRequestID++)) {
-            loge("ReqQryTrade: Error!");
-        }
+        semaphore.signal();
     }
 }
 
@@ -372,18 +368,7 @@ void OstTdGateway::OnRspQryTrade(CUTTradeField *pTrade, CUTRspInfoField *pRspInf
         } else {
             logi("OnRspQryTrade: OK");
         }
-        //查询可申购ETF信息(每手数量,现金替代比例等)
-        CUTQryETFInfoField QryETFInfo;
-        memset(&QryETFInfo, 0, sizeof(CUTQryETFInfoField));
-        if (0 != m_pUserApi->ReqQryETFInfo(&QryETFInfo, this->nRequestID++)) {
-            loge("ReqQryETFInfo: Error!");
-        }
-        //查询可申购ETF对应的成分股
-        CUTQryETFComponentField QryETFComponent;
-        memset(&QryETFComponent, 0, sizeof(CUTQryETFComponentField));
-        if (0 != m_pUserApi->ReqQryETFComponent(&QryETFComponent, this->nRequestID++)) {
-            loge("ReqQryETFComponent: Error!");
-        }
+        semaphore.signal();
     }
 }
 
@@ -393,7 +378,7 @@ void OstTdGateway::OnRspOrderInsert(CUTInputOrderField *pInputOrder, CUTRspInfoF
                                     bool bIsLast) {
     //检测失败时触发
     long tsc=Context::get().tn.rdtsc();
-    if (account->orderMap.contains(pInputOrder->OrderRef)) {
+    if (account->orderMap.count(pInputOrder->OrderRef)>0) {
         Order *order = account->orderMap[pInputOrder->OrderRef];
         order->status = ORDER_STATUS::ERROR;
         order->statusMsg = utf8(pRspInfo->ErrorMsg);
@@ -406,7 +391,7 @@ void OstTdGateway::OnRspOrderInsert(CUTInputOrderField *pInputOrder, CUTRspInfoF
 
 ///报单通知
 void OstTdGateway::OnRtnOrder(CUTOrderField *pOrder) {
-    if (!account->orderMap.contains(pOrder->OrderRef))
+    if (!account->orderMap.count(pOrder->OrderRef)>0)
         return;
     long tsc=Context::get().tn.rdtsc();
     Order *order = account->orderMap[pOrder->OrderRef];
@@ -424,7 +409,7 @@ void OstTdGateway::OnRtnOrder(CUTOrderField *pOrder) {
 }
 ///成交通知
 void OstTdGateway::OnRtnTrade(CUTTradeField *pTrade) {
-    if (!account->orderMap.contains(pTrade->OrderRef))
+    if (!account->orderMap.count(pTrade->OrderRef)>0)
         return;
     long tsc=Context::get().tn.rdtsc();
     Order *order = account->orderMap[pTrade->OrderRef];
@@ -441,6 +426,8 @@ void OstTdGateway::OnRtnTrade(CUTTradeField *pTrade) {
     trade->price = pTrade->Price;
     trade->exchange = pTrade->ExchangeID;
     trade->updateTsc=tsc;
+    order->realTradedVolume+=trade->volume;
+
     this->queue->push(Event{EvType::TRADE, tsc,trade});
 
     logi("OnRtnTrade\t{} {} {} {} traded:{} price:{}", trade->orderRef, trade->symbol, enum_string(trade->offset),

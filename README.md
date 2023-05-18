@@ -2,13 +2,11 @@
 多账户交易系统
 
 # 模块说明
-* mts-admin 管理服务(服务端)
-* mts-web   管理WEB(客户端)
-* mts-trade 交易模块
-* mts-common 公共模块
+* mts-master  管理器
+* mts-web     管理WEB
+* mts-core    交易核心
+* mts-desktop 桌面应用版
 
-交易引擎是交易系统的核心载体，一个管理器管着多个交易引擎。
-交易引擎可以是内嵌模块，也可以是个独立进程。一个交易引擎维护这一个策略引擎，行情管理器，以及多个账户。
 
 
 
@@ -17,10 +15,12 @@
 * 拷贝mts.sqlite到/opt/mts/data
 * 拷贝依赖lib到/opt/mts/lib
 
-2. 启动服务端
+2. 启动管理器
 java -Djava.library.path=/tmp/mts/jctp/lib mts-admin.jar
 
-3. 启动客户端
+3. 启动交易核心
+
+4. 启动WEB
 * 执行命令 npm run serve
 * 浏览器访问http://localhost:8080/
 

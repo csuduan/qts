@@ -66,50 +66,8 @@ struct LoginInfo {
 XPACK(M(id,tdType,tdAddress,brokerId,userId,password,authCode,appId),O(useName))
 };
 
-struct Account {
-    string id;
-    string name;
-    LoginInfo loginInfo;
-    int cpuNumTd;
-    int cpuNumEvent;
 
-    double preBalance; // 昨日账户结算净值
-    double balance; // 账户净值
-    double available; // 可用资金
-    double commission; // 今日手续费
-    double margin; // 保证金占用
-    double closeProfit; // 平仓盈亏
-    double positionProfit; // 持仓盈亏
-    double deposit; // 入金
-    double withdraw; // 出金
 
-    LockFreeQueue<Event> *queue;
-
-    //账户持仓(用于校验)
-    map<string, Position *> accoPositionMap;
-    //合约信息
-    map<string, Contract *> contractMap;
-    //报单信息
-    map<int, Order *> orderMap;
-
-XPACK(M(id,name,loginInfo,preBalance,balance,available,commission,margin,closeProfit,positionProfit))
-};
-
-struct Quote {
-    string name;
-    string quoteType;//行情 TICK,ORDER,TRADE
-    string type;//网关类型
-    string address;//地址
-    string userId;
-    string password;
-    set<string> subList;
-    string dumpPath;
-    map<string, Contract *> *contractMap;
-    LockFreeQueue<Event> *queue;
-
-XPACK(M(name,quoteType,type,address))
-
-};
 
 
 struct Position {
@@ -179,6 +137,15 @@ struct Order {
     // CTP/LTS相关
     int frontID; // 前置机编号
     int sessionID; // 连接编号
+
+    int realTradedVolume;//实际成交手数(来自trade)
+
+    POS_DIRECTION getPosDirection(){
+        if (offset == OFFSET::OPEN)
+            return direction == TRADE_DIRECTION::BUY ? POS_DIRECTION::LONG : POS_DIRECTION::SHORT;
+        else
+            return direction == TRADE_DIRECTION::SELL ? POS_DIRECTION::LONG : POS_DIRECTION::SHORT;
+    }
 
 XPACK(M(tradingDay,orderRef,symbol,exchange,offset_s,direction_s,price, totalVolume,tradedVolume,status_s,statusMsg,updateTime));
 
@@ -314,37 +281,62 @@ struct StrategySetting {
     set<string> contracts;
 };
 
-struct OrderReq{
-    string symbol;
-    string offset;
-    string direct;
-    double price;
-    int volume;
-XPACK(M(symbol,offset,direct,price, volume));
+
+
+struct Account {
+    string id;
+    string name;
+    LoginInfo loginInfo;
+    int cpuNumTd;
+    int cpuNumEvent;
+    bool autoConnect;
+    string agent;
+
+    double preBalance; // 昨日账户结算净值
+    double balance; // 账户净值
+    double available; // 可用资金
+    double commission; // 今日手续费
+    double margin; // 保证金占用
+    double closeProfit; // 平仓盈亏
+    double positionProfit; // 持仓盈亏
+    double deposit; // 入金
+    double withdraw; // 出金
+
+    LockFreeQueue<Event> *queue;
+
+    //账户持仓(用于校验)
+    map<string, Position *> accoPositionMap;
+    //合约信息
+    map<string, Contract *> contractMap;
+    //报单信息
+    map<int, Order *> orderMap;
+
+    Position * getPosition(string symbol,POS_DIRECTION direction){
+        string key = symbol + "-" + std::to_string(direction);
+        if (!accoPositionMap.count(key)>0) {
+            accoPositionMap[key] = new Position(symbol, direction);
+        }
+        return accoPositionMap[key];
+    }
+
+XPACK(M(id,name,loginInfo,preBalance,balance,available,commission,margin,closeProfit,positionProfit))
 };
 
 
-struct CancelReq{
-    int orderRef;
-    int frontId;
-    long long sessionId;
-XPACK(M(orderRef));
-};
+struct Quote {
+    string name;
+    string quoteType;//行情 TICK,ORDER,TRADE
+    string type;//网关类型
+    string address;//地址
+    string userId;
+    string password;
+    set<string> subList;
+    map<string, Contract *> *contractMap;
+    LockFreeQueue<Event> *queue;
+    bool autoConnect;
 
+XPACK(M(name,quoteType,type,address))
 
-
-struct Message{
-    int no=0;//序号
-    string   type;//消息类型
-    string   actId;//账户代码
-    string   data;//报文字符串
-    MSG_TYPE msgType;
-XPACK(M(no,type),O(actId,data));
-};
-
-struct CommReq{
-    string param;
-XPACK(O(param));
 };
 
 

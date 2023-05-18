@@ -49,6 +49,7 @@ int OstMdGateway::connect() {
         this->Run();
     });
     t.detach();
+
     return 0;
 }
 
@@ -66,12 +67,13 @@ void OstMdGateway::Run() {
 void OstMdGateway::subscribe(set<string> &subContracts) {
     int i = 0;
     for (auto &item: subContracts) {
-        if (quote->subList.contains(item))
+        if (quote->subList.count(item)>0)
             continue;
         quote->subList.insert(item);
 
         CUTSubInstrumentField req = {0};
-        if(item.starts_with("6"))
+
+        if(Util::starts_with(item,"6"))
             req.ExchangeID= UT_EXG_SSE;
         else
             req.ExchangeID = UT_EXG_SZSE;
@@ -86,7 +88,7 @@ void OstMdGateway::subscribe(set<string> &subContracts) {
 void OstMdGateway::reSubscribe() {
       for(auto & item :this->quote->subList){
           CUTSubInstrumentField req = {0};
-          if(item.starts_with("6"))
+          if(Util::starts_with(item,"6"))
               req.ExchangeID= UT_EXG_SSE;
           else
               req.ExchangeID = UT_EXG_SZSE;

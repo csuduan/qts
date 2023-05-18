@@ -16,12 +16,29 @@ using namespace  std;
 
 class Util {
 public:
+    bool static starts_with(const std::string& str, const std::string prefix) {
+        return (str.rfind(prefix, 0) == 0);
+    }
+
+    bool static ends_With(const std::string& str, const std::string suffix) {
+        if (suffix.length() > str.length()) { return false; }
+
+        return (str.rfind(suffix) == (str.length() - suffix.length()));
+    }
+
     static inline int getTime(timespec * time){
         //auto now=std::chrono::high_resolution_clock::now();
         //std::time_t tt = std::chrono::high_resolution_clock::to_time_t(now);
         //std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
         clock_gettime(CLOCK_MONOTONIC,time);
         return 0;
+    }
+    static  string getDate(){
+        auto now=std::chrono::high_resolution_clock::now();
+        std::time_t tt = std::chrono::high_resolution_clock::to_time_t(now);
+        char date[9]={0};
+        strftime(date, sizeof(date), "%Y%m%d", localtime(&tt));
+        return string(date);
     }
     ///格式化纳秒时间(不适合高性能场景,平均耗时3us)
     static string  formatTime(long ns){

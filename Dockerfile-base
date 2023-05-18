@@ -1,3 +1,0 @@
-FROM  --platform=linux/amd64 openjdk:17
-#镜像的制作人
-MAINTAINER csuduan@qq.com

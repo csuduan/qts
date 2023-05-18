@@ -17,6 +17,7 @@
 #include<sys/un.h>
 #include "SocketClient.h"
 #include <functional>
+#include <thread>
 #include "Util.h"
 #include "Enums.h"
 #include "Data.h"
@@ -37,44 +38,20 @@ void read_cb(struct bufferevent *bev, void *arg){
 }
 
 void usage(){
-    cout<<"support cmd:"<<endl;
-    cout<<"1. [START_ENG|STOP_ENG|CONNECT_MD|DISCOUNT_MD]"<<endl;
-    cout<<"2. [CONNECT_ACT|DISCOUNT_ACT|PAUSE_OPEN|PAUSE_CLOSE] [accountId]"<<endl;
-
 }
-
-//
-//void read_terminal(evutil_socket_t fd, short what, void *arg)
-//{
-//    //UdsClient* udsClient=(UdsClient *) arg;
-//    struct bufferevent * connEv= (struct bufferevent *)arg;
-//    //读数据
-//    char buf[1024] = {0};
-//    int len = read(fd, buf, sizeof(buf));
-//    if(len==0){
-//        usage();
-//        return;
-//    }
-//    //命令行转义为json再发送
-//    string cmdline= string(buf);
-//    string msg= cmdline;
-//    //cout<<"==>"<<msg<<endl;
-//    int length=cmdline.length();
-//    char header[4+1]={0};
-//    sprintf(header,"%04d",length);
-//
-//    //发送数据
-//    bufferevent_write(connEv, header, 4);
-//    bufferevent_write(connEv, msg.c_str(), length);
-//}
 
 void SocketClient::start() {
     this->base = event_base_new();
-    while (true){
-        connect();
-        loge("wait 10s for connecting...");
-        sleep(10);
-    }
+    std::thread thread([](SocketClient* client){
+        while (true){
+            client->connect();
+            loge("wait 10s for connecting...");
+            sleep(10);
+        }
+        },this);
+    thread.detach();
+
+
 }
 
 
@@ -94,7 +71,7 @@ void  SocketClient::event_callback(struct bufferevent *bev, short events) {
         this->connected = true;
         //发送一个PING包
         Message message={0};
-        message.actId=this->socketAddr.name;
+        message.sid=this->socketAddr.name;
         message.type= enum_string(MSG_TYPE::PING);
         request(message);
         return ;
@@ -114,20 +91,20 @@ void  SocketClient::read_callback(struct bufferevent *bev) {
             //reverse(head,headLen);//大端转小端
             unsigned int msgLen;
             memcpy(&msgLen,head,headLen);
+            msgLen=ntohl(msgLen);//大端转小端
             char msg[msgLen+1];
             len = bufferevent_read(bev, msg, msgLen);
             msg[len] = '\0';
             try{
+                logi("recv  msg: {}", string (msg));
                 Message *message=new Message();
                 xpack::json::decode(msg, *message);
-                logi("recv msg: {} {}", message->type,message->data);
                 auto msgType=magic_enum::enum_cast<MSG_TYPE>(message->type);
                 if(msgType.has_value()){
                     message->msgType=msgType.value();
                     this->queue.push(Event{EvType::MSG,0,message});
                 }else{
                     loge("unknow msgType:{}",message->type);
-
                 }
             }catch(exception ex){
                 loge("valid json message");
@@ -150,7 +127,7 @@ void SocketClient::connect() {
         struct sockaddr_un serv;
         memset(&serv, 0, sizeof(serv));
         serv.sun_family = AF_UNIX;
-        string filename="/tmp/ipc/"+socketAddr.unName;
+        string filename="/tmp/"+socketAddr.unName+".sock";
         strcpy(serv.sun_path,filename.c_str());
 
         evutil_socket_t fd;
@@ -209,28 +186,31 @@ void SocketClient::connect() {
     //logw("event conn free");
 }
 
-void SocketClient::request(const string &msg) {
+bool SocketClient::request(const string &msg) {
     if(!this->connected){
         loge("connection[{}] is closed!",this->socketAddr.name);
-        return;
+        return false;
     }
     int headLen=4;
     int msgLen=msg.length();
-    unsigned char head[headLen];
-    memcpy(head,&msgLen,headLen);
+    int msgLenBig= htonl(msgLen);
+    //unsigned char head[headLen];
+    //memcpy(head,&msgLenBig,headLen);
 
     char buffer[headLen+msgLen];
     memset(buffer,0,headLen+msgLen);
-    memcpy(buffer,head,headLen);
+    //写入消息长度(大端模式)
+    memcpy(buffer,&msgLenBig,headLen);
+    //写入消息体
     memcpy(buffer+headLen,msg.c_str(),msgLen);
-    //reverse(head,headLen);//小端转大端
     bufferevent_write(connEv, buffer, headLen+msgLen);
+    return true;
 }
 
-void SocketClient::request(const Message &msg) {
+bool SocketClient::request(const Message &msg) {
     string json=xpack::json::encode(msg);
     logi("client[{}]send msg:{}",this->socketAddr.name,json);
-    this->request(json);
+    return this->request(json);
 }
 
 

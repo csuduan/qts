@@ -27,7 +27,7 @@ using namespace std::filesystem;
 
 void SocketServer::start() {
     name=socketAddr.name;
-    logi("socket server [{}] start..",name);
+    logi("start server [{}] ...",name);
 
     if(this->socketAddr.type==SocketType::UDS){
         struct sockaddr_un un;
@@ -36,7 +36,7 @@ void SocketServer::start() {
         //unlink(unName);
         if(!exists("/tmp/ipc/"))
             create_directories("/tmp/ipc/");
-        string filename="/tmp/ipc/"+socketAddr.unName;
+        string filename="/tmp/ipc/"+socketAddr.unName+".sock";
         unlink(filename.c_str());
         strcpy(un.sun_path,filename.c_str());
         runUds(un);
@@ -48,8 +48,6 @@ void SocketServer::start() {
         in.sin_addr.s_addr = 0;
         runTcp(in);
     }
-
-
 
 }
 
@@ -63,16 +61,16 @@ void SocketServer::runTcp(struct sockaddr_in in) {
                                       }
                     ,this,LEV_OPT_REUSEABLE|LEV_OPT_CLOSE_ON_FREE,10, (struct sockaddr*)&in, sizeof(in));
     if(!listener){
-        loge("socket  server [{}] listen fail! {}",this->socketAddr.name,strerror(errno));
+        loge("server[{}] listen fail! {}",this->socketAddr.name,strerror(errno));
         throw exception();
     }
-    logi("socket server [{}] listen success",this->socketAddr.name);
+    logi("server[{}] listen success",this->socketAddr.name);
 
     //evconnlistener_set_error_cb(listener, accept_error_cb);
     event_base_dispatch(base);
     evconnlistener_free(listener);
     event_base_free(base);
-    logw("{} SocketServer loop exit",name);
+    loge("server[{}] loop exit",name);
 }
 
 void SocketServer::runUds(struct sockaddr_un un) {
@@ -86,18 +84,18 @@ void SocketServer::runUds(struct sockaddr_un un) {
                     ,this,LEV_OPT_REUSEABLE|LEV_OPT_CLOSE_ON_FREE,10, (struct sockaddr*)&un, sizeof(un));
     if(!listener){
         //perror("Cannot create listener");
-        loge("socket server [{}] listen fail! {}",this->socketAddr.name,strerror(errno));
+        loge("server[{}] listen fail! {}",this->socketAddr.name,strerror(errno));
         throw exception();
     }
-    logi("socket server [{}] listen success",this->socketAddr.name);
+    logi("server[{}] listen success",this->socketAddr.name);
 
     event_base_dispatch(base);
     evconnlistener_free(listener);
     event_base_free(base);
-    logw("{} SocketServer loop exit",name);
+    logw("server[{}] loop exit",name);
 }
 void SocketServer::listern_callback(evconnlistener *listener, int fd, sockaddr *sock, int socklen) {
-    logi("[{}] accept  client  connect",name);
+    logi("server[{}] accept  client  connect",name);
     //保存连接
     bufferevent * bev = bufferevent_socket_new(this->base, fd, BEV_OPT_CLOSE_ON_FREE);
     SocketSession * session=new SocketSession(bev,&this->queue);
@@ -202,17 +200,18 @@ void SocketServer::push(const string &msg) {
 
 void SocketServer::push(const Message &msg) {
     string json=xpack::json::encode(msg);
-    if(msg.actId.length()>0){
+    if(msg.rid.length()>0){
         //发给指定session
-        string id=msg.actId;
+        string id=msg.rid;
         auto it=find_if(sessions.begin(),sessions.end(),[id](SocketSession * s){
             return s->id==id && s->connected;
         });
         if(it==sessions.end()){
             //不存在
             loge("client[{}] not connected",id);
+        }else{
+            (*it)->send(json);
         }
-        (*it)->send(json);
     }else{
         for(auto & item :sessions){
             if(item->connected == true)

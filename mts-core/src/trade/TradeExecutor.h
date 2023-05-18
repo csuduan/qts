@@ -8,6 +8,7 @@
 
 #include <atomic>
 #include "Data.h"
+#include "Message.h"
 #include "gateway/Gateway.h"
 #include "strategy/Strategy.h"
 #include "LockFreeQueue.hpp"
@@ -25,8 +26,10 @@ private:
     Account* account;
     vector<Quote*> quotes;
     TdGateway* tdGateway;
-    //SocketServer* server;
-    SocketClient* client;//连接master的客户端
+    SocketClient* agentClient;
+
+    SocketServer * udsServer;//对内提供服务
+
 
     map<string,vector<BarGenerator *>*> barGeneratorMap;
     map<string,MdGateway*> mdGatewayMap; //支持多路行情

@@ -117,40 +117,31 @@ static set<ORDER_STATUS> STATUS_FINISHED ={
 };
 
 enum MSG_TYPE{
-    EXIT =0,
-    START,
-    STOP,
+    //请求消息
     PING,
-    PONG,
+    EXIT,
+    RESTART,
+    CONNECT,
 
-    //行情操作消息
-    MD_CONNECT=10,
-    MD_DISCOUN,
     MD_SUBS,
-
-    //账户操作消息
-    ACT_CONNECT=20,
-    ACT_DISCONN,
     ACT_PAUSE_OPEN,
     ACT_PAUSE_CLOSE,
     ACT_ORDER,
     ACT_CANCEL,
-
-    //查询消息
-    QRY_TRADE=30,
-    QRY_POSITION,
-    QRY_ACCOUNT,
+    ACT_QRY_TRADE,
+    ACT_QRY_ORDER,
+    ACT_QRY_POSITION,
+    ACT_QRY_ACCOUNT,
 
 
     //推送消息
-    ON_POSITION=40,
+    ON_STATUS=100,
+    ON_LOG,
+    ON_POSITION,
     ON_TRADE,
     ON_ORDER,
     ON_CONTRACT,
     ON_BAR,
-    ON_LOG,
     ON_ACCOUNT,
-
-
 
 };

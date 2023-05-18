@@ -8,18 +8,18 @@
 #include <unistd.h>
 #include <cstring>
 #include "Data.h"
+#include "Message.h"
 
 bool SocketSession::send(const string & msg) {
     int headLen=4;
     int msgLen=msg.length();
-    unsigned char head[headLen];
-    memcpy(head,&msgLen,headLen);
+    int msgLenBig= htonl(msgLen);
 
     char buffer[headLen+msgLen];
     memset(buffer,0,headLen+msgLen);
-    memcpy(buffer,&msgLen,headLen);
+
+    memcpy(buffer,&msgLenBig,headLen);
     memcpy(buffer+headLen,msg.c_str(),msgLen);
-    //reverse(head,headLen);//小端转大端
     bufferevent_write(bev, buffer, headLen+msgLen);
 
 }
@@ -36,9 +36,9 @@ void SocketSession::read_callback(struct bufferevent *bev) {
         if(len>=headLen){
             unsigned char head[headLen];
             bufferevent_read(bev, head, headLen);
-            //reverse(head,headLen);//大端转小端
             unsigned int msgLen;
             memcpy(&msgLen,head,headLen);
+            msgLen=ntohl(msgLen);//大端转小端
             char msg[msgLen+1];
             len = bufferevent_read(bev, msg, msgLen);
             msg[len] = '\0';
@@ -49,7 +49,10 @@ void SocketSession::read_callback(struct bufferevent *bev) {
                 auto msgType=magic_enum::enum_cast<MSG_TYPE>(message->type);
                 if(msgType.has_value()){
                     if(msgType== MSG_TYPE::PING){
-                        this->id=message->actId;
+                        this->id=message->rid;
+                        message->type= enum_string(MSG_TYPE::PING);
+                        string rsp=xpack::json::encode(*message);
+                        this->send(rsp);
                     }else{
                         message->msgType=msgType.value();
                         this->queue->push(Event{EvType::MSG,0,message});

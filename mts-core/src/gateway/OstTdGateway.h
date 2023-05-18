@@ -11,16 +11,23 @@
 #include "LockFreeQueue.hpp"
 #include "Timer.hpp"
 #include "define.h"
+#include "semaphore.h"
 
 class OstTdGateway : public CUTSpi, public TdGateway {
 
 private:
-    static int nRequestID;
+    static inline int nRequestID =0 ;
     static map<TUTOrderStatusType, ORDER_STATUS> statusMap;
     static map<TUTExchangeIDType,string> exgMap;
     static map<string,TUTExchangeIDType> reExgMap;
 
-    static map<int, string> qryRetMsgMap;
+    static inline map<int, string> qryRetMsgMap ={
+            {0,  "成功"},
+            {-1, "网络连接失败"},
+            {-2, "未处理请求超过许可数"},
+            {-3, "每秒发送请求数超过许可数"}
+
+    };
     //map<string,TUTExchangeIDType> exgReverseMap;
 
     string id;
@@ -34,6 +41,9 @@ private:
     vector<Trade> tmpTrades;
     //map<int, Order *> orderMap;
     Timer timer;
+
+    Semaphore  semaphore={0};
+
 
     void Run();
 
@@ -58,10 +68,6 @@ public:
 
     void cancelOrder(Action *order) override;
 
-    void reqQryPosition();
-
-    ///用户口令更新请求
-    void reqUserPasswordUpdate();
 
     ///当客户端与交易后台建立起通信连接时（还未登录前），该方法被调用。
     void OnFrontConnected() override;

@@ -31,6 +31,8 @@ const isMobile = deviceDetection();
 const pureSetting = useSettingStoreHook();
 const instance = getCurrentInstance().appContext.app.config.globalProperties;
 
+import { websocket } from "/@/utils/websocket";
+
 // 清空缓存后从serverConfig.json读取默认配置并赋值到storage中
 const layout = computed(() => {
   // 路由
@@ -145,10 +147,16 @@ emitter.on("resize", ({ detail }) => {
   }
 });
 
+function startWebSocket() {
+  console.log("start webSocket...");
+  websocket.connect();
+}
+
 onMounted(() => {
   if (isMobile) {
     toggle("mobile", false);
   }
+  startWebSocket();
 });
 
 function onFullScreen() {

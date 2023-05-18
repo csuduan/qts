@@ -124,9 +124,9 @@ void MasterExecutor::msgHandler() {
 void MasterExecutor::processMsg(Message *msg) {
     switch (msg->msgType) {
         case MSG_TYPE::PING:{
-            Message *rsp= buildMsg(MSG_TYPE::PONG,"{}");
-            this->tcpServer->push(*rsp);
-            delete rsp;
+            CommReq req={0};
+            string rsp= buildMsg(MSG_TYPE::PONG, req);
+            this->tcpServer->push(rsp);
             break;
         }
         case MSG_TYPE::ON_ORDER:

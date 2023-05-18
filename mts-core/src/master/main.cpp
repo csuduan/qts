@@ -8,6 +8,7 @@
 #include "MasterExecutor.h"
 #include "signal.h"
 #include <chrono>
+#include <filesystem>
 
 void sigHandler(int signo) {
     logw("recv sig {}", signo);
@@ -23,8 +24,23 @@ int main(int argc,char *argv[]){
     signal(SIGABRT, sigHandler);
     signal(SIGPIPE, SIG_IGN);
 
-    Context::get().init();
+    if(!std::filesystem::exists("logs"))
+        std::filesystem::create_directories("logs");
+
+    string date=Util::getDate();
+    string file="logs/master-"+date+".log";
+    fmtlog::setLogFile(file.c_str(), false);
+    //初始化日志
+    //fmtlog::setLogFile(stdout, false);
     fmtlog::setThreadName("main");
+    fmtlog::startPollingThread(1e9);
+
+    Context::get().init();
+
+    fmtlog::setThreadName("main");
+
+
+
     std::string name="server";
 
     MasterExecutor* executor=new MasterExecutor();

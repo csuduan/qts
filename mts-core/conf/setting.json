@@ -1,7 +1,6 @@
 {
   "dataPath": "/opt/data/mts-core",
   "logPath": "/opt/data/mts-core",
-  "tcpPort": 9000,
   "quoteGroups": [
     {
       "name": "ost",
@@ -29,7 +28,7 @@
       "name": "sse-tick",
       "type": "TICK",
       "address": "EFH|233.57.1.104:37104:eth0",
-      "subList": ["000003"],
+      "subList": ["600958"],
       "enable": false
     },
     {

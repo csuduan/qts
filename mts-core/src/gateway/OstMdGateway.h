@@ -17,6 +17,8 @@
 #include <netdb.h>
 #include "Timer.hpp"
 #include "Shm.hpp"
+#include "Util.h"
+#include "semaphore.h"
 
 
 class OstMdGateway: public CUTMDSpi, public MdGateway
@@ -44,6 +46,8 @@ private:
     static int nRequestID;
     static map<TUTExchangeIDType,string> exgMap;
     static map<string,TUTExchangeIDType> reExgMap;
+
+    Semaphore  semaphore={0};
 
     CUTMDApi* m_pUserApi;
     bool  isConnected;
