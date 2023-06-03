@@ -1,12 +1,18 @@
 # mts
 多账户交易系统
 
-# 模块说明
-* mts-master  管理器
-* mts-web     管理WEB
-* mts-core    交易核心
-* mts-desktop 桌面应用版
+**mts当前处于开发阶段，暂不可用，正在快马加鞭中...**
 
+
+# 架构
+![架构图](https://github.com/csuduan/images/raw/5ed2532c8a07485f3f4ab17375341a421ad0c1d0/mts.png)
+
+* mts-core    交易核心
+C++版低延迟交易程序(tick2trade<5us)
+* mts-master  管理中心
+> mts-admin  只需部署一个admin,负责管理多个mts-agent  
+> mts-agent  每台交易服务器部署一个agent，负责管理多个mts-core
+* mts-web     管理WEB
 
 
 

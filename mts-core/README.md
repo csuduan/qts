@@ -1,11 +1,11 @@
-**mts 多账户交易系统**
+**mts-core**
 ## 模块
-* mts-trade   交易程序
-* mts-server  服务端(交易管理，数据管理，通讯管理)
+* mts-trade   交易核心
 * mts-shell   交互式命令行
+
 ## 安装
-1. 开发环境
-* 安装gcc
+## 环境安装
+1. 安装gcc
 ```bash
 #下载并安装 centos-release-scl
 yum install --downloadonly --downloaddir=./centos-release-scl centos-release-scl
@@ -28,7 +28,7 @@ cd /lib64
 ln -s /lib64/libstdc++.so.6.0.26 /lib64/libstdc++.so.6
 ```
 
-* 安装cmake
+2. 安装cmake
 ```bash
 #下载
 wget https://github.com/Kitware/CMake/releases/download/v3.18.2/cmake-3.18.2.tar.gz
@@ -43,11 +43,7 @@ cmake --version
 
 ```
 
-2. 生产环境
-* 安装gcc(同开发环境)
-
-
-## 依赖包
+3. 其他依赖包
 * fmtlib
 ```bash
 git clone https://github.com/fmtlib/fmt.git
@@ -56,7 +52,7 @@ cmake .
 make && make install
 
 ```
-* libevent  
+* libevent
 ```bash
 wget https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz
 ./configure -prefix=/usr/local/libevent --disable-openssl 
@@ -74,6 +70,21 @@ sqlite3 -version
 ```
 
 * protobuf
+
+## 应用部署
+1. 编译
+```bash
+cd mts-core
+mkdir cmake-build && cd cmake-build
+cmake ..
+make -j4
+
+```
+2. 启动trade-core
+```bash
+./mts-master xxx
+```
+xxx为账户id
 
 ## 问题
 * 权限问题

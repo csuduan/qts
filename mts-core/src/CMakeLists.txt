@@ -28,16 +28,11 @@ link_directories(${EXECUTABLE_OUTPUT_PATH}/lib)
 
 add_library (common SHARED ${SOURCE_COMMON} ${SOURCE_GATEWAY} )
 add_executable(mts-trade  ${SOURCE_TRADE} ${SOURCE_STRATEGY})
-#add_executable(mts-master  ${SOURCE_MASTER})
 add_executable(mts-shell ${SOURCE_SHELL})
-#add_executable(mts-test ${SOURCE_TEST})
 
 
 
 target_link_libraries(common  fmtlog fmt  slh_pack_recv.a  jsoncpp  sqlite3 event dl rt pthread)
 target_link_libraries(mts-trade  common)
-#target_link_libraries(mts-master  common)
 target_link_libraries(mts-shell common)
-#target_link_libraries(mts-test common )
-
 
