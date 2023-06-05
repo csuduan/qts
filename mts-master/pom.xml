@@ -17,7 +17,7 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>mts-admin</module>
-        <module>mts-agent</module>
+        <module>mts-trade</module>
         <module>mts-common</module>
     </modules>
 
@@ -122,7 +122,7 @@
             </dependency>
             <dependency>
                 <groupId>org.mts</groupId>
-                <artifactId>mts-agent</artifactId>
+                <artifactId>mts-trade</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

@@ -5,7 +5,7 @@ import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.mts.admin.entity.Page;
 import org.mts.admin.entity.Response;
-import org.mts.common.model.acct.Agent;
+import org.mts.common.model.acct.TradeAgent;
 import org.mts.admin.entity.sys.Role;
 import org.mts.admin.entity.sys.Router;
 import org.mts.admin.entity.sys.UserInfo;
@@ -66,10 +66,10 @@ public class SysController {
     }
 
     @GetMapping(path = "/agent")
-    public Response<Page<Agent>> getAgents(String name){
-        Response<Page<Agent>> response=new Response<>();
-        List<Agent> agents = agentService.getAgents();
-        Page<Agent> res=new Page<>();
+    public Response<Page<TradeAgent>> getAgents(String name){
+        Response<Page<TradeAgent>> response=new Response<>();
+        List<TradeAgent> agents = agentService.getAgents();
+        Page<TradeAgent> res=new Page<>();
         res.setList(agents);
         res.setTotal(agents.size());
         response.setData(res);
@@ -77,7 +77,7 @@ public class SysController {
     }
 
     @PostMapping(path = "/agent/update")
-    public Response<Boolean> updateAgent(@RequestBody Agent agent){
+    public Response<Boolean> updateAgent(@RequestBody TradeAgent agent){
         Response<Boolean> response=new Response<>();
         response.setData(agentService.updateAgent(agent));
         return response;

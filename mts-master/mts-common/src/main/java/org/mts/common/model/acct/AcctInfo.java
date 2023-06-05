@@ -6,17 +6,16 @@ import java.time.LocalDate;
 
 @Data
 public class AcctInfo {
-    private String agent;
+    private String owner;
     private String group;
     private String id;
     private String user;
-    private String pwd;
     private String type;
     private int  startType;//启动类型(1-自动，2-手动)
     private Boolean enable;//是否激活
-
     //状态信息
-    private Boolean status;//账户状态
+    private Boolean status=false;//账户状态
+    private String  statusMsg="加载中";//状态描述（账户就绪，Agent未连接,TradeCore未连接）
     private Boolean tdStatus;
     private Boolean mdStatus;
 

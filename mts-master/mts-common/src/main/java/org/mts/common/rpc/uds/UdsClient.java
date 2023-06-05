@@ -18,7 +18,10 @@ import org.mts.common.rpc.future.SyncWrite;
 import org.mts.common.rpc.handler.ClientHandler;
 import org.mts.common.rpc.listener.ClientListener;
 
+import java.net.Socket;
 import java.net.SocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 @Slf4j
 public class UdsClient {
@@ -45,7 +48,7 @@ public class UdsClient {
                     if(!this.isConnected()){
                         this.connect();
                     }
-                    Thread.sleep(5000);
+                    Thread.sleep(10000);
                 }catch (Exception ex){
 
                 }
@@ -81,16 +84,23 @@ public class UdsClient {
             log.warn("client[{}] 已经连接",name);
             return;
         }
+
+        String sockPath="/tmp/ipc/"+name+".sock";
+        if(!Files.exists(Paths.get(sockPath))){
+            //log.warn("sock[{}] not exist",sockPath);
+            return;
+        }
+
         try {
             Bootstrap bootstrap;
             bootstrap = new Bootstrap();
             clientHandler=new ClientHandler(name,customHandler);
             bootstrap.group(group)
                     .channel(EpollDomainSocketChannel.class)
-                    .option(ChannelOption.TCP_NODELAY,true)
-                    .option(ChannelOption.SO_KEEPALIVE,true)
-                    .handler(new ChannelInitializer<NioSocketChannel>() {
-                        protected void initChannel(NioSocketChannel socketChannel) throws Exception {
+                    //.option(ChannelOption.TCP_NODELAY,true)
+                    //.option(ChannelOption.SO_KEEPALIVE,true)
+                    .handler(new ChannelInitializer<EpollDomainSocketChannel>() {
+                        protected void initChannel(EpollDomainSocketChannel socketChannel) throws Exception {
                             socketChannel.pipeline().addLast("frameDecoder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
                             socketChannel.pipeline().addLast("frameEncoder", new LengthFieldPrepender(4));
                             socketChannel.pipeline().addLast("decoder", new StringDecoder(CharsetUtil.UTF_8));
@@ -100,7 +110,7 @@ public class UdsClient {
                         }
                     });
             log.error("client[{}] connecting...",name);
-            SocketAddress sock = new DomainSocketAddress("/tmp/ipc/"+name+".sock");
+            SocketAddress sock = new DomainSocketAddress(sockPath);
             ChannelFuture channelFuture = bootstrap.connect(sock).sync();
             channel=channelFuture.channel();
             channel.closeFuture().sync();
@@ -112,6 +122,7 @@ public class UdsClient {
     }
 
     public boolean isConnected(){
-        return this.clientHandler.isConnected();
+        return this.channel!=null && this.clientHandler.isConnected();
     }
+
 }

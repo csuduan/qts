@@ -3,7 +3,7 @@ package org.mts.common.model.acct;
 import lombok.Data;
 
 @Data
-public class Agent {
+public class TradeAgent {
     private String  id;
     private String  name;
     private String  address;

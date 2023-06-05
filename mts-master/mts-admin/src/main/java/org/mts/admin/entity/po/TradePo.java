@@ -3,7 +3,7 @@ package org.mts.admin.entity.po;
 import lombok.Data;
 
 @Data
-public class AgentPo {
+public class TradePo {
     private String id;
     private String name;
     private Boolean enable;

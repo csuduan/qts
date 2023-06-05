@@ -9,6 +9,7 @@ public class Message {
     private String requestId;//请求编号
     private String sid;//发送对象
     private String rid;//接收对象
+    private String acctId;//关联账户
     private Enums.MSG_TYPE type;//消息类型
     private Boolean success;
     private String data;//报文体
@@ -18,6 +19,14 @@ public class Message {
     }
     public Message(Enums.MSG_TYPE type,Object data){
         this.type=type;
+        if(data!=null)
+            this.data= JSON.toJSONString(data);
+
+    }
+
+    public Message(Enums.MSG_TYPE type,String acctId,Object data){
+        this.type=type;
+        this.acctId=acctId;
         if(data!=null)
             this.data= JSON.toJSONString(data);
 
@@ -33,7 +42,7 @@ public class Message {
     public static final Message DEFAULT=new Message();
 
     public Message buildResp(boolean result,Object data){
-        Message response=new Message(Enums.MSG_TYPE.RETURN,null);
+        Message response=new Message(Enums.MSG_TYPE.RETURN,data);
         response.setRequestId(this.requestId);
         response.setSuccess(result);
         return response;
