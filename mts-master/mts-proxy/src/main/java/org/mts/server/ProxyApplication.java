@@ -1,4 +1,4 @@
-package org.mts.agent;
+package org.mts.server;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
@@ -8,12 +8,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @Slf4j
-@ComponentScan({"org.mts.common","org.mts.agent"})
+@ComponentScan({"org.mts.common", "org.mts.server"})
 @EnableScheduling
-public class TradeApplication {
+public class ProxyApplication {
     public static void main(String[] args) {
-        SpringApplication.run(TradeApplication.class, args);
-        log.info("=====mts-trade started======");
+        SpringApplication.run(ProxyApplication.class, args);
+        log.info("=====mts-server started======");
 
         while (true){
             try {

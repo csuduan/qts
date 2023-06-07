@@ -1,4 +1,4 @@
-package org.mts.agent.model;
+package org.mts.admin.entity.po;
 
 import lombok.Data;
 

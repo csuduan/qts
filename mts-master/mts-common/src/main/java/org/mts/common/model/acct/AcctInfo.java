@@ -1,6 +1,8 @@
 package org.mts.common.model.acct;
 
 import lombok.Data;
+import org.mts.common.rpc.uds.UdsClient;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -15,9 +17,9 @@ public class AcctInfo {
     private Boolean enable;//是否激活
     //状态信息
     private Boolean status=false;//账户状态
-    private String  statusMsg="加载中";//状态描述（账户就绪，Agent未连接,TradeCore未连接）
-    private Boolean tdStatus;
-    private Boolean mdStatus;
+    private String  statusMsg="未连接";//状态描述（已就绪，未连接）
+    private Boolean tdStatus = false;
+    private Boolean mdStatus = false;
 
 
     //资金信息
@@ -30,5 +32,4 @@ public class AcctInfo {
     private BigDecimal fee=BigDecimal.ZERO;
 
     private LocalDate updateTimestamp;//更新时间
-
 }

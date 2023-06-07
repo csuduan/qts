@@ -93,7 +93,7 @@ public interface Enums {
     }
     enum MSG_TYPE {
         RETURN,
-        CONF,
+        SYNC,
         PING,
         EXIT,
         RESTART,
@@ -111,8 +111,6 @@ public interface Enums {
         QRY_CONF,
 
 
-
-
         //推送消息
         ON_STATUS,
         ON_LOG,
@@ -122,7 +120,7 @@ public interface Enums {
         ON_CONTRACT,
         ON_BAR,
         ON_ACCT,
-        ON_AGENT,
+        ON_SERVER,
     }
 
 }

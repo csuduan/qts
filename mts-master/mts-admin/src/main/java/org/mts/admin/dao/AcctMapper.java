@@ -10,10 +10,4 @@ import java.util.List;
 @Mapper
 public interface AcctMapper {
     int count();
-
-    @Select("SELECT * FROM ACCT_CONF")
-    List<AcctConf> getAcctConfs();
-
-    @Select("SELECT * FROM QUOTE_CONF")
-    List<QuoteConf> getQuoteConfs();
 }

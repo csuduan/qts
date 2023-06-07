@@ -1,4 +1,4 @@
-package org.mts.agent.config;
+package org.mts.admin.config;
 
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
@@ -14,7 +14,6 @@ import org.sqlite.SQLiteDataSource;
 import javax.sql.DataSource;
 
 @Configuration
-@MapperScan(basePackages = {"org.mts.agent.dao"})
 public class DatasourceAutoConfig {
     @Autowired
     private DataSourceProperties dataSourceProperties;

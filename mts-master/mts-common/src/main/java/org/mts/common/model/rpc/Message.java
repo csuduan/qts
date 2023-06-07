@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSON;
 import lombok.Data;
 import org.mts.common.model.Enums;
 
+import java.util.List;
+
 @Data
 public class Message {
     private String requestId;//请求编号
@@ -19,17 +21,24 @@ public class Message {
     }
     public Message(Enums.MSG_TYPE type,Object data){
         this.type=type;
-        if(data!=null)
-            this.data= JSON.toJSONString(data);
+        if(data!=null){
+            if(data instanceof String)
+                this.data=(String)data;
+            else
+                this.data= JSON.toJSONString(data);
+        }
 
     }
 
     public Message(Enums.MSG_TYPE type,String acctId,Object data){
         this.type=type;
         this.acctId=acctId;
-        if(data!=null)
-            this.data= JSON.toJSONString(data);
-
+        if(data!=null){
+            if(data instanceof String)
+                this.data=(String)data;
+            else
+                this.data= JSON.toJSONString(data);
+        }
     }
 
     public <T> T getData(Class<T> clazz){
@@ -37,6 +46,12 @@ public class Message {
             return null;
         else
             return JSON.parseObject(data,clazz);
+    }
+    public <T> List<T> getList(Class<T> clazz){
+        if(data==null)
+            return null;
+        else
+            return JSON.parseArray(data,clazz);
     }
 
     public static final Message DEFAULT=new Message();

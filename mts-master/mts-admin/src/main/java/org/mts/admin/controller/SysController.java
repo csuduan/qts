@@ -5,11 +5,11 @@ import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.mts.admin.entity.Page;
 import org.mts.admin.entity.Response;
-import org.mts.common.model.acct.TradeAgent;
+import org.mts.common.model.acct.ServerInfo;
 import org.mts.admin.entity.sys.Role;
 import org.mts.admin.entity.sys.Router;
 import org.mts.admin.entity.sys.UserInfo;
-import org.mts.admin.service.AgentService;
+import org.mts.admin.service.AcctService;
 import org.mts.admin.service.SysService;
 import org.mts.admin.service.WebSocketService;
 import org.mts.common.model.rpc.Message;
@@ -28,7 +28,7 @@ public class SysController {
     @Autowired
     private SysService sysService;
     @Autowired
-    private AgentService agentService;
+    private AcctService agentService;
     @Autowired
     private WebSocketService webSocketService;
 
@@ -64,25 +64,6 @@ public class SysController {
         response.setData(routers);
         return response;
     }
-
-    @GetMapping(path = "/agent")
-    public Response<Page<TradeAgent>> getAgents(String name){
-        Response<Page<TradeAgent>> response=new Response<>();
-        List<TradeAgent> agents = agentService.getAgents();
-        Page<TradeAgent> res=new Page<>();
-        res.setList(agents);
-        res.setTotal(agents.size());
-        response.setData(res);
-        return response;
-    }
-
-    @PostMapping(path = "/agent/update")
-    public Response<Boolean> updateAgent(@RequestBody TradeAgent agent){
-        Response<Boolean> response=new Response<>();
-        response.setData(agentService.updateAgent(agent));
-        return response;
-    }
-
 
     @GetMapping(path = "/role")
     public Response<Page<Role>> getRole(String name){
@@ -149,17 +130,5 @@ public class SysController {
         return response;
     }
 
-    @PostMapping(path = "/ws/send")
-    public Response<Boolean> sendWsMsg(@RequestBody Message msg) {
-        Response<Boolean> response=new Response<>();
-        webSocketService.push(msg);
-        return response;
-    }
 
-    @PostMapping(path = "/agent/msg")
-    public Response<Message> sendMsgToAgent(String agentId, @RequestBody Message req) {
-        Response<Message> response=new Response<>();
-        agentService.request(agentId,req);
-        return response;
-    }
 }

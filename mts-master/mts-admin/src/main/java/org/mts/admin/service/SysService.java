@@ -1,8 +1,7 @@
 package org.mts.admin.service;
 
-import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
-import org.mts.admin.dao.RouterMapper;
+import org.mts.admin.dao.SysMapper;
 import org.mts.admin.entity.po.RouterPo;
 import org.mts.admin.entity.sys.Router;
 import org.springframework.beans.BeanUtils;
@@ -19,15 +18,11 @@ import java.util.Map;
 @Slf4j
 public class SysService {
     @Autowired
-    private RouterMapper routerMapper;
-
+    private SysMapper sysMapper;
 
 
     public List<Router> getSysRouters(String user){
-        List<RouterPo> routerPos=routerMapper.getRouters();
-
-        String json=JSON.toJSONString(routerPos);
-
+        List<RouterPo> routerPos= sysMapper.getRouters();
         Map<String,Router> routerMap=new HashMap();
         routerPos.forEach(po->routerMap.put(po.getName(),buildRouter(po)));
         List<Router> rootRouters=new ArrayList<>();
