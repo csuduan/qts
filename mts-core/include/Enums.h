@@ -16,6 +16,7 @@ enum EvType {
     POSITON,
     CONTRACT,
     MSG,
+    STATUS
 };
 
 //交易所
@@ -117,31 +118,36 @@ static set<ORDER_STATUS> STATUS_FINISHED ={
 };
 
 enum MSG_TYPE{
-    //请求消息
+    RETURN,
+    CONF,
     PING,
     EXIT,
     RESTART,
     CONNECT,
+    SYNC,
 
     MD_SUBS,
-    ACT_PAUSE_OPEN,
-    ACT_PAUSE_CLOSE,
+    PAUSE_OPEN,
+    PAUSE_CLOSE,
     ACT_ORDER,
     ACT_CANCEL,
-    ACT_QRY_TRADE,
-    ACT_QRY_ORDER,
-    ACT_QRY_POSITION,
-    ACT_QRY_ACCOUNT,
+    QRY_TRADE,
+    QRY_ORDER,
+    QRY_POSITION,
+    QRY_ACCT,
+    QRY_CONF,
 
 
     //推送消息
-    ON_STATUS=100,
+    ON_STATUS,
     ON_LOG,
     ON_POSITION,
     ON_TRADE,
     ON_ORDER,
     ON_CONTRACT,
     ON_BAR,
-    ON_ACCOUNT,
+    ON_TICK,
+    ON_ACCT,
+    ON_SERVER,
 
 };

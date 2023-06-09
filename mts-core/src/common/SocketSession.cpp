@@ -49,13 +49,14 @@ void SocketSession::read_callback(struct bufferevent *bev) {
                 auto msgType=magic_enum::enum_cast<MSG_TYPE>(message->type);
                 if(msgType.has_value()){
                     if(msgType== MSG_TYPE::PING){
-                        this->id=message->rid;
                         message->type= enum_string(MSG_TYPE::PING);
                         string rsp=xpack::json::encode(*message);
                         this->send(rsp);
                     }else{
                         message->msgType=msgType.value();
-                        this->queue->push(Event{EvType::MSG,0,message});
+                        //this->queue->push(Event{EvType::MSG,0,message});
+                        Message* rsp = listener->onRequest(message);
+                        //todo 同步处理
                     }
                 }else{
                     loge("unknow msgType:{}",message->type);
@@ -85,6 +86,7 @@ void SocketSession::event_callback(struct bufferevent *bev, short events) {
         logi( "connection [{}] connected !",this->id);
     }else{
         logw("unkonw event:{}",events);
-
     }
+
+    bufferevent_free(bev);
 }

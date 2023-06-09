@@ -20,7 +20,16 @@
 #include "cpuin.h"
 #include "DataBuilder.h"
 #include "Message.h"
+
+#include "signal.h"
+
+
+
+
+
 using std::placeholders::_1;
+
+
 
 #include <sched.h>
 #include<sys/types.h>
@@ -42,68 +51,72 @@ TradeExecutor::TradeExecutor(string acctId):id(acctId){
 
 
 void TradeExecutor::init() {
+    logi("tradeExecutor {} init...",this->id);
+
+    Context::get().init(this->id);
 }
 
 void TradeExecutor::start() {
-    logi("tradeExecutor {} start...",this->id);
-    //create account
-    this->account= buildAccount(Context::get().config.account);
 
 
+    logi("tradeExecutor {} start udsServer...",this->id);
     //启动udsServer
     SocketAddr udsAddr;
     udsAddr.name="udsServer";
     udsAddr.type=SocketType::UDS;
     udsAddr.unName=this->id;
-    this->udsServer =new SocketServer(udsAddr);
+    this->udsServer =new SocketServer(udsAddr,this);
     thread t_uds([this](){
         this->udsServer->start();
     });
     t_uds.detach();
+    logi("waiting for agent connect...");
 
 
+    logi("tradeExecutor {} start account...",this->id);
+    std::unique_lock<std::mutex> lk(mut);
+    cv.wait(lk);
 
-    //connect to agent
-    SocketAddr addr;
-    addr.name=this->id;
-    addr.type=SocketType::UDS;
-    addr.unName=Context::get().config.account.agent;
-    this->agentClient =new SocketClient(addr);
-    this->agentClient->start();
+    //create account
 
-    while (!this->agentClient->connected){
-        //等待连接agent成功
-        sleep(1);
-    }
-    logi("connect to agent[{}] success !",this->account->agent);
 
-    string dbPath=Context::get().config.setting.dataPath+"/mts-core.db";
+//    //connect to agent
+//    SocketAddr addr;
+//    addr.name=this->id;
+//    addr.type=SocketType::UDS;
+//    addr.unName=Context::get().config.account.agent;
+//    this->agentClient =new SocketClient(addr);
+//    this->agentClient->start();
+//
+//    while (!this->agentClient->connected){
+//        //等待连接agent成功
+//        sleep(1);
+//    }
+//    logi("connect to agent[{}] success !",this->account->agent);
+
+    string dbPath=Context::get().setting.dataPath+"/mts-core.db";
     this->sqliteHelper=new SqliteHelper(dbPath);
 
-    map<string,config::QuoteConf > quoteConfMap;
-    for(auto & item:Context::get().config.setting.quoteGroups){
-        quoteConfMap[item.name] = item;
+    //创建acct
+    this->acct= buildAccount(this->acctConf);
+    Context::get().acct=this->acct;
+
+
+    //创建交易
+    this->tdGateway=GatewayFactory::createTdGateway(acct);
+    //创建quote
+    for(auto &item :this->acctConf.quoteConfs){
+        Quote * quote= buildQuote(item);
+        quote->autoConnect=this->acct->autoConnect;
+        this->quotes.push_back(quote);
+        MdGateway * mdGateway=GatewayFactory::createMdGateway(quote);
+        this->mdGatewayMap[quote->id]=mdGateway;
     }
 
-
-    this->tdGateway=GatewayFactory::createTdGateway(account);
-
-    //创建行情
-    for(auto &item :Context::get().config.account.quotes){
-        if(!quoteConfMap.count(item)>0){
-            loge("cannot find quoteConfig,{}",item);
-        }else{
-            Quote * quote= buildQuote(quoteConfMap[item]);
-            quote->autoConnect=this->account->autoConnect;
-            this->quotes.push_back(quote);
-            MdGateway * mdGateway=GatewayFactory::createMdGateway(quote);
-            this->mdGatewayMap[quote->name]=mdGateway;
-        }
-    }
 
     try {
 
-        for(auto & setting :Context::get().config.strategySettings){
+        for(auto & setting :Context::get().strategySettings){
             if(setting.accountId!=this->id)
                 continue;
             StrategySetting *strategySetting= buildStrategySetting(setting);
@@ -135,6 +148,7 @@ void TradeExecutor::start() {
     }
 
 
+    this->configed=true;
 
     std::thread fastEventThread(std::bind(&TradeExecutor::fastEventHandler, this));
     fastEventThread.detach();
@@ -176,6 +190,10 @@ void TradeExecutor::onTick(Tick *tick) {
         strategy->onTick(tick);
     }
 
+    //TODO 推动给agent
+    //Message* msg=buildMsg(MSG_TYPE::ON_TICK,tick,this->id);
+    //this->msgQueue.push(Event{EvType::MSG,0,msg});
+
 }
 
 void TradeExecutor::createStrategy(StrategySetting *setting) {
@@ -196,7 +214,7 @@ bool TradeExecutor::insertOrder(Order *order) {
     //生成ordref;
     try {
         order->orderRef= this->orderRefNum++;
-        auto contract=account->contractMap[order->symbol];
+        auto contract=acct->contractMap[order->symbol];
         if(contract== nullptr){
             loge("{},insertOrder fial,can not find contract info[{}]",this->id,order->symbol);
             return false;
@@ -213,7 +231,7 @@ bool TradeExecutor::insertOrder(Order *order) {
         order->direction_s = enum_string(order->direction);
         //账户持仓量检查
         if(order->offset != OPEN){
-            auto position=account->getPosition(order->symbol,order->getPosDirection());
+            auto position=acct->getPosition(order->symbol, order->getPosDirection());
             if(position->pos<order->totalVolume){
                 //持仓量不足
                 order->status = ORDER_STATUS::ERROR;
@@ -241,7 +259,7 @@ bool TradeExecutor::insertOrder(Order *order) {
             vec.push_back(order);
         }
     }catch (exception ex){
-        loge("{} insert order err,{}",this->account->id,ex.what());
+        loge("{} insert order err,{}", this->acct->id, ex.what());
     }
 
 }
@@ -279,7 +297,7 @@ void TradeExecutor::onOrder(Order *order) {
 
 void TradeExecutor::onTrade(Trade *trade) {
     //更新账户持仓
-    Position * position=this->account->getPosition(trade->symbol,trade->getPosDirection());
+    Position * position=this->acct->getPosition(trade->symbol, trade->getPosDirection());
     if(trade->offset == OPEN)
         position->tdPos+=trade->volume;
     else{
@@ -335,11 +353,11 @@ void TradeExecutor::fastEventHandler() {
     //该线程绑定到CPU2中
     //int threadId=(int)(std::this_thread::get_id());
     logi("faset event thread {}", getpid());
-    if(account->cpuNumEvent>0){
-        int cpuNum=account->cpuNumEvent;
+    if(acct->cpuNumEvent > 0){
+        int cpuNum=acct->cpuNumEvent;
         //绑定CPU
         int cpucorenum = sysconf(_SC_NPROCESSORS_CONF);  /*获取核数*/
-        logi("faset evnet thread bind cpucore[{}],totalCore:{}",account->cpuNumEvent,cpucorenum);
+        logi("faset evnet thread bind cpucore[{}],totalCore:{}", acct->cpuNumEvent, cpucorenum);
         if(cpupin(cpuNum)){
             logi("faset event thread bind cpucor[{}] success!!!",cpuNum);
         }else{
@@ -354,8 +372,14 @@ void TradeExecutor::fastEventHandler() {
     long tickSeq=0;
     while (true){
         //优先处理账户事件队列，再处理行情组的事件队列
-        if(this->account->queue->pop(event)){
+        if(this->acct->queue->pop(event)){
             switch (event.type) {
+                case EvType::STATUS:{
+                    AcctInfo acctInfo=this->getAcctInfo();
+                    auto rsp=buildMsg(MSG_TYPE::ON_ACCT,acctInfo,this->id);
+                    this->msgQueue.push(Event{EvType::MSG,0,rsp});
+                    break;
+                }
                 case EvType::ORDER:{
                     Order * order=(Order *)event.data;
                     long t1= Context::get().tn.rdns();
@@ -366,19 +390,19 @@ void TradeExecutor::fastEventHandler() {
                     logi("log cost:{}",cost);
                     this->onOrder(order);
                     //转发到系统消息队列
-                    auto rsp=buildMsg(MSG_TYPE::ON_ORDER,*order,this->id);
+                    auto rsp=buildMsg(MSG_TYPE::ON_ORDER,order,this->id);
                     this->msgQueue.push(Event{EvType::MSG,0,&rsp});
                     break;
                 }
                 case EvType::TRADE:{
                     Trade * trade=(Trade *) event.data;
                     this->onTrade(trade);
-                    if(account->orderMap.count(trade->orderRef)){
-                        auto order=account->orderMap[trade->orderRef];
+                    if(acct->orderMap.count(trade->orderRef)){
+                        auto order=acct->orderMap[trade->orderRef];
                         this->onOrder(order);
                     }
 
-                    auto rsp=buildMsg(MSG_TYPE::ON_TRADE,*trade,this->id);
+                    auto rsp=buildMsg(MSG_TYPE::ON_TRADE,trade,this->id);
                     this->msgQueue.push(Event{EvType::MSG,0,&rsp});
                     break;
                 }
@@ -389,6 +413,8 @@ void TradeExecutor::fastEventHandler() {
                     break;
                 }
             }
+            if(event.data!= nullptr)
+                delete event.data;
         }
         for(auto & quote :this->quotes){
             //轮询quote队列
@@ -404,6 +430,8 @@ void TradeExecutor::fastEventHandler() {
                         break;
                     }
                 }
+                if(event.data!= nullptr)
+                    delete event.data;
             }
 
         }
@@ -423,17 +451,22 @@ void TradeExecutor::msgHandler() {
     while (true){
         try {
             bool find=false;
-            if(this->agentClient->queue.pop(event)){
+            /*if(this->udsServer->queue.pop(event)){
                 find=true;
                 Message *msg=(Message*)event.data;
                 this->processMessage(msg);
                 delete msg;
-            }
+            }*/
             if(this->msgQueue.pop(event)){
                 find=true;
-                Message *msg=(Message*)event.data;
-                this->processMessage(msg);
-                delete msg;
+                switch (event.type) {
+                    case EvType::MSG:{
+                        Message *msg=(Message*)event.data;
+                        this->udsServer->push(*msg);
+                        delete msg;
+                        break;
+                    }
+                }
             }
             if(!find){
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -446,23 +479,60 @@ void TradeExecutor::msgHandler() {
 }
 
 void TradeExecutor::processMessage(Message * msg) {
+}
+
+BarGenerator* TradeExecutor::getBarGenerator(string symbol, BAR_LEVEL level) {
+    auto barGenvec=barGeneratorMap[symbol];
+    auto it=find_if(barGenvec->begin(),barGenvec->end(),[level](BarGenerator * bg){
+        return bg->level=level;
+    });
+    if(it!=barGenvec->end()){
+        return *it;
+    }
+    return nullptr;
+}
+
+void TradeExecutor::attachQuote(string name,int size) {
+    //shm=new Shm<MemTick>(name, size);
+    //shm->init();
+}
+
+Message* TradeExecutor::onRequest(Message* msg) {
+    Message *response=new Message;
+    response->type=enum_string(MSG_TYPE::RETURN);
+    response->requestId=msg->requestId;
+    response->success=true;
+
     switch (msg->msgType) {
+        case MSG_TYPE::SYNC:{
+            if(!this->configed){
+                xpack::json::decode(msg->data, this->acctConf);
+                this->cv.notify_one();
+            }else{
+                AcctInfo acctInfo=this->getAcctInfo();
+                response->data=xpack::json::encode(acctInfo);
+            }
+            break;
+        }
+        case MSG_TYPE::QRY_ACCT:{
+            AcctInfo acctInfo=this->getAcctInfo();
+            response->data=xpack::json::encode(acctInfo);
+            break;
+        }
+
         case MSG_TYPE::CONNECT:{
             ConnectReq req;
-            msg->data.decode(req);
-            if(req.type==1 || req.type==3){
-                if(req.status)
-                    tdGateway->connect();
-                else
-                    tdGateway->disconnect();
-            }
-
-            if(req.type==2 || req.type==3){
+            xpack::json::decode(msg->data, req);
+            if(req.status){
+                tdGateway->connect();
                 for(auto & [name,mdGateway] :mdGatewayMap)
-                    if(req.status)
-                        mdGateway->connect();
-                    else
-                        mdGateway->disconnect();
+                    mdGateway->connect();
+
+            }
+            else{
+                tdGateway->disconnect();
+                for(auto & [name,mdGateway] :mdGatewayMap)
+                    mdGateway->disconnect();
             }
             break;
         }
@@ -470,13 +540,13 @@ void TradeExecutor::processMessage(Message * msg) {
 
         case MSG_TYPE::ACT_ORDER:{
             OrderReq req;
-            msg->data.decode(req);
+            xpack::json::decode(msg->data, req);
             this->insertOrder(&req);
             break;
         }
         case MSG_TYPE::ACT_CANCEL:{
             CancelReq req;
-            msg->data.decode(req);
+            xpack::json::decode(msg->data, req);
             this->cancelorder(req);
             break;
         }
@@ -497,53 +567,37 @@ void TradeExecutor::processMessage(Message * msg) {
 
         case MSG_TYPE::MD_SUBS:{
             CommReq commReq;
-            msg->data.decode(commReq);
+            xpack::json::decode(msg->data, commReq);
             set<string> contracts;
             contracts.insert(commReq.param);
             for(auto & [name,mdGateway] :mdGatewayMap)
                 mdGateway->subscribe(contracts);
             break;
         }
-        case MSG_TYPE::ACT_PAUSE_OPEN:{
+        case MSG_TYPE::PAUSE_OPEN:{
             break;
         }
-        case MSG_TYPE::ACT_PAUSE_CLOSE:{
+        case MSG_TYPE::PAUSE_CLOSE:{
             break;
         }
-
-
-            //以下为需要推送的消息
-        case MSG_TYPE::ON_ACCOUNT:
-        case MSG_TYPE::ON_CONTRACT:
-        case MSG_TYPE::ON_POSITION:
-        case MSG_TYPE::ON_TRADE:
-        case MSG_TYPE::ON_ORDER:
-        case MSG_TYPE::ON_BAR:
-        case MSG_TYPE::ON_LOG:{
-            this->agentClient->request(xpack::json::encode(msg));
-            break;
-        }
-
-            delete msg;
     }
+    return response;
 }
 
-BarGenerator* TradeExecutor::getBarGenerator(string symbol, BAR_LEVEL level) {
-    auto barGenvec=barGeneratorMap[symbol];
-    auto it=find_if(barGenvec->begin(),barGenvec->end(),[level](BarGenerator * bg){
-        return bg->level=level;
-    });
-    if(it!=barGenvec->end()){
-        return *it;
-    }
-    return nullptr;
+void TradeExecutor::shutdown() {
+    logw("shutdown ...");
 }
 
-void TradeExecutor::attachQuote(string name,int size) {
-    //shm=new Shm<MemTick>(name, size);
-    //shm->init();
+int TradeExecutor::signalHanler(int signo) {
+    return 0;
 }
 
+AcctInfo TradeExecutor::getAcctInfo() {
+    AcctInfo acctInfo;
+    acctInfo.id=acct->id;
+    acctInfo.tdStatus=this->tdGateway->isConnected();
+    return acctInfo;
+}
 
 
 

@@ -16,7 +16,7 @@ public:
      * @param account
      * @return
      */
-    static TdGateway* createTdGateway(Account * account);
+    static TdGateway* createTdGateway(Acct * account);
     /**
      * 创建行情接口
      * @param mdInfo

@@ -15,20 +15,35 @@ class Context:public Singleton<Context>{
     friend class Singleton<Context>;
 
 public:
-    string  acctId;
     TSCNS tn;
-    config::Config config;
+    config::Setting setting;
+    vector<config::StrategySetting> strategySettings;
+    string  acctId;
+    Acct * acct;
+
+
+
+    //config::Config config;
 
     //初始化上下
     void init(const string& acctId){
+        //初始化计时器
         this->acctId=acctId;
+        double ghz=tn.init();
+        logi("init tsn,ghz:{}",ghz);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        tn.calibrate();
+
+
+        //加载配置文件
         logi("init context ...{}",acctId);
         //加载配置
         logi("start load setting.json");
         string settingJson=Util::readFile("conf/setting.json");
-        xpack::json::decode(settingJson, config.setting);
+        xpack::json::decode(settingJson, setting);
 
-        logi("start load account.json");
+        //账户信息由agent推送
+        /*logi("start load account.json");
         string accountJson=Util::readFile("conf/account.json");
         vector<config::AcctConf> acctConfs;
         xpack::json::decode(accountJson, acctConfs);
@@ -43,7 +58,7 @@ public:
         if(!find){
             loge("cannot find account config [{}]",this->acctId);
             exit(-1);
-        }
+        }*/
 
         logi("start load strategy.json");
         string jsonStrategy=Util::readFile("conf/strategy.json");
@@ -51,17 +66,12 @@ public:
         xpack::json::decode(jsonStrategy, settings);
         for(auto & setting :settings){
             if(setting.accountId==this->acctId){
-                config.strategySettings.push_back(setting);
+                strategySettings.push_back(setting);
             }
         }
 
 
 
-        //初始化计时器
-        double ghz=tn.init();
-        logi("init tsn,ghz:{}",ghz);
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        tn.calibrate();
     }
 };
 

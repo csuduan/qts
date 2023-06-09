@@ -9,6 +9,7 @@
 #include "fmtlog/fmtlog.h"
 #include "LockFreeQueue.hpp"
 #include "Data.h"
+#include "MsgListener.h"
 using std::string;
 
 enum SessionStatus{
@@ -19,9 +20,10 @@ enum SessionStatus{
 class SocketSession {
 
 public:
-    SocketSession(bufferevent *bev,LockFreeQueue<Event> *queue){
+    SocketSession(bufferevent *bev,MsgListener* listener){
         this->bev=bev;
-        this->queue=queue;
+        //this->queue=queue;
+        this->listener=listener;
     }
 
     SessionStatus status;
@@ -33,9 +35,12 @@ public:
     void   event_callback(struct bufferevent *bev, short events);
 
     string id;//回话ID
-    LockFreeQueue<Event> *queue;
+    //LockFreeQueue<Event> *queue;
 
     bool send(const string & msg);
+
+private:
+    MsgListener *listener;
 };
 
 

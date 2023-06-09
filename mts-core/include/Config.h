@@ -51,12 +51,6 @@ namespace config{
         set<string> contracts;
     XPACK(M(accountId,strategyId,className),O(paramMap,contracts,barLevel));
     };
-
-    struct Config{
-        Setting setting;
-        AcctConf account;
-        vector<config::StrategySetting> strategySettings;
-    };
 }
 
 #endif //MTS_CORE_CONFIG_H

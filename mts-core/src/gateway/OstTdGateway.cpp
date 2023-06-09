@@ -233,12 +233,13 @@ OstTdGateway::OnRspLogin(CUTRspLoginField *pRspUserLogin, CUTRspInfoField *pRspI
         this->tradingDay = to_string(pRspUserLogin->TradingDay);
         logi("{} 交易接口登录成功,交易日={},frontId={},sessionId={}", id, tradingDay,frontId,sessionId);
         semaphore.signal();
-
+        this->queue->push(Event{EvType::STATUS,0});
 
 
     } else {
         loge("{} 交易接口登录成功失败! ErrorID:{},ErrorMsg:{}", id, pRspInfo->ErrorID, utf8(pRspInfo->ErrorMsg));
         this->connected = false;
+        this->queue->push(Event{EvType::STATUS,0});
     }
 }
 

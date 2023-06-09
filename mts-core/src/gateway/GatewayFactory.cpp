@@ -14,7 +14,7 @@
 #include "Config.h"
 
 MdGateway *GatewayFactory::createMdGateway(Quote* quote) {
-    logi("create mdGateway {}",quote->name);
+    logi("create mdGateway {}",quote->id);
     MdGateway *mdGateway = nullptr;
 
     if(quote->type=="CTP")
@@ -25,13 +25,13 @@ MdGateway *GatewayFactory::createMdGateway(Quote* quote) {
         mdGateway=new ElfMdGateway(quote);
 
     if(mdGateway!= nullptr && quote->autoConnect){
-        logi("connect mdGateway {}",quote->name);
+        logi("connect mdGateway {}",quote->id);
         mdGateway->connect();
     }
     return mdGateway;
 }
 
-TdGateway *GatewayFactory::createTdGateway(Account *account) {
+TdGateway *GatewayFactory::createTdGateway(Acct *account) {
     logi("create tdGateway {}",account->id);
     TdGateway *gateway= nullptr;
     if(account->loginInfo.tdType=="CTP"){

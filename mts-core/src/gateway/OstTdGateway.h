@@ -32,7 +32,7 @@ private:
 
     string id;
     CUTApi *m_pUserApi;
-    Account *account;
+    Acct *account;
     LoginInfo loginInfo;
     LockFreeQueue<Event> *queue;
     int frontId = 0;// 前置机编号
@@ -48,7 +48,7 @@ private:
     void Run();
 
 public:
-    OstTdGateway(Account *account) : account(account) {
+    OstTdGateway(Acct *account) : account(account) {
         this->loginInfo = account->loginInfo;
         this->id = account->id;
         this->queue = account->queue;

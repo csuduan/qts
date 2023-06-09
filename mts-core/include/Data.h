@@ -243,6 +243,9 @@ struct Tick {
     //用于性能统计的相关字段
     long recvTsc;  //接收时间  tsc
     long eventTsc;//事件触发时间 tsc
+
+    XPACK(M(symbol,exchange,tradingDay,actionDay,updateTime), O(lastPrice));
+
 };
 
 struct Bar {
@@ -283,14 +286,13 @@ struct StrategySetting {
 
 
 
-struct Account {
+struct Acct {
     string id;
     string name;
     LoginInfo loginInfo;
     int cpuNumTd;
     int cpuNumEvent;
     bool autoConnect;
-    string agent;
 
     double preBalance; // 昨日账户结算净值
     double balance; // 账户净值
@@ -324,7 +326,7 @@ XPACK(M(id,name,loginInfo,preBalance,balance,available,commission,margin,closePr
 
 
 struct Quote {
-    string name;
+    string id;
     string quoteType;//行情 TICK,ORDER,TRADE
     string type;//网关类型
     string address;//地址

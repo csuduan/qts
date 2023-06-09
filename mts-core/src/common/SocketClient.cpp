@@ -71,7 +71,7 @@ void  SocketClient::event_callback(struct bufferevent *bev, short events) {
         this->connected = true;
         //发送一个PING包
         Message message={0};
-        message.sid=this->socketAddr.name;
+        message.acctId=this->socketAddr.name;
         message.type= enum_string(MSG_TYPE::PING);
         request(message);
         return ;

@@ -21,7 +21,7 @@ private:
     static map<int, string> qryRetMsgMap;
     string id;
     CThostFtdcTraderApi *m_pUserApi;
-    Account *account;
+    Acct *account;
     LoginInfo loginInfo;
     LockFreeQueue<Event> *queue;
     int frontId = 0;// 前置机编号
@@ -33,7 +33,7 @@ private:
     void Run();
 
 public:
-    CtpTdGateway(Account *account) : account(account) {
+    CtpTdGateway(Acct *account) : account(account) {
         this->loginInfo = account->loginInfo;
         this->id = account->id;
         this->queue = account->queue;

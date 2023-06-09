@@ -13,27 +13,33 @@
 #include "strategy/Strategy.h"
 #include "LockFreeQueue.hpp"
 #include "BarGenerator.hpp"
-#include "common/SocketClient.h"
+#include "common/SocketServer.h"
 #include "SqliteHelper.hpp"
+#include "MsgListener.h"
 #include <limits>
+#include <mutex>
+#include <condition_variable>
+
 
 
 class Strategy;
-class TradeExecutor {
+class TradeExecutor : public MsgListener{
 private:
     string id;
     bool stopFlag=false;
-    Account* account;
+    bool  configed =false;
+    AcctConf acctConf;
+    Acct* acct;
     vector<Quote*> quotes;
     TdGateway* tdGateway;
-    SocketClient* agentClient;
-
+    //SocketClient* agentClient;
     SocketServer * udsServer;//对内提供服务
 
 
     map<string,vector<BarGenerator *>*> barGeneratorMap;
     map<string,MdGateway*> mdGatewayMap; //支持多路行情
     LockFreeQueue<Event> msgQueue ={1 << 20};//系统消息队列
+
 
     //合约订阅列表
     std::map<string, std::set<Strategy*>> subsMap;
@@ -54,6 +60,9 @@ private:
     std::atomic<long> orderRefNum = 0;
 
     SqliteHelper * sqliteHelper =NULL;
+
+    std::mutex mut;
+    std::condition_variable cv;
 
     //Shm<MemTick>* shm=NULL;
 public:
@@ -85,6 +94,14 @@ public:
     void msgHandler();
     void reward(Message *msg);
     void processMessage(Message * msg);
+
+    Message* onRequest(Message* request) override;
+
+    ///优雅停机
+    void shutdown();
+    int signalHanler(int signo);
+    AcctInfo getAcctInfo();
+
 };
 
 

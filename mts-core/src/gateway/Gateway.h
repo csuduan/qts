@@ -21,7 +21,7 @@ public:
     virtual int  connect(){return 0;};
     virtual void disconnect(){};
     MdGateway(Quote* quote):quote(quote){
-        this->name=quote->name;
+        this->name=quote->id;
     }
 
 };

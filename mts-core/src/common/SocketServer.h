@@ -25,7 +25,9 @@ typedef std::function<void(Message)> msgCallback;
 class SocketServer :public SocketBase{
 public:
     msgCallback callback;
-    SocketServer(SocketAddr& serverAddr): SocketBase(serverAddr){}
+    SocketServer(SocketAddr& serverAddr,MsgListener *listener): SocketBase(serverAddr){
+        this->listener=listener;
+    }
     void   start();
     void   listern_callback(evconnlistener *listener, evutil_socket_t fd,sockaddr *sock, int socklen);
     void   read_callback(struct bufferevent *bev);
@@ -40,8 +42,10 @@ public:
     void push(const string & msg);
     void push(const Message & msg);
     vector<SocketSession*> sessions;
+    set<bufferevent *> connections;
     LockFreeQueue<Event> queue{1<<10};
 private:
+    MsgListener *listener;
     void   runTcp(struct sockaddr_in in);
     void   runUds(struct sockaddr_un un);
     std::string name;

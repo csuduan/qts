@@ -9,31 +9,33 @@
 #include "Config.h"
 #include "Util.h"
 
-Quote* buildQuote(config::QuoteConf & quoteConf){
+Quote* buildQuote(QuoteConf & quoteConf){
     Quote *quote=new Quote();
-    quote->name=quoteConf.name;
+    quote->id=quoteConf.id;
     quote->quoteType=quoteConf.type;
     vector<string> tmp;
     Util::split(quoteConf.address,tmp,"|");
     quote->type=tmp[0];
     quote->address=tmp[1];
-    quote->subList=quoteConf.subList;
+    tmp.clear();
+    Util::split(quoteConf.subList,tmp,",");
+    for(auto &item : tmp)
+        quote->subList.insert(item);
     tmp.clear();
     Util::split(quoteConf.user,tmp,"|");
     if(tmp.size()>0){
         quote->userId=tmp[0];
         quote->password=tmp[1];
     }
-    quote->queue=new LockFreeQueue<Event>(quoteConf.queueSize);
+    quote->queue=new LockFreeQueue<Event>(1<<20);
     return quote;
 }
 
-Account * buildAccount(config::AcctConf & actConf){
+Acct * buildAccount(AcctConf & actConf){
+    string userId=actConf.user;
+    string passwd=actConf.pwd;
     vector<string> tmp;
-    Util::split(actConf.user,tmp,"|");
-    string userId=tmp[0];
-    string passwd=tmp[1];
-    tmp.clear();
+
     Util::split(actConf.tdAddress,tmp,"|");
     string tdType=tmp[0];
     string tdAddress=tmp[1];
@@ -50,11 +52,10 @@ Account * buildAccount(config::AcctConf & actConf){
     }
     tmp.clear();
 
-    Account * account=new Account();
+    Acct * account=new Acct();
     account->id=actConf.id;
-    account->name=actConf.name;
-    account->cpuNumEvent=actConf.cpuNumEvent;
-    account->cpuNumTd=actConf.cpuNumTd;
+    //account->cpuNumEvent=actConf.cpuNumEvent;
+    //account->cpuNumTd=actConf.cpuNumTd;
     account->loginInfo.id=actConf.id;
     account->loginInfo.userId=userId;
     account->loginInfo.password=passwd;
@@ -63,9 +64,8 @@ Account * buildAccount(config::AcctConf & actConf){
     account->loginInfo.brokerId=brokerId;
     account->loginInfo.appId=appId;
     account->loginInfo.authCode=authCode;
-    account->queue=new LockFreeQueue<Event>(actConf.queueSize);
-    account->autoConnect=actConf.autoConnect;
-    account->agent=actConf.agent;
+    account->queue=new LockFreeQueue<Event>(1024);
+    //account->autoConnect=actConf.autoConnect;
     return account;
 }
 
@@ -83,14 +83,15 @@ StrategySetting * buildStrategySetting(config::StrategySetting &setting){
 
 
 template<class T>
-static string buildMsg(MSG_TYPE msgType, T & data,string actId){
-    MessageS<T> msg ={0};
-    msg.type= enum_string(msgType);
-    msg.data=data;
-    msg.sid=actId;
-    string json = xpack::json::encode(msg);
-    return json;
+static Message* buildMsg(MSG_TYPE msgType, T& data,string actId){
+    Message *msg =new Message;
+    msg->type= enum_string(msgType);
+    msg->data=xpack::json::encode(data);
+    msg->acctId=actId;
+    //string json = xpack::json::encode(msg);
+    return msg;
 }
+
 
 
 
