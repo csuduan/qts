@@ -18,7 +18,7 @@ XPACK(M(symbol, offset, direct, price, volume));
 
 struct ConnectReq {
     bool status;
-    XPACK(M(status));
+XPACK(M(status));
 };
 
 
@@ -36,40 +36,58 @@ struct QuoteConf {
     string pwd;
     string address;
     string subList;
-XPACK(M(id,type,address),O(user,pwd,subList));
+XPACK(M(id, type, address), O(user, pwd, subList));
 
 };
+
 struct AcctConf {
     string id;
     string owner;
     string group;
+    string tdType;
     string tdAddress;
     string user;
     string pwd;
+    string mdAddress;
+    string mdType;
+    string subList;
     bool enable;
-    vector<QuoteConf> quoteConfs;
-XPACK(M(id,owner,group,tdAddress,enable),O(user,pwd,quoteConfs));
-
+    set<string> subSet;
+XPACK(M(id, group, tdType, tdAddress, mdType, mdAddress, enable),
+      O(owner, user, pwd, subList));
 };
 
 struct AcctInfo {
     string id;
+    string group;
+
+    //状态
+    bool status= true;//账户状态
     bool tdStatus = false;
     bool mdStatus = false;
+    bool pauseOpen = false;
+    bool pauseClose = false;
+
 
     //资金信息
-    double balance=0;
-    double mv=0;
-    double balanceProfit=0;
-    double closeProfit=0;
-    double margin=0;//保证金
-    double marginRate=0;//保证金占比
-    double fee=0;
+    double mv = 0;
+    double balanceProfit = 0;
+    double marginRate = 0;//保证金占比
+    double fee = 0;
 
-XPACK(M(id,tdStatus,mdStatus));
+    double preBalance = 0; // 昨日账户结算净值
+    double balance = 0; // 账户净值
+    double available = 0; // 可用资金
+    double commission = 0; // 今日手续费
+    double margin = 0; // 保证金占用
+    double closeProfit = 0; // 平仓盈亏
+    double positionProfit = 0; // 持仓盈亏
+    double deposit = 0; // 入金
+    double withdraw = 0; // 出金
+
+XPACK(M(id,group ,tdStatus, mdStatus, balance, available, commission, margin, closeProfit, positionProfit));
 
 };
-
 
 struct Message {
     string requestId;//请求编号
@@ -78,6 +96,7 @@ struct Message {
     bool success;
     string data;//报文字符串
     MSG_TYPE msgType;
+    xpack::JsonData jsonData;
 XPACK(M(type), O(requestId, acctId, data, success));
 };
 

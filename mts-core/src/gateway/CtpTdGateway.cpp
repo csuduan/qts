@@ -70,7 +70,7 @@ int CtpTdGateway::disconnect() {
 }
 
 void CtpTdGateway::Run() {
-    const char *address = this->loginInfo.tdAddress.c_str();
+    const char *address = this->address.c_str();
     m_pUserApi->RegisterFront(const_cast<char *>(address));
     m_pUserApi->Init();
     m_pUserApi->Join();
@@ -83,8 +83,8 @@ void CtpTdGateway::reqQryPosition() {
     }
     tmpPositons.clear();
     CThostFtdcQryInvestorPositionField cThostFtdcQryInvestorPositionField;
-    strcpy(cThostFtdcQryInvestorPositionField.BrokerID, loginInfo.brokerId.c_str());
-    strcpy(cThostFtdcQryInvestorPositionField.InvestorID, loginInfo.userId.c_str());
+    strcpy(cThostFtdcQryInvestorPositionField.BrokerID, this->brokerId.c_str());
+    strcpy(cThostFtdcQryInvestorPositionField.InvestorID, account->acctConf->user.c_str());
     int ret = this->m_pUserApi->ReqQryInvestorPosition(&cThostFtdcQryInvestorPositionField, this->nRequestID++);
     logi("查询持仓,ret={}",  ret);
 
@@ -92,8 +92,8 @@ void CtpTdGateway::reqQryPosition() {
 
 bool CtpTdGateway::insertOrder(Order *order) {
     CThostFtdcInputOrderField req = {0};
-    strcpy(req.BrokerID, loginInfo.brokerId.c_str());
-    strcpy(req.InvestorID, loginInfo.userId.c_str());
+    strcpy(req.BrokerID, this->brokerId.c_str());
+    strcpy(req.InvestorID, account->acctConf->user.c_str());
     strcpy(req.InstrumentID, order->symbol.c_str());
     strcpy(req.ExchangeID, order->exchange.c_str());
     strcpy(req.OrderRef, to_string(order->orderRef).c_str());
@@ -164,8 +164,8 @@ void CtpTdGateway::cancelOrder(Action *order) {
     CThostFtdcInputOrderActionField req = {0};
     req.ActionFlag = THOST_FTDC_AF_Delete;
 
-    strcpy(req.BrokerID, loginInfo.brokerId.c_str());
-    strcpy(req.InvestorID, loginInfo.userId.c_str());
+    strcpy(req.BrokerID, this->brokerId.c_str());
+    strcpy(req.InvestorID, account->acctConf->user.c_str());
     //strcpy_s(req.UserID, g_chUserID);
     //strcpy(req.InstrumentID, order->symbol.c_str());
 
@@ -191,10 +191,10 @@ void CtpTdGateway::OnFrontConnected() {
 
     //认证通过后再登录
     CThostFtdcReqAuthenticateField req = {0};
-    strcpy(req.BrokerID, loginInfo.brokerId.c_str());
-    strcpy(req.UserID, loginInfo.userId.c_str());
-    strcpy(req.AuthCode, loginInfo.authCode.c_str());
-    strcpy(req.AppID, loginInfo.appId.c_str());
+    strcpy(req.BrokerID, this->brokerId.c_str());
+    strcpy(req.UserID, account->acctConf->user.c_str());
+    strcpy(req.AuthCode, this->authCode.c_str());
+    strcpy(req.AppID, this->appId.c_str());
     int ret = m_pUserApi->ReqAuthenticate(&req, this->nRequestID++);
     logi("ReqAuthenticate ret={}", ret);
 
@@ -210,9 +210,9 @@ CtpTdGateway::OnRspAuthenticate(CThostFtdcRspAuthenticateField *pRspAuthenticate
     logi("OnRspAuthenticate ");
     if (pRspInfo->ErrorID == 0) {
         CThostFtdcReqUserLoginField reqUserLogin = {0};
-        strcpy(reqUserLogin.BrokerID, loginInfo.brokerId.c_str());
-        strcpy(reqUserLogin.UserID, loginInfo.userId.c_str());
-        strcpy(reqUserLogin.Password, loginInfo.password.c_str());
+        strcpy(reqUserLogin.BrokerID, this->brokerId.c_str());
+        strcpy(reqUserLogin.UserID, account->acctConf->user.c_str());
+        strcpy(reqUserLogin.Password, account->acctConf->pwd.c_str());
         // 发出登陆请求
         int ret = m_pUserApi->ReqUserLogin(&reqUserLogin, nRequestID++);
         logi("ReqUserLogin ret={}", ret);
@@ -236,8 +236,8 @@ void CtpTdGateway::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CT
         timer.delay(500, [this]() {
             //确认结算单
             CThostFtdcSettlementInfoConfirmField req = {0};
-            strcpy(req.BrokerID, loginInfo.brokerId.c_str());
-            strcpy(req.InvestorID, loginInfo.userId.c_str());
+            strcpy(req.BrokerID, this->brokerId.c_str());
+            strcpy(req.InvestorID, account->acctConf->user.c_str());
             int ret = m_pUserApi->ReqSettlementInfoConfirm(&req, this->nRequestID++);
             logi("ReqSettlementInfoConfirm ret={},{}", ret, qryRetMsgMap[ret]);
         });
@@ -287,7 +287,7 @@ void CtpTdGateway::OnRtnOrder(CThostFtdcOrderField *pOrder) {
         order->statusMsg.find("最小单位的倍数") != string::npos) {
         order->status = ORDER_STATUS::ERROR;
     }
-    this->queue->push(Event{EvType::ORDER, tsc,order});
+    this->account->tdQueue->push(Event{EvType::ORDER, tsc,order});
     logi("{} OnRtnOrder {} {} traded:{}/{} status:{} msg:{}", id, order->orderRef, order->symbol, order->tradedVolume,
          order->totalVolume, order->status_s, order->statusMsg);
 }
@@ -315,7 +315,7 @@ void CtpTdGateway::OnRtnTrade(CThostFtdcTradeField *pTrade) {
     trade->exchange = pTrade->ExchangeID;
     trade->updateTsc=tsc;
 
-    this->queue->push(Event{EvType::TRADE, tsc,trade});
+    this->account->tdQueue->push(Event{EvType::TRADE, tsc,trade});
     logi("{} OnRtnTrade {} {} {} {} traded:{}", id, trade->orderRef, trade->symbol, magic_enum::enum_name(trade->offset),
          magic_enum::enum_name(trade->direction), pTrade->Volume);
 
@@ -334,7 +334,7 @@ CtpTdGateway::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtd
         order->status = ORDER_STATUS::ERROR;
         order->statusMsg = pRspInfo->ErrorMsg;
         Event event{EvType::ORDER,0, order};
-        this->queue->push(event);
+        this->account->tdQueue->push(event);
     }
 }
 
@@ -346,7 +346,7 @@ void CtpTdGateway::OnErrRtnOrderInsert(CThostFtdcInputOrderField *pInputOrder, C
         order->status = ORDER_STATUS::ERROR;
         order->statusMsg = pRspInfo->ErrorMsg;
         Event event{EvType::ORDER,0, order};
-        this->queue->push(event);
+        this->account->tdQueue->push(event);
     }
 }
 
@@ -368,13 +368,13 @@ CtpTdGateway::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAcco
              pTradingAccount->Deposit,
              pTradingAccount->Available,
              pTradingAccount->CurrMargin);
-        account->balance = pTradingAccount->Balance;
-        account->closeProfit = pTradingAccount->CloseProfit;
-        account->positionProfit = pTradingAccount->PositionProfit;
-        account->commission = pTradingAccount->Commission;
-        account->deposit = pTradingAccount->Deposit;
-        account->available = pTradingAccount->Available;
-        account->margin = pTradingAccount->CurrMargin;
+        account->acctInfo->balance = pTradingAccount->Balance;
+        account->acctInfo->closeProfit = pTradingAccount->CloseProfit;
+        account->acctInfo->positionProfit = pTradingAccount->PositionProfit;
+        account->acctInfo->commission = pTradingAccount->Commission;
+        account->acctInfo->deposit = pTradingAccount->Deposit;
+        account->acctInfo->available = pTradingAccount->Available;
+        account->acctInfo->margin = pTradingAccount->CurrMargin;
 
     }
     if (bIsLast) {
@@ -464,8 +464,8 @@ void CtpTdGateway::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CT
         timer.delay(1000, [this]() {
             //查询持仓
             CThostFtdcQryInvestorPositionField a = {0};
-            strcpy(a.BrokerID, loginInfo.brokerId.c_str());
-            strcpy(a.InvestorID, loginInfo.userId.c_str());
+            strcpy(a.BrokerID, this->brokerId.c_str());
+            strcpy(a.InvestorID, account->acctConf->user.c_str());
             int ret = m_pUserApi->ReqQryInvestorPosition(&a, this->nRequestID++);
             logi("{} ReqQryInvestorPosition ret={},{}", id, ret, qryRetMsgMap[ret]);
         });
@@ -480,8 +480,8 @@ void CtpTdGateway::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmFie
         timer.delay(500, [this]() {
             //查询资金账户
             CThostFtdcQryTradingAccountField a = {0};
-            strcpy(a.BrokerID, loginInfo.brokerId.c_str());
-            strcpy(a.InvestorID, loginInfo.userId.c_str());
+            strcpy(a.BrokerID, this->brokerId.c_str());
+            strcpy(a.InvestorID, account->acctConf->user.c_str());
             //strcpy(a.CurrencyID, "CNY");
             int ret = m_pUserApi->ReqQryTradingAccount(&a, this->nRequestID++);
             logi("{} ReqQryTradingAccount ret={},{}", id, ret, qryRetMsgMap[ret]);

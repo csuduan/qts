@@ -37,17 +37,13 @@ int CtpMdGateway::connect() {
 }
 
 
-void CtpMdGateway::unSubscribe(string contract) {
-
-}
-
 
 void CtpMdGateway::disconnect() {
 
 }
 
 void CtpMdGateway::Run() {
-    const char *address = quote->address.c_str();
+    const char *address = acct->acctConf->mdAddress.c_str();
     m_pUserApi->RegisterFront(const_cast<char *>(address));
     m_pUserApi->Init();
     logi("{} ctp md connecting...{}",name, address);
@@ -125,7 +121,7 @@ void CtpMdGateway::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMa
     tickData->askVolume1=pDepthMarketData->AskVolume1;
 
     tickData->recvTsc=Context::get().tn.rdtsc();
-    this->quote->queue->push(Event{EvType::TICK, tickData->recvTsc, tickData});
+    this->queue->push(Event{EvType::TICK, tickData->recvTsc, tickData});
     //logi("MD OnRtnTick instrument=[{}] time=[{}] price=[{}]",
     //     pDepthMarketData->InstrumentID, pDepthMarketData->UpdateTime,pDepthMarketData->LastPrice);
 }
@@ -135,9 +131,9 @@ void CtpMdGateway::subscribe(set<string> &subContracts) {
     char **str = new char *[subContracts.size() + 1];
     int i = 0;
     for (auto &item: subContracts) {
-        if (this->quote->subList.count(item)>0)
+        if (this->acct->acctConf->subSet.count(item)>0)
             continue;
-        this->quote->subList.insert(item);
+        this->acct->acctConf->subSet.insert(item);
         str[i++] = const_cast<char *>(item.c_str());
     }
     if (i > 0 && this->isConnected) {
@@ -147,14 +143,14 @@ void CtpMdGateway::subscribe(set<string> &subContracts) {
 }
 
 void CtpMdGateway::reSubscribe() {
-    if(quote->subList.size()>0){
-        char **str = new char *[quote->subList.size() + 1];
+    if(acct->acctConf->subSet.size()>0){
+        char **str = new char *[acct->acctConf->subSet.size() + 1];
         int i = 0;
-        for (auto &item: quote->subList) {
+        for (auto &item: acct->acctConf->subSet) {
             str[i++] = const_cast<char *>(item.c_str());
         }
         int ret = this->m_pUserApi->SubscribeMarketData(str, i);
-        logi("{} reSubscribe  count={} ret = {}", name, quote->subList.size(),ret);
+        logi("{} reSubscribe  count={} ret = {}", name, acct->acctConf->subSet.size(),ret);
     }
 }
 

@@ -15,25 +15,31 @@ void ElfMdGateway::reSubscribe() {
 }
 
 int ElfMdGateway::connect() {
-    multicast_info multicastInfo={0};
-    //mdAddress格式 组播地址:端口:本地网卡
-    vector<string> tmp;
-    Util::split(this->quote->address,tmp,":");
-    if(tmp.size()!=3){
-        loge("无效的ELF组播地址 {}",this->quote->address);
-        return -1;
+    vector<string> mdList;
+    Util::split(this->acct->acctConf->mdAddress,mdList,",");
+    for(auto & md : mdList){
+        multicast_info multicastInfo={0};
+        //mdAddress格式 组播地址:端口:本地网卡
+        vector<string> tmp;
+        Util::split(md,tmp,":");
+        if(tmp.size()!=4){
+            loge("无效的ELF组播地址 {}",md);
+            return -1;
+        }
+        string type=tmp[0];
+        strcpy(multicastInfo.m_remote_ip,tmp[1].c_str());
+        multicastInfo.m_remote_port=atoi(tmp[2].c_str());
+        strcpy(multicastInfo.m_local_eth,tmp[3].c_str());
+        this->m_efh_hpfMap[type].init(multicastInfo,this);
     }
-    strcpy(multicastInfo.m_remote_ip,tmp[0].c_str());
-    multicastInfo.m_remote_port=atoi(tmp[1].c_str());
-    strcpy(multicastInfo.m_local_eth,tmp[2].c_str());
 
-    m_efh_hpf.init(multicastInfo,this);
-
-
+    this->isConnected=true;
 }
 
 void ElfMdGateway::disconnect() {
     m_efh_hpf.close();
+    this->isConnected= false;
+
 }
 
 

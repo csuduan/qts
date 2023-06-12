@@ -14,14 +14,15 @@
 #include "Data.h"
 #include "Gateway.h"
 #include "LockFreeQueue.hpp"
+#include "Acct.h"
 
 class CtpMdGateway: public CThostFtdcMdSpi, public MdGateway
 {
 public:
     //std::function<void(TickData *)> tickDataCallBack = nullptr;
     //std::list<std::function<void(TickData)>> tickDataCallBack;
-    CtpMdGateway(Quote* quote): MdGateway(quote){
-        //this->queue=account->eventQueue;
+    CtpMdGateway(Acct* acct): acct(acct){
+        this->queue=acct->mdQueue;
     }
     ~CtpMdGateway() {}
     void ReqUserLogin();
@@ -35,16 +36,21 @@ public:
 
 
 
-    void subscribe(set<string> &contracts);
-    void unSubscribe(string contract);
+    void subscribe(set<string> &contracts) override;
+    int  connect() override;
+    void disconnect() override;
+
     void reSubscribe();
-    int  connect();
-    void disconnect();
+
     CMultiDelegate<void, Tick*> OnTickData;
 
 
 
 private:
+    string name="MdGateway";
+    Acct* acct;
+    LockFreeQueue<Event> *queue;
+
     static int nRequestID;
     // 指向CThostFtdcMduserApi实例的指针
     CThostFtdcMdApi* m_pUserApi;

@@ -12,7 +12,7 @@
 #include <chrono>
 #include "cpuin.h"
 #include "SocketData.h"
-#include "common/SocketServer.h"
+#include "common/SocketServer.hpp"
 #include "common/SocketClient.h"
 
 void writeQueue(LockFreeQueue<Event> *queue){

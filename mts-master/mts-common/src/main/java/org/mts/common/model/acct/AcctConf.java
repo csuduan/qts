@@ -12,11 +12,11 @@ public class AcctConf {
     private String id;
     private String owner;
     private String group;
+    private String tdType;
     private String tdAddress;
     private String  user;
     private String  pwd;
+    private String mdType;
+    private String mdAddress;
     private Boolean enable;
-    private String quotes;
-
-    private List<QuoteConf> quoteConfs=new ArrayList<>();
 }

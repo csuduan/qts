@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "xpack/json.h"
+#include "xpack/xml.h"
 using namespace  std;
 
 namespace config{
@@ -22,10 +23,10 @@ namespace config{
         XPACK(M(name,type,address,enable),O(subList,user,queueSize))
     };
     struct Setting{
+        string db;
         string dataPath;
         string logPath;
-        vector<QuoteConf> quoteGroups;
-        XPACK(M(dataPath,logPath,quoteGroups))
+        XPACK(M(dataPath,logPath,db))
     };
 
     struct AcctConf{
@@ -42,6 +43,24 @@ namespace config{
     XPACK(M(agent,id,name,user,tdAddress),O(quotes,autoConnect,queueSize,cpuNumTd,cpuNumEvent));
     };
 
+    struct StrRef{
+        string id;
+        string volptt;
+        string trgid;
+        string vol;
+    XPACK(O(id,volptt,trgid,vol))
+    };
+    struct StrStrategy{
+        string id;
+        StrRef ref;
+    XPACK(O(id,ref))
+
+    };
+    struct StrConfig {
+        vector<StrStrategy> strategy;
+        XPACK(M(strategy))
+    };
+
     struct StrategySetting{
         string accountId;
         string strategyId;
@@ -51,6 +70,7 @@ namespace config{
         set<string> contracts;
     XPACK(M(accountId,strategyId,className),O(paramMap,contracts,barLevel));
     };
+
 }
 
 #endif //MTS_CORE_CONFIG_H

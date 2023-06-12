@@ -10,6 +10,7 @@
 #include "fmtlog/fmtlog.h"
 #include "Config.h"
 #include "Util.h"
+#include "Acct.h"
 
 class Context:public Singleton<Context>{
     friend class Singleton<Context>;
@@ -41,7 +42,6 @@ public:
         logi("start load setting.json");
         string settingJson=Util::readFile("conf/setting.json");
         xpack::json::decode(settingJson, setting);
-
         //账户信息由agent推送
         /*logi("start load account.json");
         string accountJson=Util::readFile("conf/account.json");
@@ -60,7 +60,13 @@ public:
             exit(-1);
         }*/
 
+
         logi("start load strategy.json");
+        string xmlStrategy=Util::readFile("conf/strategy-ost.xml");
+        //config::StrConfig strConfig;
+        //xpack::xml::decode(xmlStrategy, strConfig);
+
+
         string jsonStrategy=Util::readFile("conf/strategy.json");
         vector<config::StrategySetting> settings;
         xpack::json::decode(jsonStrategy, settings);

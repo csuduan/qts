@@ -1,49 +1,5 @@
 {
+  "db": "/opt/dev/mts/mts.db",
   "dataPath": "/opt/data/mts-core",
-  "logPath": "/opt/data/mts-core",
-  "quoteGroups": [
-    {
-      "name": "ost",
-      "type": "TICK",
-      "address": "OST|tcp://47.100.124.2:33008",
-      "subList": ["000001","000002"],
-      "user": "00122899|123456",
-      "enable": true
-    },
-    {
-      "name": "sim-24",
-      "type": "TICK",
-      "address": "CTP|tcp://180.168.146.187:10131",
-      "subList": ["ag2203","cu2206","au2203","zn2203","ni2203"],
-      "enable": true
-    },
-    {
-      "name": "sim",
-      "type": "TICK",
-      "address": "CTP|tcp://180.168.146.187:10211",
-      "subList": ["ag2203","cu2206","au2203","zn2203","ni2203"],
-      "enable": true
-    },
-    {
-      "name": "sse-tick",
-      "type": "TICK",
-      "address": "EFH|233.57.1.104:37104:eth0",
-      "subList": ["600958"],
-      "enable": false
-    },
-    {
-      "name": "sse-trade",
-      "type": "TRADE",
-      "address": "EFH|233.57.1.103.37103:eth1",
-      "subList": ["000003"],
-      "enable": false
-    },
-    {
-      "name": "sse-order",
-      "type": "ORDER",
-      "address": "EFH|233.57.1.103.37102:eth1",
-      "enable": false,
-      "subList": ["000003"]
-    }
-  ]
+  "logPath": "/opt/data/mts-core"
 }

@@ -10,20 +10,12 @@
 #include "fmtlog/fmtlog.h"
 #include "Context.h"
 class MdGateway{
-protected:
-    string name;
-    bool connected= false;
-    Quote* quote;
 public:
     /// 订阅合约
     /// \param contracts
-    virtual void subscribe(set<string> &contracts){};
-    virtual int  connect(){return 0;};
-    virtual void disconnect(){};
-    MdGateway(Quote* quote):quote(quote){
-        this->name=quote->id;
-    }
-
+    virtual void subscribe(set<string> &contracts) =0;
+    virtual int  connect()=0;
+    virtual void disconnect()=0;
 };
 
 class TdGateway{

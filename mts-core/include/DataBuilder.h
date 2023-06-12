@@ -8,6 +8,7 @@
 #include "Data.h"
 #include "Config.h"
 #include "Util.h"
+#include "Acct.h"
 
 Quote* buildQuote(QuoteConf & quoteConf){
     Quote *quote=new Quote();
@@ -31,40 +32,22 @@ Quote* buildQuote(QuoteConf & quoteConf){
     return quote;
 }
 
-Acct * buildAccount(AcctConf & actConf){
-    string userId=actConf.user;
-    string passwd=actConf.pwd;
-    vector<string> tmp;
-
-    Util::split(actConf.tdAddress,tmp,"|");
-    string tdType=tmp[0];
-    string tdAddress=tmp[1];
-    string brokerId;
-    string appId;
-    string authCode;
-    if(tmp.size()>=3){
-        string authInfo=tmp[2];
-        tmp.clear();
-        Util::split(authInfo,tmp,":");
-        brokerId=tmp[0];
-        appId=tmp[1];
-        authCode=tmp[2];
-    }
-    tmp.clear();
-
+Acct * buildAccount(AcctConf * actConf){
     Acct * account=new Acct();
-    account->id=actConf.id;
+    account->id=actConf->id;
+    account->acctConf=actConf;
+    account->acctInfo=new AcctInfo;
+    account->acctInfo->id=actConf->id;
+    account->acctInfo->group=actConf->group;
     //account->cpuNumEvent=actConf.cpuNumEvent;
     //account->cpuNumTd=actConf.cpuNumTd;
-    account->loginInfo.id=actConf.id;
-    account->loginInfo.userId=userId;
-    account->loginInfo.password=passwd;
-    account->loginInfo.tdType=tdType;
-    account->loginInfo.tdAddress=tdAddress;
-    account->loginInfo.brokerId=brokerId;
-    account->loginInfo.appId=appId;
-    account->loginInfo.authCode=authCode;
-    account->queue=new LockFreeQueue<Event>(1024);
+    account->tdQueue=new LockFreeQueue<Event>(10240);
+    account->mdQueue=new LockFreeQueue<Event>(10240);
+    vector<string> tmp;
+    Util::split(actConf->subList,tmp,",");
+    for(auto &item : tmp)
+        actConf->subSet.insert(item);
+    tmp.clear();
     //account->autoConnect=actConf.autoConnect;
     return account;
 }

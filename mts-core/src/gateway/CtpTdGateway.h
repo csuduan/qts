@@ -13,6 +13,7 @@
 #include "Gateway.h"
 #include "LockFreeQueue.hpp"
 #include "Timer.hpp"
+#include "Acct.h"
 
 class CtpTdGateway : public CThostFtdcTraderSpi, public TdGateway {
 private:
@@ -21,22 +22,34 @@ private:
     static map<int, string> qryRetMsgMap;
     string id;
     CThostFtdcTraderApi *m_pUserApi;
-    Acct *account;
-    LoginInfo loginInfo;
-    LockFreeQueue<Event> *queue;
+    Acct * account;
     int frontId = 0;// 前置机编号
     int sessionId = 0;// 会话编号
     vector<Position> tmpPositons;
     vector<Trade> tmpTrades;
     Timer timer;
+    LockFreeQueue<Event> *queue;
+
+    string address;
+    string brokerId;
+    string appId;
+    string authCode;
+
 
     void Run();
 
 public:
     CtpTdGateway(Acct *account) : account(account) {
-        this->loginInfo = account->loginInfo;
+        this->queue=account->tdQueue;
         this->id = account->id;
-        this->queue = account->queue;
+
+        vector<string> tmp;
+        Util::split(account->acctConf->tdAddress,tmp,"|");
+        this->address=tmp[0];
+        this->brokerId=tmp[1];
+        this->appId=tmp[2];
+        this->authCode=tmp[3];
+
     }
 
     ~CtpTdGateway() {}

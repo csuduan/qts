@@ -8,10 +8,13 @@
 #include "Gateway.h"
 #include "sse_hpf_quote.hpp"
 #include "define.h"
+#include "Acct.h"
 
 class ElfMdGateway :public efh_hpf_quote_event,public MdGateway{
 public:
-    ElfMdGateway(Quote * quote):MdGateway(quote){
+    ElfMdGateway(Acct* acct):acct(acct){
+        this->queue=acct->mdQueue;
+
     }
     ~ElfMdGateway(){}
     virtual void on_receive_lev2(sse_hpf_lev2* data);
@@ -24,12 +27,16 @@ public:
     void disconnect();
 
 private:
+    Acct* acct;
+    LockFreeQueue<Event> *queue;
+
     efh_hpf_quote	m_efh_hpf;			///< 行情接收对象
     bool  isConnected;
     string tradingDay;
     std::set<string> contracts;
-    LockFreeQueue<Event>* queue;
-    map<string, Order *> orderMap;
+    vector<Quote *> quotes;
+
+    map<string,efh_hpf_quote> m_efh_hpfMap;
     void Run();
 
 };
