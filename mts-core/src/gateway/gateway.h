@@ -4,11 +4,11 @@
 
 #ifndef MTS_CORE_GATEWAY_H
 #define MTS_CORE_GATEWAY_H
-#include "Data.h"
+#include "data.h"
 #include <set>
 #include <thread>
 #include "fmtlog/fmtlog.h"
-#include "Context.h"
+#include "context.h"
 class MdGateway{
 public:
     /// 订阅合约

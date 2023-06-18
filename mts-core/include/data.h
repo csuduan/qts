@@ -11,10 +11,10 @@
 #include <list>
 #include <vector>
 #include <tuple>
-#include "Enums.h"
-#include "LockFreeQueue.hpp"
+#include "enums.h"
+#include "lockFreeQueue.hpp"
 #include "xpack/json.h"
-#include "Message.h"
+#include "message.h"
 
 using std::string;
 using std::map;

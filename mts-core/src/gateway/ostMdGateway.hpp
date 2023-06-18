@@ -3,29 +3,29 @@
 //
 #include <functional>
 #include <dlfcn.h>
-#include "Delegate.h"
+#include "delegate.h"
 #include "define.h"
 
 #ifndef TRADECORE_OSTMDAPI_HPP
 #define TRADECORE_OSTMDAPI_HPP
 
-#include "Data.h"
-#include "Gateway.h"
-#include "LockFreeQueue.hpp"
+#include "data.h"
+#include "gateway.h"
+#include "lockFreeQueue.hpp"
 #include "ost/UTMdApi.h"
 #include <thread>
 #include <netdb.h>
-#include "Timer.hpp"
-#include "Shm.hpp"
-#include "Util.h"
+#include "common/timer.hpp"
+#include "shm.hpp"
+#include "common/util.hpp"
 #include "semaphore.h"
-#include "Acct.h"
+#include "acct.h"
 
 
 class OstMdGateway: public CUTMDSpi, public MdGateway
 {
 public:
-    OstMdGateway(Acct* acct):acct(acct){
+    OstMdGateway(Acct* acct): acct(acct){
         this->queue=acct->mdQueue;
     }
     ~OstMdGateway() {}

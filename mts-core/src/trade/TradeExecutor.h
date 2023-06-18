@@ -7,22 +7,20 @@
 
 
 #include <atomic>
-#include "Data.h"
-#include "Message.h"
-#include "gateway/Gateway.h"
-#include "strategy/Strategy.h"
-#include "LockFreeQueue.hpp"
-#include "BarGenerator.hpp"
-#include "common/SocketServer.hpp"
-#include "SqliteHelper.hpp"
-#include "MsgListener.h"
+#include "data.h"
+#include "message.h"
+#include "gateway/gateway.h"
+#include "strategy/strategy.h"
+#include "lockFreeQueue.hpp"
+#include "barGenerator.hpp"
+#include "common/socketServer.hpp"
+#include "common/sqliteHelper.hpp"
+#include "msgListener.h"
 #include <limits>
 #include <mutex>
 #include <condition_variable>
 
-
 class Strategy;
-
 class TradeExecutor : public MsgListener {
 private:
     string id;

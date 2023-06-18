@@ -56,7 +56,7 @@ typedef     char						T_SYMBOL_TYPE[SYMBOL_LEN];
 
 
 #ifdef USE_SF
-    #include "socket_multicast_sf.hpp"
+    #include "common/socket_multicast_sf.hpp"
 #else
     #include "socket_multicast.hpp"
 #endif

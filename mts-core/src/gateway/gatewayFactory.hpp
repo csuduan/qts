@@ -4,22 +4,22 @@
 
 #ifndef MTS_CORE_GATEWAYFACTORY_HPP
 #define MTS_CORE_GATEWAYFACTORY_HPP
-#include "Data.h"
-#include "Gateway.h"
-#include "LockFreeQueue.hpp"
+#include "data.h"
+#include "gateway.h"
+#include "lockFreeQueue.hpp"
 
-#include "Config.h"
-#include "Acct.h"
+#include "config.h"
+#include "acct.h"
 
-#include "GatewayFactory.hpp"
-#include "CtpTdGateway.h"
-#include "OstTdGateway.hpp"
-#include "CtpMdGateway.h"
-#include "OstMdGateway.hpp"
-#include "EfhMdGateway.h"
+#include "gatewayFactory.hpp"
+#include "ctpTdGateway.h"
+#include "ostTdGateway.hpp"
+#include "ctpMdGateway.hpp"
+#include "ostMdGateway.hpp"
+#include "efhMdGateway.hpp"
 #include "define.h"
 #include <unistd.h>
-#include "Config.h"
+#include "config.h"
 
 class GatewayFactory {
 public:

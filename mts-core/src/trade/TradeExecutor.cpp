@@ -3,23 +3,23 @@
 //
 
 #include "TradeExecutor.h"
-#include "gateway/GatewayFactory.hpp"
-#include "StrategyFactory.hpp"
-#include "strategy/GoldStrategy.h"
-#include "Config.h"
+#include "gateway/gatewayFactory.hpp"
+#include "strategy/strategyFactory.hpp"
+#include "strategy/goldStrategy.hpp"
+#include "config.h"
 #include "xpack/json.h"
-#include "Monitor.h"
+#include "monitor.h"
 #include <thread>
 #include <functional>
 #include <unistd.h>
 #include<sys/resource.h>
-#include "common/SocketServer.hpp"
-#include "Shm.hpp"
-#include "ShmQuote.h"
-#include "Context.h"
+#include "common/socketServer.hpp"
+#include "shm.hpp"
+#include "shmQuote.h"
+#include "context.h"
 #include "cpuin.h"
-#include "DataBuilder.h"
-#include "Message.h"
+#include "dataBuilder.h"
+#include "message.h"
 
 #include "signal.h"
 

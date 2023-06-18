@@ -4,13 +4,13 @@
 
 #ifndef MTS_CORE_CONTEXT_H
 #define MTS_CORE_CONTEXT_H
-#include "Singleton.h"
+#include "singleton.h"
 #include "tscns.h"
 #include <thread>
 #include "fmtlog/fmtlog.h"
-#include "Config.h"
-#include "Util.h"
-#include "Acct.h"
+#include "config.h"
+#include "common/util.hpp"
+#include "acct.h"
 
 class Context:public Singleton<Context>{
     friend class Singleton<Context>;

@@ -5,15 +5,15 @@
 //
 #include "fmtlog/fmtlog.h"
 #include <string>
-#include "Context.h"
-#include "LockFreeQueue.hpp"
-#include "Data.h"
+#include "context.h"
+#include "lockFreeQueue.hpp"
+#include "data.h"
 #include <thread>
 #include <chrono>
 #include "cpuin.h"
 #include "SocketData.h"
-#include "common/SocketServer.hpp"
-#include "common/SocketClient.h"
+#include "common/socketServer.hpp"
+#include "common/socketClient.hpp"
 
 void writeQueue(LockFreeQueue<Event> *queue){
     while (true){

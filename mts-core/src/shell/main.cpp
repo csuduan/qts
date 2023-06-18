@@ -5,8 +5,8 @@
 #include <string>
 #include <thread>
 #include <chrono>
-#include "common/SocketClient.h"
-#include "common/SocketClient.h"
+#include "common/socketClient.hpp"
+#include "common/socketClient.hpp"
 #include "filesystem"
 
 

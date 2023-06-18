@@ -9,11 +9,11 @@
 #ifndef TRADECORE_CTPTDAPI_H
 #define TRADECORE_CTPTDAPI_H
 
-#include "Data.h"
-#include "Gateway.h"
-#include "LockFreeQueue.hpp"
-#include "Timer.hpp"
-#include "Acct.h"
+#include "data.h"
+#include "gateway.h"
+#include "lockFreeQueue.hpp"
+#include "common/timer.hpp"
+#include "acct.h"
 
 class CtpTdGateway : public CThostFtdcTraderSpi, public TdGateway {
 private:

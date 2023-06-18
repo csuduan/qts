@@ -5,15 +5,15 @@
 
 
 #include "ost/UTApi.h"
-#include "Gateway.h"
-#include "LockFreeQueue.hpp"
-#include "Timer.hpp"
+#include "gateway.h"
+#include "lockFreeQueue.hpp"
+#include "common/timer.hpp"
 #include "define.h"
 #include "semaphore.h"
-#include "Acct.h"
+#include "acct.h"
 
 #include <dlfcn.h>
-#include "Timer.hpp"
+#include "common/timer.hpp"
 #include "magic_enum.hpp"
 
 class OstTdGateway : public CUTSpi, public TdGateway {

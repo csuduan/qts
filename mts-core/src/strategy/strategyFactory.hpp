@@ -8,7 +8,7 @@
 #include <string>
 #include <functional>
 #include <memory>
-#include "strategy/Strategy.h"
+#include "strategy/strategy.h"
 
 struct factory
 {

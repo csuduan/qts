@@ -5,10 +5,10 @@
 #ifndef MTS_CORE_DATABUILDER_H
 #define MTS_CORE_DATABUILDER_H
 
-#include "Data.h"
-#include "Config.h"
-#include "Util.h"
-#include "Acct.h"
+#include "data.h"
+#include "config.h"
+#include "common/util.hpp"
+#include "acct.h"
 
 Quote* buildQuote(QuoteConf & quoteConf){
     Quote *quote=new Quote();

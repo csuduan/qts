@@ -1,7 +1,7 @@
 //
 // Created by 段晴 on 2022/2/8.
 //
-#include "Strategy.h"
+#include "strategy.h"
 
 void Strategy::open() {
 

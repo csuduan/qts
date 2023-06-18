@@ -5,7 +5,7 @@
 #ifndef MTS_CORE_OSTDATA_H
 #define MTS_CORE_OSTDATA_H
 #include "ost/UTApiStruct.h"
-#include "Data.h"
+#include "data.h"
 
 class DataMapping{
 

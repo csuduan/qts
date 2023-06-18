@@ -12,13 +12,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include<sys/un.h>
-#include "LockFreeQueue.hpp"
-#include "Data.h"
-#include "SocketData.h"
-#include "SocketBase.h"
-#include "Message.h"
+#include "lockFreeQueue.hpp"
+#include "data.h"
+#include "socketBase.h"
+#include "message.h"
 
-#include "MsgListener.h"
+#include "msgListener.h"
 
 #include <iostream>
 
@@ -26,7 +25,7 @@
 #include <string.h>
 #include "json/json.h"
 #include "magic_enum.hpp"
-#include "Data.h"
+#include "data.h"
 
 
 #include <event2/bufferevent.h>
@@ -45,10 +44,10 @@ using namespace std::filesystem;
 
 //typedef void (*msgCallback)(msg::Message);
 typedef std::function<void(Message)> msgCallback;
-class SocketServer :public SocketBase{
+class SocketServer : public SocketBase{
 public:
     msgCallback callback;
-    SocketServer(SocketAddr& serverAddr,MsgListener *listener): SocketBase(serverAddr){
+    SocketServer(SocketAddr& serverAddr, MsgListener *listener): SocketBase(serverAddr){
         this->listener=listener;
     }
     void   start(){

@@ -1,7 +1,7 @@
 #pragma  once
 #include <thread>
 #include "define.h"
-#include "Singleton.h"
+#include "singleton.h"
 class Monitor:public Singleton<Monitor>{
     friend class Singleton<Monitor>;
 

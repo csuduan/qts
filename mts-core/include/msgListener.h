@@ -5,7 +5,7 @@
 #ifndef MTS_CORE_MSGLISTENER_H
 #define MTS_CORE_MSGLISTENER_H
 
-#include "Message.h"
+#include "message.h"
 
 class MsgListener {
 public:

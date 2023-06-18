@@ -4,7 +4,7 @@
 
 #include <thread>
 #include <cstring>
-#include "CtpTdGateway.h"
+#include "ctpTdGateway.h"
 #include <signal.h>
 #include <queue>
 #include  <functional>
