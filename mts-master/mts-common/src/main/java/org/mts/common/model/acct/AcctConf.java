@@ -1,4 +1,4 @@
-package org.mts.common.model.conf;
+package org.mts.common.model.acct;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -18,5 +18,7 @@ public class AcctConf {
     private String  pwd;
     private String mdType;
     private String mdAddress;
+    private String subList;
     private Boolean enable;
+
 }

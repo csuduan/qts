@@ -2,16 +2,13 @@ package org.mts.admin.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.mts.admin.dao.ConfMapper;
-import org.mts.admin.dao.SysMapper;
 import org.mts.common.model.acct.AcctInfo;
 import org.mts.common.model.acct.ServerInfo;
 import org.mts.common.model.Enums;
-import org.mts.common.model.conf.AcctConf;
+import org.mts.common.model.acct.AcctConf;
 import org.mts.common.model.event.MessageEvent;
 import org.mts.common.model.rpc.Message;
-import org.mts.common.rpc.listener.ClientListener;
 import org.mts.common.rpc.tcp.TcpClient;
-import org.mts.common.utils.SpringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
@@ -19,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,15 +51,7 @@ public class AcctService {
     public void init(){
         //初始化
         var list =confMapper.getAcctConf(owner);
-        var quoteConfs=confMapper.getQuoteConf();
         for(var acctConf :list){
-            if(StringUtils.hasLength(acctConf.getQuotes())){
-                for(String quote:acctConf.getQuotes().split(",")){
-                    var opt=quoteConfs.stream().filter(q->q.getId().equals(quote)).findFirst();
-                    if(opt.isPresent())
-                        acctConf.getQuoteConfs().add(opt.get());
-                }
-            }
             acctConfMap.put(acctConf.getId(),acctConf);
             tradeService.startAcctClient(acctConf);
         }

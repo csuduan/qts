@@ -1,7 +1,7 @@
 package org.mts.common.model.msg;
 
 import lombok.Data;
-import org.mts.common.model.conf.AcctConf;
+import org.mts.common.model.acct.AcctConf;
 
 import java.util.List;
 

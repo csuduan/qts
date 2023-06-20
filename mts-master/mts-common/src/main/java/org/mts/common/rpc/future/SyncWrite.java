@@ -6,6 +6,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import org.mts.common.model.rpc.Message;
 import org.mts.common.utils.SequenceUtil;
+import org.springframework.util.StringUtils;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -24,9 +25,12 @@ public class SyncWrite {
         if (timeout <= 0) {
             throw new IllegalArgumentException("timeout <= 0");
         }
+        if (!StringUtils.hasLength(request.getRequestId())){
+            throw new IllegalArgumentException("requestId is empty");
+        }
 
-        String requestId = SequenceUtil.getLocalSerialNo(16);
-        request.setRequestId(requestId);
+        //String requestId = SequenceUtil.getLocalSerialNo(16);
+        //request.setRequestId(requestId);
 
         WriteFuture<Message> future = new SyncWriteFuture(request.getRequestId());
         SyncWriteMap.syncKey.put(request.getRequestId(), future);

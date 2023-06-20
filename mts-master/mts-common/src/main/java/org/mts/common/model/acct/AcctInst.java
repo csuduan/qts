@@ -1,7 +1,6 @@
 package org.mts.common.model.acct;
 
 import lombok.Data;
-import org.mts.common.model.conf.AcctConf;
 import org.mts.common.rpc.uds.UdsClient;
 import org.springframework.beans.BeanUtils;
 

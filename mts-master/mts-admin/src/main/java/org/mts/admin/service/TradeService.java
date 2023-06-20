@@ -5,13 +5,14 @@ import org.mts.admin.dao.ConfMapper;
 import org.mts.admin.exception.BizException;
 import org.mts.common.model.Enums;
 import org.mts.common.model.acct.AcctInst;
-import org.mts.common.model.conf.AcctConf;
+import org.mts.common.model.acct.AcctConf;
 import org.mts.common.model.acct.AcctInfo;
 import org.mts.common.model.event.MessageEvent;
 import org.mts.common.model.msg.ConfMsg;
 import org.mts.common.model.rpc.Message;
 import org.mts.common.rpc.listener.ClientListener;
 import org.mts.common.rpc.uds.UdsClient;
+import org.mts.common.utils.SequenceUtil;
 import org.mts.common.utils.SpringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,19 +98,21 @@ public class TradeService implements ClientListener {
     }
 
     public Message request(String acctId, Enums.MSG_TYPE type,Object data){
-        Message req=new Message(type,data);
-        log.info("request==>req:{}",req);
-        Message rsp=this.request(acctId,req);
-        log.info("request==>rsp:{}",rsp);
-        return rsp;
+        return this.request(acctId,new Message(type,data));
     }
 
     public Message request(String acctId,Message req){
         if(!this.acctInstMap.containsKey(acctId)
-                || !this.acctInstMap.get(acctId).getAcctInfo().getStatus())
+                || !this.acctInstMap.get(acctId).getUdsClient().isConnected())
             throw  new BizException("账户未连接");
+
+        String requestId = SequenceUtil.getLocalSerialNo(16);
+        req.setRequestId(requestId);
+        log.info("request==>req:{}",req);
         var client=this.acctInstMap.get(acctId).getUdsClient();
-        return  client.request(req);
+        Message rsp=client.request(req);
+        log.info("request==>rsp:{}",rsp);
+        return  rsp;
     }
 
 
@@ -119,19 +122,23 @@ public class TradeService implements ClientListener {
         AcctInst acctInst=this.acctInstMap.get(id);
         if(status==true){
             acctInst.getAcctInfo().setStatus(true);
-            acctInst.getAcctInfo().setStatusMsg("已就绪");
-            //与ACCT进行一次同步
-            AcctConf acctConf=acctInst.getAcctConf();
-            if(acctConf!=null){
-                Message rsp=this.request(id,Enums.MSG_TYPE.SYNC,acctConf);
+            //查询账户信息
+            try {
+                Message rsp=this.request(id,Enums.MSG_TYPE.QRY_ACCT,null);
                 AcctInfo acctInfo=rsp.getData(AcctInfo.class);
-                //BeanUtils.copyProperties(acctInfo,acctInst.getAcctInfo());
-                acctInst.getAcctInfo().setTdStatus(acctInfo.getTdStatus());
-                log.info("sync to acct:{} ret:{}",id,rsp.getSuccess());
+                BeanUtils.copyProperties(acctInfo,acctInst.getAcctInfo());
+                acctInst.getAcctInfo().setStatus(true);
+                acctInst.getAcctInfo().setStatusMsg("已就绪");
+
+            }catch (Exception ex){
+                log.error("qry acct error!",ex);
             }
+
         }else{
             acctInst.getAcctInfo().setStatus(false);
             acctInst.getAcctInfo().setStatusMsg("未连接");
+            acctInst.getAcctInfo().setTdStatus(false);
+            acctInst.getAcctInfo().setMdStatus(false);
         }
         //推送给admin
         SpringUtils.pushEvent(new MessageEvent(new Message(Enums.MSG_TYPE.ON_ACCT,acctInst.getAcctInfo())));
@@ -147,6 +154,7 @@ public class TradeService implements ClientListener {
                 AcctInfo acctInfo=msg.getData(AcctInfo.class);
                 //BeanUtils.copyProperties(acctInfo,acctInst.getAcctInfo());
                 acctInst.getAcctInfo().setTdStatus(acctInfo.getTdStatus());
+                acctInst.getAcctInfo().setMdStatus(acctInfo.getMdStatus());
                 SpringUtils.pushEvent(new MessageEvent(new Message(Enums.MSG_TYPE.ON_ACCT,acctInst.getAcctInfo())));
             }
         }

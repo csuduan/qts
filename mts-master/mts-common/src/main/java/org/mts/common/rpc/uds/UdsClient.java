@@ -70,7 +70,7 @@ public class UdsClient {
         try {
             return writer.writeAndSync(channel, req, 5000);
         }catch (Exception ex){
-            throw new RuntimeException(ex);
+            throw new RuntimeException("request error",ex);
         }
     }
 

@@ -13,13 +13,14 @@ public class AcctInfo {
     private String id;
     private String user;
     private String type;
-    private int  startType;//启动类型(1-自动，2-手动)
     private Boolean enable;//是否激活
     //状态信息
-    private Boolean status=false;//账户状态
+    private Boolean status;
     private String  statusMsg="未连接";//状态描述（已就绪，未连接）
     private Boolean tdStatus = false;
     private Boolean mdStatus = false;
+    private Boolean pauseOpen = false;
+    private Boolean pauseClose = false;
 
 
     //资金信息
