@@ -35,7 +35,7 @@ void Strategy::order(string symbol, OFFSET offset, POS_DIRECTION posDirection, O
     string posId=symbol+"-"+ to_string(static_cast<int>(posDirection));
     auto pos=posMap[posId];
     if(pos->onway>0){
-        logw("{} 仓位{} 存在在途交易",strategyId,pos->positionId);
+        logw("{} 仓位{} 存在在途交易",strategyId,pos->id);
         return;
     }
     Order* order=new Order;

@@ -64,7 +64,7 @@ public:
         char sql[500];
         vector<AcctConf > result;
         sprintf(sql,
-                "SELECT id,owner,`group`, tdAddress,tdType,user,pwd,enable,mdAddress,mdType,subList,brokerId,authCode,appId FROM CONF_ACCT WHERE id='%s'",
+                "SELECT id,owner,`group`, tdAddress,tdType,user,pwd,enable,mdAddress,mdType,subList FROM CONF_ACCT WHERE id='%s'",
                 acctId.c_str());
         this->query(const_cast<char *>(sql), [&result, this](sqlite3_stmt *stmt) {
             AcctConf item;

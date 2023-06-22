@@ -30,8 +30,8 @@ public:
          for (const auto &item : this->setting->contracts){
              Position * longPos=new Position(item, POS_DIRECTION::LONG);
              Position * shortPos=new Position(item, POS_DIRECTION::SHORT);
-             posMap[longPos->positionId] = longPos;
-             posMap[shortPos->positionId] = shortPos;
+             posMap[longPos->id] = longPos;
+             posMap[shortPos->id] = shortPos;
          }
 
      };

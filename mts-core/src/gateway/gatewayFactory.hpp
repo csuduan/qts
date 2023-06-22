@@ -12,7 +12,7 @@
 #include "acct.h"
 
 #include "gatewayFactory.hpp"
-#include "ctpTdGateway.h"
+#include "ctpTdGateway.hpp"
 #include "ostTdGateway.hpp"
 #include "ctpMdGateway.hpp"
 #include "ostMdGateway.hpp"

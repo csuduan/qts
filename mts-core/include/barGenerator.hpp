@@ -25,9 +25,10 @@ private:
 public:
     string symbol;
     BAR_LEVEL level;
+    int offset;
     vector<Bar *> history;
 
-    BarGenerator(string symbol,BAR_LEVEL level,function<void(Bar *)> callBack= nullptr):symbol(symbol),level(level),callBack(callBack){
+    BarGenerator(string symbol,BAR_LEVEL level,int offset=0,function<void(Bar *)> callBack= nullptr):symbol(symbol),level(level),offset(offset),callBack(callBack){
         logi("new BarGenerator {} {}",symbol,level);
     }
 

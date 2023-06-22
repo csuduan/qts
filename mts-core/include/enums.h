@@ -8,6 +8,10 @@ using std::map;
 
 #define enum_string(A) magic_enum::enum_name(A)
 
+enum SymbolType{
+    FUTURE,
+    STOCK,
+};
 
 enum EvType {
     TICK,

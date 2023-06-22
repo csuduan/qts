@@ -69,17 +69,16 @@ XPACK(M(id,tdType,tdAddress,brokerId,userId,password,authCode,appId),O(useName))
 
 
 
-
-
 struct Position {
-    string tradingDay;
-    string positionId;//持仓编号（合约代码-方向）
+    string id;//持仓编号（合约代码-方向）
     string symbol; // 代码
+    string symbolType;//合约类型(股票、期货)
     POS_DIRECTION direction; // 持仓方向
     string direction_s;
-
     string exchange; // 交易所代码
     int multiple;//合约乘数
+
+
     // 持仓相关
     int pos; // 持仓量
     int onway; // 在途数量(>0在途开仓，<0在途平仓)
@@ -90,22 +89,21 @@ struct Position {
     double lastPrice; // 计算盈亏使用的行情最后价格
     double avgPrice; // 持仓均价
     double openPrice; // 开仓均价
-    double positionProfit; // 持仓盈亏
-    double openPositionProfit; // 开仓盈亏
+    double holdProfit; // 持仓盈亏
 
     double useMargin; // 占用的保证金
-    double exchangeMargin; // 交易所的保证金
-    double contractValue; // 最新合约价值
+
     Position(string symbol, POS_DIRECTION direction) {
         this->symbol = symbol;
         this->direction = direction;
         this->direction_s = enum_string(direction);
-        this->positionId = symbol + "-" + std::to_string(static_cast<int>(direction));
+        this->id = symbol + "-" + std::to_string(static_cast<int>(direction));
     }
 
-XPACK(M(tradingDay,symbol,exchange,direction_s,pos,ydPos,tdPos,avgPrice));
+XPACK(M(symbol,exchange,direction_s,pos,ydPos,tdPos,ydPosition,avgPrice));
 
 };
+
 
 
 struct Order {
