@@ -1,6 +1,8 @@
 import { loadEnv } from "@build/index";
 import { useAgentStoreHook } from "/@/store/modules/agent";
-import { usePermissionStoreHook1 } from "/@/store/modules/permission1";
+import { useAcctStoreHook } from "/@/store/modules/acct";
+
+import { MsgType } from "/@/utils/enums";
 
 // 环境变量
 const { VITE_PROXY_DOMAIN_REAL } = loadEnv();
@@ -57,10 +59,15 @@ class SocketService {
     };
     // 得到服务端发送过来的数据
     this.ws.onmessage = msg => {
+      console.log("onMessage:", msg.data);
       const { type, data } = JSON.parse(msg.data);
+      const json = JSON.parse(data);
       switch (type) {
-        case msgType.AGENT:
-          useAgentStoreHook().updateAgent(data);
+        case MsgType.ON_AGENT:
+          useAgentStoreHook().updateAgent(json);
+          break;
+        case MsgType.ON_ACCT:
+          useAcctStoreHook().saveAcct(json);
           break;
       }
     };
@@ -92,11 +99,5 @@ class SocketService {
   }
 }
 
-enum msgType {
-  AGENT,
-  LOG,
-  ACCT,
-  ACCT_DETAIL
-}
 
 export const websocket = new SocketService();

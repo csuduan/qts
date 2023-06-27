@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
+import Trade from "./trade.vue";
 const route = useRoute();
 const index = route.query?.id ?? -1;
 
@@ -19,7 +20,9 @@ const handleClick = (tab: TabsPaneContext, event: Event) => {
   <div class="main">
     <el-card>
       <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-        <el-tab-pane label="交易" name="first">User</el-tab-pane>
+        <el-tab-pane label="交易" name="first">
+          <Trade></Trade>
+        </el-tab-pane>
         <el-tab-pane label="换仓" name="second">Config</el-tab-pane>
         <el-tab-pane label="策略" name="third">Role</el-tab-pane>
         <el-tab-pane label="管理" name="third">Role</el-tab-pane>

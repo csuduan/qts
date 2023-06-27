@@ -6,15 +6,16 @@ export default {
 
 <script setup lang="ts">
 import dayjs from "dayjs";
-import { getAcctList } from "/@/api/acct";
-import { FormInstance,ElMessageBox } from "element-plus";
+import { acctOperate, getAcctList } from "/@/api/acct";
+import { FormInstance, ElMessageBox } from "element-plus";
 import { reactive, ref, onMounted } from "vue";
 import { EpTableProBar } from "/@/components/ReTable";
 import { Switch, message } from "@pureadmin/components";
 import { useRenderIcon } from "/@/components/ReIcon/src/hooks";
 import { useMultiTagsStoreHook } from "/@/store/modules/multiTags";
 import { useRouter, useRoute } from "vue-router";
-
+import { useAcctStoreHook } from "/@/store/modules/acct";
+import { MsgType } from "/@/utils/enums";
 
 const route = useRoute();
 const router = useRouter();
@@ -36,11 +37,28 @@ function handleUpdate(row) {
   console.log(row);
 }
 
-function jumpDetail(row){
+function connectAcct(row, status) {
+  let acctId = row.id;
+  console.log("connectAcct", acctId);
+  let data = {
+    status: status
+  };
+  let msg = {
+    type: MsgType.CONNECT,
+    acctId: acctId,
+    data: {
+      status: status
+    }
+  };
+  console.log(msg);
+  acctOperate(msg);
+}
+
+function jumpDetail(row) {
   useMultiTagsStoreHook().handleTags("push", {
-    path: `/acct/view/detail`,
+    path: `/acct/detail/index`,
     parentPath: route.matched[0].path,
-    name: "viewDetail",
+    name: "acctDetail",
     query: { id: String(row.id) },
     meta: {
       title: { zh: `账户-${row.id}`, en: `No.${row.id} - DetailInfo` },
@@ -49,7 +67,7 @@ function jumpDetail(row){
       dynamicLevel: 3
     }
   });
-  router.push({ name: "viewDetail", query: { id: String(row.id) } })
+  router.push({ name: "acctDetail", query: { id: String(row.id) } });
 }
 
 function handleDelete(row) {
@@ -113,18 +131,19 @@ async function onSearch() {
   let { data } = await getAcctList();
   dataList.value = data.list;
   totalPage.value = data.total;
+  useAcctStoreHook().init(data.list);
   setTimeout(() => {
     loading.value = false;
   }, 500);
   setInterval(() => {
-    if(totalPage.value>0){
+    if (totalPage.value > 0) {
       for (let data of dataList.value) {
         //console.log(data)
         //data.balance++;
         //data.mv+=2;
       }
     }
-  },500);
+  }, 500);
 }
 
 const resetForm = (formEl: FormInstance | undefined) => {
@@ -140,8 +159,6 @@ onMounted(() => {
 
 <template>
   <div class="main">
-
-
     <EpTableProBar
       title="账户列表"
       :loading="loading"
@@ -153,12 +170,12 @@ onMounted(() => {
           新增
         </el-button>
       </template>
-      <template v-slot="{size, checkList }">
+      <template v-slot="{ size, checkList }">
         <el-table
           border
           table-layout="auto"
           :size="'small'"
-          :data="dataList"
+          :data="useAcctStoreHook().acctList"
           :header-cell-style="{ background: '#fafafa', color: '#606266' }"
           @selection-change="handleSelectionChange"
         >
@@ -170,7 +187,6 @@ onMounted(() => {
           />
           <el-table-column label="账户分组" align="center" prop="group" />
           <el-table-column label="账户编号" align="center" prop="id" />
-          <el-table-column label="账户名称" align="center" prop="name" />
           <el-table-column
             prop="enable"
             label="账户状态"
@@ -183,7 +199,7 @@ onMounted(() => {
                 :type="scope.row.status == 1 ? 'success' : 'danger'"
                 disable-transitions
               >
-                {{ scope.row.status == 1 ? "已连接" : "已断开" }}
+                {{ scope.row.statusMsg }}
               </el-tag>
             </template>
           </el-table-column>
@@ -196,14 +212,14 @@ onMounted(() => {
           >
             <template #default="scope">
               <el-tag
-                :type="scope.row.status == 0 ? 'success' : 'danger'"
+                :type="scope.row.tdStatus == 1 ? 'success' : 'danger'"
                 disable-transitions
               >
                 交易
               </el-tag>
               <el-divider direction="vertical" />
               <el-tag
-                :type="scope.row.status == 1 ? 'success' : 'danger'"
+                :type="scope.row.mdStatus == 1 ? 'success' : 'danger'"
                 disable-transitions
               >
                 行情
@@ -211,18 +227,20 @@ onMounted(() => {
             </template>
           </el-table-column>
 
+          <el-table-column label="静态市值" align="center" prop="balance" />
+          <el-table-column label="动态市值" align="center" prop="mv" />
+          <el-table-column label="当前保证金" align="center" prop="margin" />
+          <el-table-column label="风险度" align="center" prop="risk" />
+          <el-table-column
+            label="持仓盈亏"
+            align="center"
+            prop="balanceProfit"
+          />
+          <el-table-column label="平仓盈亏" align="center" prop="closeProfit" />
+          <el-table-column label="手续费" align="center" prop="fee" />
+          <el-table-column label="更新时间" align="center" prop="updateTime" />
 
-          <el-table-column label="静态市值" align="center"  prop="balance"/>
-          <el-table-column label="动态市值" align="center"  prop="mv"/>
-          <el-table-column label="当前保证金" align="center"  prop="margin"/>
-          <el-table-column label="风险度" align="center"  prop="risk"/>
-          <el-table-column label="持仓盈亏" align="center"  prop="balanceProfit"/>
-          <el-table-column label="平仓盈亏" align="center"  prop="closeProfit"/>
-          <el-table-column label="手续费" align="center"  prop="fee"/>
-          <el-table-column label="更新时间" align="center"  prop="updateTime"/>
-
-
-<!--          <el-table-column
+          <!--          <el-table-column
             label="状态"
             align="center"
             width="130"
@@ -272,20 +290,22 @@ onMounted(() => {
                       <el-button
                         class="reset-margin !h-20px !text-gray-500"
                         type="text"
+                        @click="connectAcct(scope.row, false)"
                         :size="size"
                         :icon="useRenderIcon('menu')"
                       >
-                        菜单权限
+                        断开
                       </el-button>
                     </el-dropdown-item>
                     <el-dropdown-item>
                       <el-button
                         class="reset-margin !h-20px !text-gray-500"
                         type="text"
+                        @click="connectAcct(scope.row, true)"
                         :size="size"
                         :icon="useRenderIcon('database')"
                       >
-                        数据权限
+                        连接
                       </el-button>
                     </el-dropdown-item>
                   </el-dropdown-menu>

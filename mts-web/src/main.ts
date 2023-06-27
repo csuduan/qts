@@ -42,6 +42,6 @@ getServerConfig(app).then(async config => {
   await router.isReady();
   injectResponsiveStorage(app, config);
   setupStore(app);
-  app.use(MotionPlugin).use(useI18n).use(ElementPlus);
+  app.use(MotionPlugin).use(useI18n).use(ElementPlus, { size: 'small'});
   app.mount("#app");
 });

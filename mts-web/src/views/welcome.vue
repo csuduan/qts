@@ -1,3 +1,5 @@
 <template>
-  <h1>mts-admin</h1>
+  <div class="main">
+    <h1>mts-admin</h1>
+  </div>
 </template>

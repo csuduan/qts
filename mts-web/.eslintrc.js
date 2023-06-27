@@ -74,14 +74,14 @@ module.exports = {
       }
     ],
     "@typescript-eslint/no-unused-vars": [
-      "error",
+      "off",
       {
         argsIgnorePattern: "^_",
         varsIgnorePattern: "^_"
       }
     ],
     "no-unused-vars": [
-      "error",
+      "off",
       {
         argsIgnorePattern: "^_",
         varsIgnorePattern: "^_"

@@ -47,3 +47,47 @@ export type agentType = {
   status: boolean;
   enable: boolean;
 };
+
+export type AcctType = {
+  id: string;
+  group: string;
+  user: string;
+  type: string;
+  enable: boolean;
+  status: boolean;
+  statusMsg: string;
+  tdStatus: boolean;
+  mdStatus: boolean;
+
+  balance: number;
+  mv: number;
+  balanceProfit: number;
+  closeProfit: number;
+  margin: number;
+  updateTimestamp: string;
+};
+
+export type Position = {
+  id: string;
+  symbol: string;
+  direction: string;
+  tdPos: number;
+  ydpos: number;
+  pos: number;
+  lastPrice: number;
+  lastSettle: number;
+  avgPrice: number;
+  holdProfit: number;
+  fee: number;
+  margin: number;
+};
+
+export type Trade = {
+  id: string;
+};
+
+export type AcctDetail = {
+  id: string;
+  positions: Position[];
+  trades: Trade[];
+};

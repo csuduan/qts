@@ -1,10 +1,5 @@
 import { http } from "../utils/http";
-
-interface ResponseType extends Promise<any> {
-  data?: object;
-  code?: number;
-  msg?: string;
-}
+import { ResponseType } from "./type";
 
 // 获取用户管理列表
 export const getUserList = (data?: object): ResponseType => {
