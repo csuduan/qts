@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include "common/util.hpp"
-#include "trade/TradeExecutor.h"
+#include "trade/tradeExecutor.h"
 #include "monitor.h"
 #include "context.h"
 #include "signal.h"

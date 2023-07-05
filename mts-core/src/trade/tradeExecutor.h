@@ -24,55 +24,43 @@ class Strategy;
 class TradeExecutor : public MsgListener {
 private:
     string id;
-    bool stopFlag = false;
-    bool configed = false;
     Acct *acct;
-    vector<Quote *> quotes;
-    TdGateway *tdGateway;
-    MdGateway *mdGateway;
+    //vector<Quote *> quotes;
     //SocketClient* agentClient;
     SocketServer *udsServer;//对内提供服务
 
 
     map<string, vector<BarGenerator *> *> barGeneratorMap;
-    //map<string,MdGateway*> mdGatewayMap; //支持多路行情
-    LockFreeQueue<Event> msgQueue = {1 << 20};//系统消息队列
+    //LockFreeQueue<Event> msgQueue = {1 << 20};//系统消息队列
 
 
     //合约订阅列表
     std::map<string, std::set<Strategy *>> subsMap;
 
-    //tick信息
-    std::map<string, Tick *> lastTickMap;
     //策略信息
     std::map<string, Strategy *> strategyMap;
     //报单-策略 映射map
     std::map<int, Strategy *> strategyOrderMap;
-    //成交信息
-    std::map<string, Trade *> tradeMap;
 
-    //报单队列(用于自成交校验)
-    std::map<string, vector<Order *>> workingMap;
+
     std::vector<Order *> removeList;
 
-    std::atomic<long> orderRefNum = 0;
 
     SqliteHelper *sqliteHelper = NULL;
 
     std::mutex mut;
     std::condition_variable cv;
 
+
+
     //Shm<MemTick>* shm=NULL;
 public:
-    TradeExecutor(string acctId);
+    TradeExecutor(string acctId): id(acctId){}
 
     void init();
 
     void start();
 
-    void connect();
-
-    void disconnect();
 
     void subContract(set<string> contracts, Strategy *strategy);
 
@@ -85,17 +73,6 @@ public:
     void onTrade(Trade *trade);
 
     void createStrategy(StrategySetting *setting);
-
-    /// 报单
-    /// \param order
-    bool insertOrder(Order *order);
-
-    ///报单
-    void insertOrder(OrderReq *orderReq);
-
-    /// 撤单
-    /// \param orderRef
-    void cancelorder(CancelReq &req);
 
     ///清理（非close）
     void clear();
@@ -111,7 +88,6 @@ public:
     void shutdown();
 
     int signalHanler(int signo);
-
 };
 
 

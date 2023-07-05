@@ -26,7 +26,8 @@ namespace config{
         string db;
         string dataPath;
         string logPath;
-        XPACK(M(dataPath,logPath,db))
+        int port;
+        XPACK(M(dataPath,logPath,db,port))
     };
 
     struct AcctConf{

@@ -10,14 +10,13 @@
 #define TRADECORE_CTPTDAPI_H
 
 #include "data.h"
+#include "context.h"
 #include "gateway.h"
 #include "lockFreeQueue.hpp"
 #include "common/timer.hpp"
-#include "acct.h"
 
 class CtpTdGateway : public CThostFtdcTraderSpi, public TdGateway {
 private:
-
 
     string id;
     CThostFtdcTraderApi *m_pUserApi;
@@ -63,7 +62,7 @@ private:
 
 public:
     CtpTdGateway(Acct *account) : account(account) {
-        this->queue=account->tdQueue;
+        //this->queue=account->tdQueue;
         this->id = account->id;
 
         vector<string> tmp;
@@ -171,7 +170,7 @@ public:
         req.LimitPrice = order->price;
         int ret = this->m_pUserApi->ReqOrderInsert(&req, req.RequestID);
         logi("ReqOrder orderRef:{} symbol:{} offset:{} direction:{} price:{} volume:{}  ret={}",
-             order->orderRef, order->symbol, order->offset_s, order->direction_s, order->price, order->totalVolume,
+             order->orderRef, order->symbol, order->offsetStr, order->directionStr, order->price, order->totalVolume,
              ret);
         if (ret != 0) {
             order->status = ORDER_STATUS::ERROR;
@@ -319,7 +318,7 @@ public:
         order->orderSysId = pOrder->OrderSysID;
         order->tradedVolume = pOrder->VolumeTraded;
         order->status = statusMap[pOrder->OrderStatus];
-        order->status_s= enum_string(order->status);
+        order->statusStr= enum_string(order->status);
         order->statusMsg = pOrder->StatusMsg;
         order->updateTime = pOrder->UpdateTime;
         order->updateTsc=tsc;
@@ -334,9 +333,9 @@ public:
             order->statusMsg.find("最小单位的倍数") != string::npos) {
             order->status = ORDER_STATUS::ERROR;
         }
-        this->account->tdQueue->push(Event{EvType::ORDER, tsc,order});
+        this->account->onOrder(order);
         logi("{} OnRtnOrder {} {} traded:{}/{} status:{} msg:{}", id, order->orderRef, order->symbol, order->tradedVolume,
-             order->totalVolume, order->status_s, order->statusMsg);
+             order->totalVolume, order->statusStr, order->statusMsg);
     }
 
     ///成交通知
@@ -355,16 +354,16 @@ public:
         trade->tradeTime = pTrade->TradeTime;
         trade->symbol = pTrade->InstrumentID;
         trade->direction = order->direction;
-        trade->direction_s = enum_string(order->direction);
-        trade->offset = order->offset;
-        trade->offset_s= enum_string(order->offset);
-        trade->volume = pTrade->Volume;
-        trade->price = pTrade->Price;
+        //trade->direction_s = enum_string(order->direction_enum);
+        trade->tradeType = order->offset;
+        //trade->offset= enum_string(order->offset_enum);
+        trade->tradedVolume = pTrade->Volume;
+        trade->tradedPrice = pTrade->Price;
         trade->exchange = pTrade->ExchangeID;
         trade->updateTsc=tsc;
 
-        this->account->tdQueue->push(Event{EvType::TRADE, tsc,trade});
-        logi("{} OnRtnTrade {} {} {} {} traded:{}", id, trade->orderRef, trade->symbol, magic_enum::enum_name(trade->offset),
+        this->account->onTrade(trade);
+        logi("{} OnRtnTrade {} {} {} {} traded:{}", id, trade->orderRef, trade->symbol, magic_enum::enum_name(trade->tradeType),
              magic_enum::enum_name(trade->direction), pTrade->Volume);
 
 
@@ -378,8 +377,7 @@ public:
             Order *order = account->orderMap[orderRef];
             order->status = ORDER_STATUS::ERROR;
             order->statusMsg = pRspInfo->ErrorMsg;
-            Event event{EvType::ORDER,0, order};
-            this->account->tdQueue->push(event);
+            this->account->onOrder(order);
         }
     }
 
@@ -399,8 +397,8 @@ public:
             Order *order = account->orderMap[orderRef];
             order->status = ORDER_STATUS::ERROR;
             order->statusMsg = pRspInfo->ErrorMsg;
-            Event event{EvType::ORDER,0, order};
-            this->account->tdQueue->push(event);
+            this->account->onOrder(order);
+
         }
     }
 

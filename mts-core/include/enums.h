@@ -20,7 +20,8 @@ enum EvType {
     POSITON,
     CONTRACT,
     MSG,
-    STATUS
+    STATUS,
+    READY
 };
 
 //交易所
@@ -37,9 +38,9 @@ enum EXCHANGE{
 
 //头寸方向
 enum  POS_DIRECTION {
-    LONG,
-    SHORT,
-    NET,
+    LONG=48,
+    SHORT=49,
+    NET=0,
 };
 
 static map<string,POS_DIRECTION> POS_DIRECTION_MAP={
@@ -50,8 +51,8 @@ static map<string,POS_DIRECTION> POS_DIRECTION_MAP={
 
 //交易方向
 enum TRADE_DIRECTION{
-    BUY,
-    SELL
+    BUY=48,
+    SELL=49
 };
 
 static map<string,TRADE_DIRECTION> TRADE_DIRECTION_MAP={
@@ -61,14 +62,14 @@ static map<string,TRADE_DIRECTION> TRADE_DIRECTION_MAP={
 
 
 //交易类型
-enum OFFSET{
-    OPEN,
-    CLOSE,
-    CLOSETD,
-    CLOSEYD
+enum TRADE_TYPE{
+    OPEN=48,
+    CLOSE=49,
+    CLOSETD=51,
+    CLOSEYD=52
 };
 
-static map<string,OFFSET> OFFSET_MAP={
+static map<string,TRADE_TYPE> OFFSET_MAP={
         {"OPEN",OPEN},
         {"CLOSE",CLOSE},
         {"CLOSETD",CLOSETD},
@@ -79,6 +80,7 @@ static map<string,OFFSET> OFFSET_MAP={
 
 //BAR级别
 enum BAR_LEVEL{
+    T1=0,//tick级
     M1=1,
     M5=5,
     M15=15,
@@ -140,6 +142,7 @@ enum MSG_TYPE{
     QRY_POSITION,
     QRY_ACCT,
     QRY_CONF,
+    QRY_CONTRACT,
 
 
     //推送消息

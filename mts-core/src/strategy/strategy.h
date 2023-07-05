@@ -3,8 +3,7 @@
 #include <string>
 #include "data.h"
 #include "define.h"
-#include "trade/TradeExecutor.h"
-class TradeExecutor;
+#include "trade/acct.h"
 class Strategy
 {
 protected:
@@ -12,7 +11,7 @@ protected:
     bool pauseOpen = false; //暂停开仓
     bool pauseClose = false;//暂停平仓
     StrategySetting* setting;
-    TradeExecutor * tradeExecutor;
+    Acct * acct;
     map<string,Position *> posMap;
     void open();
     void closeTd();
@@ -22,14 +21,20 @@ protected:
 
 
 public:
-     virtual void init(TradeExecutor *tradeExecutor,StrategySetting *setting) {
+     virtual void init(Acct* acct, StrategySetting *setting) {
          this->setting=setting;
          this->strategyId=setting->strategyId;
-         this->tradeExecutor=tradeExecutor;
+         this->acct=acct;
          //根据合约创建仓位
-         for (const auto &item : this->setting->contracts){
-             Position * longPos=new Position(item, POS_DIRECTION::LONG);
-             Position * shortPos=new Position(item, POS_DIRECTION::SHORT);
+         if (!setting->trgSymbol.empty()){
+             Position * longPos=new Position(setting->trgSymbol, POS_DIRECTION::LONG);
+             Position * shortPos=new Position(setting->trgSymbol, POS_DIRECTION::SHORT);
+             posMap[longPos->id] = longPos;
+             posMap[shortPos->id] = shortPos;
+         }
+         if (!setting->refSymbol.empty()){
+             Position * longPos=new Position(setting->refSymbol, POS_DIRECTION::LONG);
+             Position * shortPos=new Position(setting->refSymbol, POS_DIRECTION::SHORT);
              posMap[longPos->id] = longPos;
              posMap[shortPos->id] = shortPos;
          }
@@ -56,9 +61,9 @@ private:
              position->onway=0;
              if(order->tradedVolume==0)
                  return;
-             if(order->offset == OFFSET::OPEN){
+             if(order->offset == TRADE_TYPE::OPEN){
                  position->tdPos+=order->tradedVolume;
-             } else if(order->offset == OFFSET::CLOSETD){
+             } else if(order->offset == TRADE_TYPE::CLOSETD){
                  position->tdPos-=order->tradedVolume;
              }else {
                  //优先减昨仓
@@ -70,17 +75,17 @@ private:
                      position->tdPos -=tradedTdPos;
                  }
              }
-             logi("{} 更新持仓 symbol:{} direction:{} tdPos:{} ydPos:{}",strategyId,position->symbol,
-                  position->direction,position->tdPos,position->ydPos);
+             logi("{} 更新持仓 symbol:{} direction:{} tdPos:{} ydPos:{}", strategyId, position->symbol,
+                  position->direction, position->tdPos, position->ydPos);
 
          }else{
              //刷新在途
-             if(order->offset == OFFSET::OPEN)
+             if(order->offset == TRADE_TYPE::OPEN)
                  position->onway=order->totalVolume;
              else
                  position->onway=0-order->totalVolume;
          }
      };
-     void order(string symbol,OFFSET offset,POS_DIRECTION posDirection,ORDER_TYPE orderType,double  price,int volume);
+     void order(string symbol, TRADE_TYPE offset, POS_DIRECTION posDirection, ORDER_TYPE orderType, double  price, int volume);
 
 };

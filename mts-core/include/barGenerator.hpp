@@ -34,7 +34,7 @@ public:
 
     void onTick(Tick * tick){
         //计算tick对应barTime
-        int barTime= toBarTime(tick->updateTime,level);
+        int barTime= toBarTime(tick->updateTime, level);
         bool newMinute= false;
         if(bar== nullptr){
             bar =new Bar();

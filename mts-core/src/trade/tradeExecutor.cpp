@@ -2,7 +2,7 @@
 // Created by 段晴 on 2022/1/22.
 //
 
-#include "TradeExecutor.h"
+#include "tradeExecutor.h"
 #include "gateway/gatewayFactory.hpp"
 #include "strategy/strategyFactory.hpp"
 #include "strategy/goldStrategy.hpp"
@@ -33,16 +33,6 @@ using std::placeholders::_1;
 #include "magic_enum.hpp"
 
 
-TradeExecutor::TradeExecutor(string acctId) : id(acctId) {
-    time_t now = time(nullptr);
-    auto tt = localtime(&now);
-    int totolSecs = tt->tm_hour * 3600 + tt->tm_min * 60 + tt->tm_sec;
-    //char tmp[64]={0};
-    //strftime(tmp, sizeof(tmp), "%H%M%S000", localtime(&now) );
-    this->orderRefNum = totolSecs * 1e4; //5位秒数+4位0
-    logi("start orderRef:{}", this->orderRefNum);
-}
-
 
 void TradeExecutor::init() {
     logi("tradeExecutor {} init...", this->id);
@@ -54,11 +44,15 @@ void TradeExecutor::start() {
 
     logi("tradeExecutor {} start udsServer...", this->id);
     //启动udsServer
-    SocketAddr udsAddr;
-    udsAddr.name = "udsServer";
-    udsAddr.type = SocketType::UDS;
-    udsAddr.unName = this->id;
-    this->udsServer = new SocketServer(udsAddr, this);
+//    SocketAddr udsAddr;
+//    udsAddr.name = "udsServer";
+//    udsAddr.type = SocketType::UDS;
+//    udsAddr.unName = this->id;
+    SocketAddr tcpAddr;
+    tcpAddr.name = "tcpServer";
+    tcpAddr.type = SocketType::TCP;
+    tcpAddr.port = Context::get().setting.port;
+    this->udsServer = new SocketServer(tcpAddr, this);
     thread t_uds([this]() {
         this->udsServer->start();
     });
@@ -78,10 +72,9 @@ void TradeExecutor::start() {
     //创建账户
     this->acct=buildAccount(acctConf);
     Context::get().acct=this->acct;
+    this->acct->init();
 
-    //创建Gateway
-    this->tdGateway = GatewayFactory::createTdGateway(acct);
-    this->mdGateway = GatewayFactory::createMdGateway(acct);
+
 
     try {
 
@@ -117,8 +110,6 @@ void TradeExecutor::start() {
     }
 
 
-    this->configed = true;
-
     std::thread fastEventThread(std::bind(&TradeExecutor::fastEventHandler, this));
     fastEventThread.detach();
 
@@ -146,84 +137,19 @@ void TradeExecutor::subContract(set<string> contracts, Strategy *strategy) {
 
 
 void TradeExecutor::createStrategy(StrategySetting *setting) {
-    Strategy *strategy = factory::get().produce(setting->className);
-    strategy->init(this, setting);
+    //创建策略
+    Strategy *strategy = factory::get().produce(setting->strategyType);
+    strategy->init(this->acct, setting);
     strategyMap[setting->strategyId] = strategy;
     //订阅合约
-    this->subContract(setting->contracts, strategy);
+    set<string> contracts;
+    if(!setting->refSymbol.empty())
+        contracts.insert(setting->refSymbol);
+    if(!setting->trgSymbol.empty())
+        contracts.insert(setting->trgSymbol);
+    this->subContract(contracts, strategy);
 }
 
-bool TradeExecutor::insertOrder(Order *order) {
-    if (!this->tdGateway->isConnected()) {
-        order->status = ORDER_STATUS::ERROR;
-        order->statusMsg = "交易已断开";
-        loge("td not connected !!!");
-        return false;
-    }
-    //生成ordref;
-    try {
-        order->orderRef = this->orderRefNum++;
-        auto contract = acct->contractMap[order->symbol];
-        if (contract == nullptr) {
-            loge("{},insertOrder fial,can not find contract info[{}]", this->id, order->symbol);
-            return false;
-        }
-        order->exchange = contract->exchange;
-        auto lastTick = this->lastTickMap[order->symbol];
-        if (order->price == 0 && lastTick != nullptr) {
-            order->price = order->direction == TRADE_DIRECTION::BUY ? lastTick->askPrice1 : lastTick->bidPrice1;
-        }
-        if (order->price == 0 && lastTick != nullptr) {
-            order->price = lastTick->lastPrice;
-        }
-        order->offset_s = enum_string(order->offset);
-        order->direction_s = enum_string(order->direction);
-        //账户持仓量检查
-        if (order->offset != OPEN) {
-            auto position = acct->getPosition(order->symbol, order->getPosDirection());
-            if (position->pos < order->totalVolume) {
-                //持仓量不足
-                order->status = ORDER_STATUS::ERROR;
-                order->statusMsg = "持仓不足";
-                loge("Order {} check fail,positon not enough", order->orderRef);
-                return false;
-            }
-        }
-        //自成交检查
-        auto vec = workingMap[order->symbol];
-        if (vec.size() > 0) {
-            auto it = find_if(vec.begin(), vec.end(), [order](Order *existOrder) {
-                //存在交易方向相反，且未结束的报单
-                return order->direction != existOrder->direction && !existOrder->finished;
-            });
-            if (it != vec.end()) {
-                order->status = ORDER_STATUS::ERROR;
-                order->statusMsg = "自成交风险";
-                loge("Order {} check fail, exist self trading with:{}", order->orderRef, (*it)->orderRef);
-                return false;
-            }
-        }
-        bool ret = this->tdGateway->insertOrder(order);
-        if (ret) {
-            vec.push_back(order);
-        }
-    } catch (exception ex) {
-        loge("{} insert order err,{}", this->acct->id, ex.what());
-    }
-
-}
-
-void TradeExecutor::cancelorder(CancelReq &req) {
-    if (!this->tdGateway->isConnected()) {
-        loge("td not connected !!!");
-        return;
-    }
-    Action action = {0};
-    action.orderRef = req.orderRef;
-    action.sessionId = req.sessionId;
-    action.frontId = req.frontId;
-    this->tdGateway->cancelOrder(&action);
-}
 
 
 void TradeExecutor::onTick(Tick *tick) {
@@ -236,49 +162,43 @@ void TradeExecutor::onTick(Tick *tick) {
         for (auto &item: *barvec)
             item->onTick(tick);
     }
-    //TODO  如何销毁lastTick
-    this->lastTickMap[tick->symbol] = tick;
+    //推送给账户
+    this->acct->lastTickMap[tick->symbol] = tick;
+    //推送给策略
     for (auto strategy: this->subsMap[tick->symbol]) {
         strategy->onTick(tick);
     }
-
-    //TODO 推动给agent
-    //Message* msg=buildMsg(MSG_TYPE::ON_TICK,tick,this->id);
-    //this->msgQueue.push(Event{EvType::MSG,0,msg});
-
 }
 
 void TradeExecutor::onOrder(Order *order) {
     if (STATUS_FINISHED.count(order->status) > 0 && order->tradedVolume == order->realTradedVolume)
         order->finished = true;
-    auto startegy = this->strategyOrderMap[order->orderRef];
-    if (startegy != NULL)
-        startegy->onOrder(order);
+    //auto startegy = this->strategyOrderMap[order->orderRef];
     if (order->finished) {
-        auto vec = workingMap[order->symbol];
+        //清除完结的对象
+        this->acct->orderMap.erase(order->orderRef);
+        auto vec = this->acct->workingMap[order->symbol];
         std::remove_if(vec.begin(), vec.end(), [order](Order *existOrder) {
             return order->orderRef == existOrder->orderRef;
         });
-        //this->workingOrderMap.erase(order->orderRef);
-        //todo delete order
-        //this->removeList.push_back(order);
+        delete order;
     }
 }
 
 void TradeExecutor::onTrade(Trade *trade) {
     //更新账户持仓
     Position *position = this->acct->getPosition(trade->symbol, trade->getPosDirection());
-    if (trade->offset == OPEN)
-        position->tdPos += trade->volume;
+    if (trade->tradeType == OPEN)
+        position->tdPos += trade->tradedVolume;
     else {
-        if (trade->offset == CLOSETD)
-            position->tdPos -= trade->volume;
+        if (trade->tradeType == CLOSETD)
+            position->tdPos -= trade->tradedVolume;
         else {
             //平仓和平昨，都优先平昨
-            if (position->ydPos >= trade->volume)
-                position->ydPos -= trade->volume;
+            if (position->ydPos >= trade->tradedVolume)
+                position->ydPos -= trade->tradedVolume;
             else {
-                position->tdPos -= trade->volume - position->ydPos;
+                position->tdPos -= trade->tradedVolume - position->ydPos;
                 position->ydPos = 0;
             }
         }
@@ -297,23 +217,6 @@ void TradeExecutor::clear() {
     }
 }
 
-void TradeExecutor::connect() {
-    this->tdGateway->connect();
-}
-
-void TradeExecutor::disconnect() {
-    this->tdGateway->disconnect();
-}
-
-void TradeExecutor::insertOrder(OrderReq *orderReq) {
-    Order *order = new Order();
-    order->symbol = orderReq->symbol;
-    order->direction = TRADE_DIRECTION_MAP[orderReq->direct];
-    order->offset = OFFSET_MAP[orderReq->offset];
-    order->price = orderReq->price;
-    order->totalVolume = orderReq->volume;
-    this->insertOrder(order);
-}
 
 
 void TradeExecutor::fastEventHandler() {
@@ -340,63 +243,20 @@ void TradeExecutor::fastEventHandler() {
     double totalNsec = 0;
     long tickSeq = 0;
     while (true) {
-        //优先处理账户事件队列，再处理行情组的事件队列
-        if (this->acct->tdQueue->pop(event)) {
-            switch (event.type) {
-                case EvType::STATUS: {
-                    auto rsp = buildMsg(MSG_TYPE::ON_ACCT, *acct->acctInfo, this->id);
-                    this->msgQueue.push(Event{EvType::MSG, 0, rsp});
-                    break;
-                }
-                case EvType::ORDER: {
-                    Order *order = (Order *) event.data;
-                    long t1 = Context::get().tn.rdns();
-                    logi("OnRtnOrder\t{} {} {} {}  traded:{}/{} status:{} msg:{}", order->orderRef, order->symbol,
-                         order->offset_s, order->direction_s, order->tradedVolume,
-                         order->totalVolume, order->status_s, order->statusMsg);
-                    long t2 = Context::get().tn.rdns();
-                    long cost = t2 - t1;
-                    logi("log cost:{}", cost);
-                    this->onOrder(order);
-                    //转发到系统消息队列
-                    auto rsp = buildMsg(MSG_TYPE::ON_ORDER, order, this->id);
-                    this->msgQueue.push(Event{EvType::MSG, 0, &rsp});
-                    break;
-                }
-                case EvType::TRADE: {
-                    Trade *trade = (Trade *) event.data;
-                    this->onTrade(trade);
-                    if (acct->orderMap.count(trade->orderRef)) {
-                        auto order = acct->orderMap[trade->orderRef];
-                        this->onOrder(order);
-                    }
-
-                    auto rsp = buildMsg(MSG_TYPE::ON_TRADE, trade, this->id);
-                    this->msgQueue.push(Event{EvType::MSG, 0, &rsp});
-                    break;
-                }
-                case EvType::POSITON: {
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-            if (event.data != nullptr)
-                delete event.data;
-        }
         //轮询quote队列
-        if (acct->mdQueue->pop(event)) {
+        if (acct->fastQueue->pop(event)) {
             switch (event.type) {
                 case EvType::STATUS: {
                     auto rsp = buildMsg(MSG_TYPE::ON_ACCT, *acct->acctInfo, this->id);
-                    this->msgQueue.push(Event{EvType::MSG, 0, rsp});
+                    this->acct->msgQueue->push(Event{EvType::MSG, 0, rsp});
                     break;
                 }
                 case EvType::TICK: {
                     Tick *tick = (Tick *) event.data;
                     tick->eventTsc = Context::get().tn.rdtsc();
                     this->onTick(tick);
+                    auto rsp = buildMsg(MSG_TYPE::ON_TICK, *tick, this->id);
+                    this->acct->msgQueue->push(Event{EvType::MSG, 0, rsp});
                     break;
                 }
                 default: {
@@ -416,16 +276,24 @@ void TradeExecutor::msgHandler() {
     while (true) {
         try {
             bool find = false;
-            /*if(this->udsServer->queue.pop(event)){
-                find=true;
-                Message *msg=(Message*)event.data;
-                this->processMessage(msg);
-                delete msg;
-            }*/
             //处理推送消息
-            if (this->msgQueue.pop(event)) {
+            if (this->acct->msgQueue->pop(event)) {
                 find = true;
                 switch (event.type) {
+                    case EvType::STATUS: {
+                        auto msg = buildMsg(MSG_TYPE::ON_ACCT, *acct->acctInfo, this->id);
+                        this->udsServer->push(*msg);
+                        break;
+                    }
+                    case EvType::READY:{
+                        //账户状态就绪
+                        set<string> contracts;
+                        for (const auto &item : this->acct->accoPositionMap){
+                            contracts.insert(item.second->symbol);
+                        }
+                        this->acct->subscribe(contracts);
+                        break;
+                    }
                     case EvType::MSG: {
                         Message *msg = (Message *) event.data;
                         this->udsServer->push(*msg);
@@ -461,14 +329,11 @@ Message *TradeExecutor::onRequest(Message *msg) {
     Message *response = new Message;
     response->type = enum_string(MSG_TYPE::RETURN);
     response->requestId = msg->requestId;
-    response->success = true;
-
     switch (msg->msgType) {
         case MSG_TYPE::SYNC: {
             if (this->acct == nullptr) {
                 AcctConf acctConf;
                 msg->jsonData.decode(acctConf);
-                //this->acct = buildAccount(acctConf);
                 Context::get().acct = this->acct;
                 this->cv.notify_one();
             }
@@ -479,20 +344,29 @@ Message *TradeExecutor::onRequest(Message *msg) {
             response->data = xpack::json::encode(*acct->acctInfo);
             break;
         }
+        case MSG_TYPE::QRY_POSITION: {
+            vector<Position> pos;
+            for (const auto &item : this->acct->accoPositionMap)
+                pos.push_back(*item.second);
+            response->data = xpack::json::encode(pos);
+            break;
+        }
+        case MSG_TYPE::QRY_TRADE: {
+            break;
+        }
+        case MSG_TYPE::QRY_ORDER: {
+            break;
+        }
 
         case MSG_TYPE::CONNECT: {
             logi("start connect cmd ...");
             bool status = msg->jsonData["status"].GetBool();
             if (status) {
-                tdGateway->connect();
-                mdGateway->connect();
-
+                this->acct->connect();
             } else {
-                tdGateway->disconnect();
-                mdGateway->disconnect();
+                this->acct->disconnect();
             }
-            auto rsp = buildMsg(MSG_TYPE::ON_ACCT, *acct->acctInfo, this->id);
-            this->msgQueue.push(Event{EvType::MSG, 0, rsp});
+            response->data = xpack::json::encode(*acct->acctInfo);
             logi("finish connect cmd...");
             break;
         }
@@ -501,21 +375,20 @@ Message *TradeExecutor::onRequest(Message *msg) {
         case MSG_TYPE::ACT_ORDER: {
             OrderReq req;
             msg->jsonData.decode(req);
-            this->insertOrder(&req);
+            this->acct->insertOrder(&req);
             break;
         }
         case MSG_TYPE::ACT_CANCEL: {
             CancelReq req;
             msg->jsonData.decode(req);
-            this->cancelorder(req);
+            this->acct->cancelorder(req);
             break;
         }
 
 
         case MSG_TYPE::EXIT: {
             //断开交易及行情
-            this->mdGateway->disconnect();
-            this->tdGateway->disconnect();
+            this->acct->disconnect();
             //this->stopFlag=true;
             //等待响应消息发送完毕再退出
             sleep(3);
@@ -529,8 +402,7 @@ Message *TradeExecutor::onRequest(Message *msg) {
             xpack::json::decode(msg->data, commReq);
             set<string> contracts;
             contracts.insert(commReq.param);
-            mdGateway->subscribe(contracts);
-
+            this->acct->subscribe(contracts);
             break;
         }
         case MSG_TYPE::PAUSE_OPEN: {
@@ -550,6 +422,7 @@ void TradeExecutor::shutdown() {
 int TradeExecutor::signalHanler(int signo) {
     return 0;
 }
+
 
 
 

@@ -19,14 +19,13 @@
 #include "shm.hpp"
 #include "common/util.hpp"
 #include "semaphore.h"
-#include "acct.h"
+#include "trade/acct.h"
 
 
 class OstMdGateway: public CUTMDSpi, public MdGateway
 {
 public:
     OstMdGateway(Acct* acct): acct(acct){
-        this->queue=acct->mdQueue;
     }
     ~OstMdGateway() {}
     void OnFrontConnected() override{
@@ -41,9 +40,9 @@ public:
     }
     void OnFrontDisconnected(int nReason) override{
         logi("MdGateway OnFrontDisconnected n=",nReason);
-        this->acct->acctInfo->tdStatus= false;
-        this->queue->push(Event{EvType::STATUS,0});
         this->isConnected = false;
+        this->acct->acctInfo->tdStatus= false;
+        this->acct->msgQueue->push(Event{EvType::STATUS,0});
     }
     void OnRspLogin(CUTRspLoginField *pRspLogin, CUTRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override{
         if (bIsLast && pRspInfo->ErrorID == 0) {
@@ -61,7 +60,7 @@ public:
             loge("{} 行情接口连接失败, ErrorMsg={}",name, pRspInfo->ErrorMsg);
             this->acct->acctInfo->mdStatus= false;
         }
-        this->queue->push(Event{EvType::STATUS,0});
+        this->acct->msgQueue->push(Event{EvType::STATUS,0});
 
     }
     void OnRspError(CUTRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override{
@@ -72,7 +71,7 @@ public:
         if (pRspInfo->ErrorID == 0) {
             logi("{} OnRspSubMarketData {}", name,pSubInstrument->InstrumentID);
         } else
-            loge("{} OnRspSubMarketData fail {} {}", name,pSubInstrument->InstrumentID, pRspInfo->ErrorMsg);
+            loge("{} OnRspSubMarketData fail {} {}", name,pSubInstrument->InstrumentID, Util::g2u(pRspInfo->ErrorMsg));
 
     }
     void OnRtnDepthMarketData(CUTDepthMarketDataField *pDepthMarketData) override{
@@ -101,7 +100,7 @@ public:
         tickData->askVolume1 = pDepthMarketData->AskVolume1;
         tickData->bidVolume1 = pDepthMarketData->BidVolume1;
         tickData->recvTsc=tsc;
-        this->queue->push(Event{EvType::TICK,tsc, tickData});
+        this->acct->fastQueue->push(Event{EvType::TICK, tsc, tickData});
         //logi("MD OnRtnTick instrument=[{}] time=[{}] price=[{}]",
         //     pDepthMarketData->InstrumentID, updateTime, pDepthMarketData->LastPrice);
     }
@@ -214,8 +213,6 @@ private:
 
     string name="MdGateway";
     Acct* acct;
-    LockFreeQueue<Event> *queue;
-
     CUTMDApi* m_pUserApi;
     bool  isConnected;
     string tradingDay;

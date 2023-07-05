@@ -23,13 +23,10 @@
 #include "data.h"
 #include "gateway.h"
 #include "lockFreeQueue.hpp"
-#include "acct.h"
+#include "trade/acct.h"
+#include "common/util.hpp"
 
 
-int str2time(const string & time){
-    string str=time.substr(0,2)+time.substr(3,2)+time.substr(6,2);
-    return atoi(str.c_str());
-}
 
 class CtpMdGateway: public CThostFtdcMdSpi, public MdGateway
 {
@@ -37,7 +34,7 @@ public:
     //std::function<void(TickData *)> tickDataCallBack = nullptr;
     //std::list<std::function<void(TickData)>> tickDataCallBack;
     CtpMdGateway(Acct* acct): acct(acct){
-        this->queue=acct->mdQueue;
+        this->queue=acct->fastQueue;
     }
     ~CtpMdGateway() {}
     void ReqUserLogin(){
@@ -83,7 +80,7 @@ public:
         tickData->preSettlePrice = pDepthMarketData->PreSettlementPrice;
         tickData->openPrice = pDepthMarketData->OpenPrice;
         tickData->volume = pDepthMarketData->Volume;
-        tickData->updateTime = str2time(string(pDepthMarketData->UpdateTime))+pDepthMarketData->UpdateMillisec/1000.0;
+        tickData->updateTime = Util::str2time(string(pDepthMarketData->UpdateTime)) + pDepthMarketData->UpdateMillisec / 1000.0;
         tickData->bidPrice1=pDepthMarketData->BidPrice1==DBL_MAX?0:pDepthMarketData->BidPrice1;
         tickData->bidPrice2=pDepthMarketData->BidPrice2==DBL_MAX?0:pDepthMarketData->BidPrice2;
         tickData->bidPrice3=pDepthMarketData->BidPrice3==DBL_MAX?0:pDepthMarketData->BidPrice3;

@@ -6,16 +6,15 @@
 #define MTS_CORE_ELFMDGATEWAY_H
 
 #include <stdlib.h>
-
 #include "gateway.h"
 #include "common/sse_hpf_quote.hpp"
 #include "define.h"
-#include "acct.h"
+#include "trade/acct.h"
 
 class ElfMdGateway :public efh_hpf_quote_event,public MdGateway{
 public:
     ElfMdGateway(Acct* acct): acct(acct){
-        this->queue=acct->mdQueue;
+        this->queue=acct->fastQueue;
 
     }
     ~ElfMdGateway(){}

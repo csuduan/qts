@@ -8,9 +8,9 @@
 #include "data.h"
 #include "config.h"
 #include "common/util.hpp"
-#include "acct.h"
+#include "trade/acct.h"
 
-Quote* buildQuote(QuoteConf & quoteConf){
+static Quote* buildQuote(QuoteConf & quoteConf){
     Quote *quote=new Quote();
     quote->id=quoteConf.id;
     quote->quoteType=quoteConf.type;
@@ -32,7 +32,7 @@ Quote* buildQuote(QuoteConf & quoteConf){
     return quote;
 }
 
-Acct * buildAccount(AcctConf * actConf){
+static Acct * buildAccount(AcctConf * actConf){
     Acct * account=new Acct();
     account->id=actConf->id;
     account->acctConf=actConf;
@@ -41,8 +41,8 @@ Acct * buildAccount(AcctConf * actConf){
     account->acctInfo->group=actConf->group;
     //account->cpuNumEvent=actConf.cpuNumEvent;
     //account->cpuNumTd=actConf.cpuNumTd;
-    account->tdQueue=new LockFreeQueue<Event>(10240);
-    account->mdQueue=new LockFreeQueue<Event>(10240);
+    account->fastQueue=new LockFreeQueue<Event>(10240);
+    account->msgQueue=new LockFreeQueue<Event>(10240);
     vector<string> tmp;
     Util::split(actConf->subList,tmp,",");
     for(auto &item : tmp)
@@ -52,13 +52,13 @@ Acct * buildAccount(AcctConf * actConf){
     return account;
 }
 
-StrategySetting * buildStrategySetting(config::StrategySetting &setting){
+static StrategySetting * buildStrategySetting(config::StrategySetting &setting){
     StrategySetting * strategySetting=new StrategySetting();
-    strategySetting->className=setting.className;
+    strategySetting->strategyType=setting.className;
     strategySetting->barLevel=(BAR_LEVEL)setting.barLevel;
     strategySetting->strategyId=setting.strategyId;
-    strategySetting->accountId=setting.accountId;
-    strategySetting->contracts=setting.contracts;
+    strategySetting->acctId=setting.accountId;
+    //strategySetting->contracts=setting.contracts;
     strategySetting->paramMap=setting.paramMap;
     return strategySetting;
 }
@@ -71,6 +71,7 @@ static Message* buildMsg(MSG_TYPE msgType, T& data,string actId){
     msg->type= enum_string(msgType);
     msg->data=xpack::json::encode(data);
     msg->acctId=actId;
+    msg->requestId="";
     //string json = xpack::json::encode(msg);
     return msg;
 }

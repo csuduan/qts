@@ -1,5 +1,6 @@
 {
   "db": "/opt/dev/mts/mts.db",
   "dataPath": "/opt/data/mts-core",
-  "logPath": "/opt/data/mts-core"
+  "logPath": "/opt/data/mts-core",
+  "port": 8083
 }

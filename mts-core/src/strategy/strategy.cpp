@@ -23,14 +23,14 @@ void Strategy::cancel() {
 
 }
 
-inline TRADE_DIRECTION getTradeDirection(OFFSET offset,POS_DIRECTION posDirection){
+inline TRADE_DIRECTION getTradeDirection(TRADE_TYPE offset, POS_DIRECTION posDirection){
     if (posDirection== POS_DIRECTION::LONG)
-        return offset== OFFSET::OPEN?TRADE_DIRECTION::BUY:TRADE_DIRECTION::SELL;
+        return offset == TRADE_TYPE::OPEN ? TRADE_DIRECTION::BUY : TRADE_DIRECTION::SELL;
     else
-        return offset== OFFSET::OPEN?TRADE_DIRECTION::SELL:TRADE_DIRECTION::BUY;
+        return offset == TRADE_TYPE::OPEN ? TRADE_DIRECTION::SELL : TRADE_DIRECTION::BUY;
 }
 
-void Strategy::order(string symbol, OFFSET offset, POS_DIRECTION posDirection, ORDER_TYPE orderType, double price,
+void Strategy::order(string symbol, TRADE_TYPE offset, POS_DIRECTION posDirection, ORDER_TYPE orderType, double price,
                      int volume) {
     string posId=symbol+"-"+ to_string(static_cast<int>(posDirection));
     auto pos=posMap[posId];
@@ -41,11 +41,11 @@ void Strategy::order(string symbol, OFFSET offset, POS_DIRECTION posDirection, O
     Order* order=new Order;
     order->symbol=symbol;
     order->offset=offset;
-    order->direction= getTradeDirection(offset,posDirection);
+    order->direction= getTradeDirection(offset, posDirection);
     order->orderType = orderType;
     order->price=price;
     order->totalVolume=volume;
     order->positionId=posId;
     this->updatePosition(order);
-    this->tradeExecutor->insertOrder(order);
+    this->acct->insertOrder(order);
 }

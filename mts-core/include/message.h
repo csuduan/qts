@@ -93,11 +93,10 @@ struct Message {
     string requestId;//请求编号
     string acctId;
     string type;//消息类型
-    bool success;
     string data;//报文字符串
     MSG_TYPE msgType;
     xpack::JsonData jsonData;
-XPACK(M(type), O(requestId, acctId, data, success));
+XPACK(M(type), O(requestId, acctId, data));
 };
 
 template<class T>

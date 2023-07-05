@@ -16,6 +16,12 @@ using namespace  std;
 
 class Util {
 public:
+
+    int static str2time(const string & time){
+        string str=time.substr(0,2)+time.substr(3,2)+time.substr(6,2);
+        return atoi(str.c_str());
+    }
+
     bool static starts_with(const std::string& str, const std::string prefix) {
         return (str.rfind(prefix, 0) == 0);
     }

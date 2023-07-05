@@ -8,7 +8,8 @@
 #include <set>
 #include <thread>
 #include "fmtlog/fmtlog.h"
-#include "context.h"
+
+class Acct;
 class MdGateway{
 public:
     /// 订阅合约

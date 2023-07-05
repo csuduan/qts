@@ -76,12 +76,13 @@ public:
 
     }
     void   listern_callback(evconnlistener *listener, evutil_socket_t fd,sockaddr *sock, int socklen){
-        logi("server[{}] accept  client  connect", name);
+        sockaddr_in* sin= (sockaddr_in*)sock;
+        string ip=inet_ntoa(sin->sin_addr);
+        logi("server[{}] accept  client  connect,ip[{}]", name,ip);
         //保存连接
         bufferevent *bev = bufferevent_socket_new(this->base, fd, BEV_OPT_CLOSE_ON_FREE);
         //SocketSession *session = new SocketSession(bev, this->listener);
         //this->sessions.push_back(session);
-
         connections.insert(bev);
         bufferevent_setcb(bev,
                           [](bufferevent *bev, void *arg) {

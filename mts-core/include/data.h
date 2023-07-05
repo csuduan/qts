@@ -32,7 +32,6 @@ struct Position;
 struct Order;
 
 struct Contract {
-    string accountId;
     string name;// 合约中文名
     string type; // 合约类型
     string symbol; // 合约代码
@@ -54,29 +53,13 @@ struct Contract {
 XPACK(M(name, type, symbol, exchange), O(priceTick, longMarginRatio, multiple))
 };
 
-struct LoginInfo {
-    string id;
-    string tdType;
-    string tdAddress;
-    string brokerId;
-    string userId;
-    string useName;
-    string password;
-    string authCode;
-    string appId;
-XPACK(M(id,tdType,tdAddress,brokerId,userId,password,authCode,appId),O(useName))
-};
-
 
 
 struct Position {
     string id;//持仓编号（合约代码-方向）
     string symbol; // 代码
-    string symbolType;//合约类型(股票、期货)
     POS_DIRECTION direction; // 持仓方向
-    string direction_s;
     string exchange; // 交易所代码
-    int multiple;//合约乘数
 
 
     // 持仓相关
@@ -84,24 +67,22 @@ struct Position {
     int onway; // 在途数量(>0在途开仓，<0在途平仓)
     int ydPos; // 昨仓（=pos-tdPos）
     int tdPos; // 今仓
-    int ydPosition;//昨仓(静态)
-
-    double lastPrice; // 计算盈亏使用的行情最后价格
-    double avgPrice; // 持仓均价
-    double openPrice; // 开仓均价
-    double holdProfit; // 持仓盈亏
-
+    int ydPosition;//上日持仓
     double useMargin; // 占用的保证金
+
+    //交易核心中不再计算盈亏
+//    double lastPrice; // 计算盈亏使用的行情最后价格
+//    double avgPrice; // 持仓均价
+//    double openPrice; // 开仓均价
+//    double holdProfit; // 持仓盈亏
+//    int multiple;//合约乘数
 
     Position(string symbol, POS_DIRECTION direction) {
         this->symbol = symbol;
         this->direction = direction;
-        this->direction_s = enum_string(direction);
-        this->id = symbol + "-" + std::to_string(static_cast<int>(direction));
+        this->id = this->symbol + "-" + string(enum_string(direction));
     }
-
-XPACK(M(symbol,exchange,direction_s,pos,ydPos,tdPos,ydPosition,avgPrice));
-
+XPACK(M(id, symbol, exchange, direction, pos, ydPos, tdPos, ydPosition), O(useMargin));
 };
 
 
@@ -114,16 +95,17 @@ struct Order {
     string orderSysId;//交易所报单编号
     // 报单相关
     TRADE_DIRECTION direction;//报单方向
-    string direction_s;
+    string directionStr;
     string positionId;//持仓代码（合约-方向）
-    OFFSET offset; // 报单开平仓
-    string offset_s;
+    TRADE_TYPE offset; // 报单开平仓
+    string offsetStr;
     ORDER_TYPE orderType;//报单方式
+    string orderTypeStr;
     double price; // 报单价格
     int totalVolume; // 报单总数量
     int tradedVolume; // 报单成交数量
     ORDER_STATUS status; // 报单状态
-    string status_s;
+    string statusStr;
     string statusMsg;
     string tradingDay;//交易日期
     //string actionDate; // 自然日期
@@ -140,13 +122,13 @@ struct Order {
     int realTradedVolume;//实际成交手数(来自trade)
 
     POS_DIRECTION getPosDirection(){
-        if (offset == OFFSET::OPEN)
+        if (offset == TRADE_TYPE::OPEN)
             return direction == TRADE_DIRECTION::BUY ? POS_DIRECTION::LONG : POS_DIRECTION::SHORT;
         else
             return direction == TRADE_DIRECTION::SELL ? POS_DIRECTION::LONG : POS_DIRECTION::SHORT;
     }
 
-XPACK(M(tradingDay,orderRef,symbol,exchange,offset_s,direction_s,price, totalVolume,tradedVolume,status_s,statusMsg,updateTime));
+XPACK(M(tradingDay, orderRef, symbol, exchange, offsetStr, directionStr, price, totalVolume, tradedVolume, statusStr, statusMsg, updateTime));
 
 };
 
@@ -166,26 +148,25 @@ struct Trade {
 
     // 成交相关
     TRADE_DIRECTION direction; //成交方向
-    string direction_s;
-    OFFSET offset; // 成交开平仓
-    string offset_s;
-    double price; // 成交价格
-    int volume; // 成交数量
+    TRADE_TYPE tradeType; // 成交开平仓
+    double tradedPrice; // 成交价格
+    int tradedVolume; // 成交数量
 
     string tradingDay; // 交易日
     string tradeDate; // 业务发生日
     string tradeTime; // 时间(HHMMSSmmm)
+    string sysId; //报单系统编号
 
     long updateTsc;
 
     POS_DIRECTION getPosDirection() {
-        if (offset == OFFSET::OPEN)
+        if (tradeType == TRADE_TYPE::OPEN)
             return direction == TRADE_DIRECTION::BUY ? POS_DIRECTION::LONG : POS_DIRECTION::SHORT;
         else
             return direction == TRADE_DIRECTION::SELL ? POS_DIRECTION::LONG : POS_DIRECTION::SHORT;
     }
 
-XPACK(M(tradingDay,tradeId,orderRef,symbol,exchange,offset_s,direction_s,price, volume,tradeTime));
+XPACK(M(tradingDay, tradeId, orderRef, symbol, exchange, offset, direction, tradedPrice, tradedVolume, tradeTime));
 
 };
 
@@ -197,7 +178,7 @@ struct Tick {
     string exchange; // 交易所代码
     string tradingDay; //交易日
     string actionDay;  //自然日
-    float updateTime; //时间 格式:091230.500
+    float  updateTime; //时间 格式:091230.500
 
     string source;//来源
 
@@ -242,8 +223,7 @@ struct Tick {
     //用于性能统计的相关字段
     long recvTsc;  //接收时间  tsc
     long eventTsc;//事件触发时间 tsc
-
-    XPACK(M(symbol,exchange,tradingDay,actionDay,updateTime), O(lastPrice));
+    XPACK(M(symbol, exchange, tradingDay, actionDay, updateTime, lastPrice, bidPrice1, askPrice1));
 
 };
 
@@ -275,12 +255,14 @@ XPACK(M(level,symbol,exchange,tradingDay,actionDay,barTime,updateTime,open,high,
 };
 
 struct StrategySetting {
-    string accountId;
+    string acctId;
     string strategyId;
-    string className;
+    string strategyType;
     BAR_LEVEL barLevel;
+    int barOffset;
+    string refSymbol;
+    string trgSymbol;
     map<string, string> paramMap;
-    set<string> contracts;
 };
 
 
