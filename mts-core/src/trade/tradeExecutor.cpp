@@ -116,6 +116,15 @@ void TradeExecutor::start() {
     std::thread msgThread(std::bind(&TradeExecutor::msgHandler, this));
     msgThread.detach();
 
+    std::thread testPushThread([this]{
+//        while (true){
+//            auto msg = buildMsg(MSG_TYPE::ON_ACCT, *acct->acctInfo, this->id);
+//            this->udsServer->push(*msg);
+//            std::this_thread::sleep_for(std::chrono::microseconds(1));
+//        }
+    });
+    testPushThread.detach();
+
 
 }
 
@@ -288,8 +297,10 @@ void TradeExecutor::msgHandler() {
                     case EvType::READY:{
                         //账户状态就绪
                         set<string> contracts;
+                        int i=0;
                         for (const auto &item : this->acct->accoPositionMap){
-                            contracts.insert(item.second->symbol);
+                            //if(i++<20)
+                                contracts.insert(item.second->symbol);
                         }
                         this->acct->subscribe(contracts);
                         break;

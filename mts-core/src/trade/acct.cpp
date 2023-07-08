@@ -91,8 +91,8 @@ bool Acct::insertOrder(Order *order) {
 void Acct::insertOrder(OrderReq *orderReq) {
     Order *order = new Order();
     order->symbol = orderReq->symbol;
-    order->direction = TRADE_DIRECTION_MAP[orderReq->direct];
-    order->offset = OFFSET_MAP[orderReq->offset];
+    order->direction = orderReq->direct;
+    order->offset = orderReq->offset;
     order->price = orderReq->price;
     order->totalVolume = orderReq->volume;
     this->insertOrder(order);
@@ -131,8 +131,8 @@ void Acct::onTrade(Trade *trade) {
 
     //更新成交列表
     this->tradeMap[trade->tradeId] = trade;
-    auto msg = buildMsg(MSG_TYPE::ON_TRADE, trade, this->id);
-    this->msgQueue->push(Event{EvType::MSG, 0, &msg});
+    auto msg = buildMsg(MSG_TYPE::ON_TRADE, *trade, this->id);
+    this->msgQueue->push(Event{EvType::MSG, 0, msg});
 
     //更新报单队列
     if(this->orderMap.count(trade->orderRef)>0)
@@ -144,6 +144,9 @@ void Acct::onOrder(Order* order) {
     if (STATUS_FINISHED.count(order->status) > 0 && order->tradedVolume == order->realTradedVolume)
         order->finished = true;
     //auto startegy = this->strategyOrderMap[order->orderRef];
+    auto msg = buildMsg(MSG_TYPE::ON_ORDER, *order, this->id);
+    this->msgQueue->push(Event{EvType::MSG, 0, msg});
+
     if (order->finished) {
         //清除完结的对象
         this->orderMap.erase(order->orderRef);
@@ -154,8 +157,7 @@ void Acct::onOrder(Order* order) {
         delete order;
     }
 
-    auto msg = buildMsg(MSG_TYPE::ON_ORDER, *order, this->id);
-    this->msgQueue->push(Event{EvType::MSG, 0, &msg});
+
 }
 
 void Acct::onPosition(Position *position) {

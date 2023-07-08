@@ -9,6 +9,7 @@
 #include <sys/time.h>
 #include "fmtlog/fmtlog.h"
 #include <iconv.h>
+#include <thread>
 using namespace  std;
 
 #define utf8(A) Util::g2u(A)

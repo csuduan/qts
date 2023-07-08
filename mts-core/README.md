@@ -43,7 +43,7 @@ cmake --version
 
 ```
 
-3. 其他依赖包
+3. 三方依赖包
 * fmtlib
 ```bash
 git clone https://github.com/fmtlib/fmt.git
@@ -55,10 +55,8 @@ make && make install
 * libevent
 ```bash
 wget https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz
-./configure -prefix=/usr/local/libevent --disable-openssl 
+./configure -prefix=/usr/local/lib --disable-openssl 
 make & sudo make install
-或者
-yum install libevent
 ```
 
 * sqlite3
@@ -85,6 +83,12 @@ make -j4
 ./mts-master xxx
 ```
 xxx为账户id
+
+## 目录结构
+* conf     配置文件目录
+* depends  三方依赖项目(小项目直接引入代码，大项目编译发布到/usr/local/lib中)
+* lib      三方库
+* src      项目代码
 
 ## 问题
 * 权限问题

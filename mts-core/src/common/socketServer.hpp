@@ -47,6 +47,7 @@ typedef std::function<void(Message)> msgCallback;
 class SocketServer : public SocketBase{
 public:
     msgCallback callback;
+
     SocketServer(SocketAddr& serverAddr, MsgListener *listener): SocketBase(serverAddr){
         this->listener=listener;
     }
@@ -80,7 +81,7 @@ public:
         string ip=inet_ntoa(sin->sin_addr);
         logi("server[{}] accept  client  connect,ip[{}]", name,ip);
         //保存连接
-        bufferevent *bev = bufferevent_socket_new(this->base, fd, BEV_OPT_CLOSE_ON_FREE);
+        bufferevent *bev = bufferevent_socket_new(this->base, fd, BEV_OPT_CLOSE_ON_FREE| BEV_OPT_THREADSAFE);
         //SocketSession *session = new SocketSession(bev, this->listener);
         //this->sessions.push_back(session);
         connections.insert(bev);
@@ -93,8 +94,8 @@ public:
                               SocketServer *server = (SocketServer *) arg;
                               server->event_callback(bev, events);
                           }, this);
-        bufferevent_setwatermark(bev, EV_READ, 4, 0);
-        bufferevent_enable(bev, EV_READ | EV_PERSIST);
+        //bufferevent_setwatermark(bev, EV_READ, 4, 0);
+        bufferevent_enable(bev, EV_READ | EV_WRITE);
     }
     void   read_callback(struct bufferevent *bev){
         //采用4位长度+json字符串消息体
@@ -145,28 +146,29 @@ public:
         }
     }
     void   write_callback(struct bufferevent *bev){
+//        struct evbuffer *output = bufferevent_get_output(bev);
+//        if (evbuffer_get_length(output) == 0) {
+//            printf("flushed answer\n");
+//            bufferevent_free(bev);
+//        }
+
     }
     void   event_callback(struct bufferevent *bev, short events){
         if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR))
         {
             loge("connection  closed !" );
-            connections.erase(bev);
-            bufferevent_free(bev);
+
         }
-        else if(events & BEV_EVENT_CONNECTED)
-        {
-            logi( "connection  connected !");
-        }else{
-            logw("unkonw event:{}",events);
-        }
-    }
-    void   setMsgCallback(const msgCallback & cb){
-        this->callback=cb;
+        connections.erase(bev);
+        bufferevent_free(bev);
+        bev= nullptr;
     }
 
-    event_base *base;
+
     //bufferevent *bev;
     void push(const string & msg){
+        if(connections.size()==0)
+            return;
         for (auto &bev: connections) {
             int headLen=4;
             int msgLen=msg.length();
@@ -187,10 +189,14 @@ public:
     //vector<SocketSession*> sessions;
     set<bufferevent *> connections;
     LockFreeQueue<Event> queue{1<<10};
+
 private:
+    event_base *base;
     MsgListener *listener;
     void   runTcp(struct sockaddr_in in){
+        evthread_use_pthreads();
         this->base = event_base_new();
+        evthread_make_base_notifiable(this->base);
         evconnlistener *listener
                 = evconnlistener_new_bind(base,
                                           [](evconnlistener *listener, evutil_socket_t fd, sockaddr *sock, int socklen,

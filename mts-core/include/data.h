@@ -166,7 +166,7 @@ struct Trade {
             return direction == TRADE_DIRECTION::SELL ? POS_DIRECTION::LONG : POS_DIRECTION::SHORT;
     }
 
-XPACK(M(tradingDay, tradeId, orderRef, symbol, exchange, offset, direction, tradedPrice, tradedVolume, tradeTime));
+XPACK(M(tradingDay, tradeId, orderRef, symbol, exchange, tradeType, direction, tradedPrice, tradedVolume, tradeTime));
 
 };
 

@@ -9,8 +9,8 @@
 
 struct OrderReq {
     string symbol;
-    string offset;
-    string direct;
+    TRADE_TYPE offset;
+    TRADE_DIRECTION direct;
     double price;
     int volume;
 XPACK(M(symbol, offset, direct, price, volume));
