@@ -15,6 +15,9 @@
 #include "lockFreeQueue.hpp"
 #include "xpack/json.h"
 #include "message.h"
+#include<fstream>
+#include <iostream>
+
 
 using std::string;
 using std::map;
@@ -265,23 +268,11 @@ struct StrategySetting {
     map<string, string> paramMap;
 };
 
-
-struct Quote {
-    string id;
-    string quoteType;//行情 TICK,ORDER,TRADE
-    string type;//网关类型
-    string address;//地址
-    string userId;
-    string password;
-    set<string> subList;
-    map<string, Contract *> *contractMap;
-    LockFreeQueue<Event> *queue;
-    bool autoConnect;
-
-XPACK(M(name,quoteType,type,address))
-
+struct QuotaFile{
+    std::ofstream ofs;
+    string date;
+    string fname;
 };
-
 
 
 

@@ -9,11 +9,14 @@
 #include "data.h"
 #include "message.h"
 #include "gateway/gateway.h"
+#include "common/util.hpp"
 
 class Acct{
 public:
     AcctConf *acctConf;
     AcctInfo *acctInfo;
+    QuoteInfo * quotaInfo;
+
     string id;
     string name;
     int cpuNumTd;
@@ -22,9 +25,7 @@ public:
 
     std::atomic<long> orderRefNum = 0;
 
-
-    LockFreeQueue<Event> * fastQueue;  //急速队列
-    LockFreeQueue<Event> * msgQueue; //一般队列
+    LockFreeQueue<Event> * msgQueue; //一般消息队列
 
 
     TdGateway *tdGateway;
@@ -45,6 +46,30 @@ public:
     //挂单队列(用于自成交校验)
     std::map<string, vector<Order *>> workingMap;
 
+    Acct(AcctConf * actConf){
+        this->id=actConf->id;
+        this->acctConf=actConf;
+        this->acctInfo=new AcctInfo;
+        this->acctInfo->id=actConf->id;
+        this->acctInfo->group=actConf->group;
+        //account->cpuNumEvent=actConf.cpuNumEvent;
+        //account->cpuNumTd=actConf.cpuNumTd;
+        this->msgQueue=new LockFreeQueue<Event>(10240);
+
+        //account->autoConnect=actConf.autoConnect;
+        this->quotaInfo=new QuoteInfo;
+        this->quotaInfo->id=actConf->id;
+        this->quotaInfo->type=actConf->mdType;
+        this->quotaInfo->address=actConf->mdAddress;
+        this->quotaInfo->user=actConf->user;
+        this->quotaInfo->pwd=actConf->pwd;
+        vector<string> tmp;
+        Util::split(actConf->subList,tmp,",");
+        for(auto &item : tmp)
+            this->quotaInfo->subSet.insert(item);
+        tmp.clear();
+
+    }
 
     inline Position * getPosition(string symbol,POS_DIRECTION direction){
         string key = symbol + "-" + (string)enum_string(direction);

@@ -42,22 +42,22 @@ public:
      * @param mdInfo
      * @return
      */
-    static MdGateway* createMdGateway(Acct* acct){
-        logi("create mdGateway {}",acct->id);
+    static MdGateway* createMdGateway(QuoteInfo* quota){
+        logi("create mdGateway {}",quota->id);
         MdGateway *mdGateway = nullptr;
 
-        if(acct->acctConf->mdType=="CTP")
-            mdGateway=new CtpMdGateway(acct);
-        else if(acct->acctConf->mdType=="OST")
-            mdGateway=new OstMdGateway(acct);
-        else if(acct->acctConf->mdType=="EFH")
-            mdGateway=new ElfMdGateway(acct);
+        if(quota->type=="CTP")
+            mdGateway=new CtpMdGateway(quota);
+        else if(quota->type=="OST")
+            mdGateway=new OstMdGateway(quota);
+        else if(quota->type=="EFH")
+            mdGateway=new ElfMdGateway(quota);
         else
             throw "unknow mdType";
 
 
-        if(acct->autoConnect){
-            logi("connect mdGateway {}",acct->id);
+        if(quota->autoConnect){
+            logi("connect mdGateway {}",quota->id);
             mdGateway->connect();
         }
         return mdGateway;

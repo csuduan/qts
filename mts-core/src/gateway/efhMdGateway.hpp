@@ -13,9 +13,7 @@
 
 class ElfMdGateway :public efh_hpf_quote_event,public MdGateway{
 public:
-    ElfMdGateway(Acct* acct): acct(acct){
-        this->queue=acct->fastQueue;
-
+    ElfMdGateway(QuoteInfo* quotaInfo): MdGateway(quotaInfo){
     }
     ~ElfMdGateway(){}
     virtual void on_receive_lev2(sse_hpf_lev2* ptr){
@@ -122,7 +120,6 @@ private:
     bool  isConnected;
     string tradingDay;
     std::set<string> contracts;
-    vector<Quote *> quotes;
 
     map<string,efh_hpf_quote> m_efh_hpfMap;
     void Run();

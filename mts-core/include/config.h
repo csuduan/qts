@@ -12,36 +12,27 @@
 using namespace  std;
 
 namespace config{
-    struct QuoteConf{
-        string name;
-        string type;
-        string address;
-        set<string> subList;
-        bool enable;
-        string user;
-        int queueSize=1<<10;
-        XPACK(M(name,type,address,enable),O(subList,user,queueSize))
-    };
-    struct Setting{
+
+
+    struct TradeSetting{
         string db;
         string dataPath;
         string logPath;
         int port;
-        XPACK(M(dataPath,logPath,db,port))
+        vector<AcctConf> accts;
+    XPACK(M(dataPath,logPath,db,port,accts))
     };
 
-    struct AcctConf{
-        string agent;
-        string id;
-        string name;
-        string user;
-        string tdAddress;
-        vector<string> quotes;
-        int cpuNumTd;
-        int cpuNumEvent;
-        bool autoConnect;
-        int queueSize=1<<10;
-    XPACK(M(agent,id,name,user,tdAddress),O(quotes,autoConnect,queueSize,cpuNumTd,cpuNumEvent));
+
+
+    struct QuoteSetting{
+        string db;
+        string dataPath;
+        string logPath;
+        int port;
+        vector<QuoteInfo> quotes;
+    XPACK(M(dataPath,logPath,db,quotes),O(port))
+
     };
 
     struct StrRef{

@@ -16,6 +16,21 @@ using namespace TORALEV2API;
 
 class ToraL2MdGateway:public CTORATstpLev2MdSpi,public MdGateway{
 
+public:
+    ToraL2MdGateway(QuotaInfo *quotaInfo): MdGateway(quotaInfo){
+    }
+
+
+    void subscribe(set<string> &contracts) override{
+
+    }
+    int  connect() override{
+        return 0;
+    }
+    void disconnect() override{
+
+    }
+
 };
 
 #endif //MTS_CORE_TORAL2MDGATEWAY_H

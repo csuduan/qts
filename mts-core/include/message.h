@@ -29,15 +29,19 @@ struct CancelReq {
 XPACK(M(orderRef));
 };
 
-struct QuoteConf {
+struct QuoteInfo {
     string id;
     string type;
     string user;
     string pwd;
     string address;
     string subList;
-XPACK(M(id, type, address), O(user, pwd, subList));
+    bool enable;
+    bool autoConnect;
 
+    bool status;
+    set<string> subSet;
+XPACK(M(id, type, address,enable), O(user, pwd, subList,autoConnect));
 };
 
 struct AcctConf {
@@ -52,7 +56,6 @@ struct AcctConf {
     string mdType;
     string subList;
     bool enable;
-    set<string> subSet;
 XPACK(M(id, group, tdType, tdAddress, mdType, mdAddress, enable),
       O(owner, user, pwd, subList));
 };
@@ -67,7 +70,6 @@ struct AcctInfo {
     bool mdStatus = false;
     bool pauseOpen = false;
     bool pauseClose = false;
-
 
     //资金信息
     double mv = 0;

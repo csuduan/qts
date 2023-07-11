@@ -13,6 +13,7 @@ AUX_SOURCE_DIRECTORY(common SOURCE_COMMON)
 
 AUX_SOURCE_DIRECTORY(master SOURCE_MASTER)
 AUX_SOURCE_DIRECTORY(trade SOURCE_TRADE)
+AUX_SOURCE_DIRECTORY(quote SOURCE_QUOTE)
 AUX_SOURCE_DIRECTORY(shell SOURCE_SHELL)
 AUX_SOURCE_DIRECTORY(test SOURCE_TEST)
 
@@ -29,11 +30,11 @@ MESSAGE(STATUS,"find libs:${FMT}")
 
 add_library (common SHARED ${SOURCE_COMMON} ${SOURCE_GATEWAY} )
 add_executable(mts-trade  ${SOURCE_TRADE} ${SOURCE_STRATEGY})
-#add_executable(mts-shell ${SOURCE_SHELL})
+add_executable(mts-quote ${SOURCE_QUOTE})
 
 
 
 target_link_libraries(common  fmtlog fmt  slh_pack_recv.a  jsoncpp  sqlite3 event_pthreads event dl rt pthread)
 target_link_libraries(mts-trade  common)
-#target_link_libraries(mts-shell common)
+target_link_libraries(mts-quote common)
 

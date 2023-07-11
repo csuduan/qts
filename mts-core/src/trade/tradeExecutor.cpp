@@ -33,14 +33,9 @@ using std::placeholders::_1;
 #include "magic_enum.hpp"
 
 
-
-void TradeExecutor::init() {
+void TradeExecutor::start() {
     logi("tradeExecutor {} init...", this->id);
     Context::get().init(this->id);
-}
-
-void TradeExecutor::start() {
-
 
     logi("tradeExecutor {} start udsServer...", this->id);
     //启动udsServer
@@ -70,14 +65,13 @@ void TradeExecutor::start() {
     auto acctConf=this->sqliteHelper->queryAcctConf(this->id);
 
     //创建账户
-    this->acct=buildAccount(acctConf);
+    this->acct=new Acct(acctConf);
     Context::get().acct=this->acct;
     this->acct->init();
 
 
 
     try {
-
         for (auto &setting: Context::get().strategySettings) {
             if (setting.accountId != this->id)
                 continue;
@@ -179,41 +173,6 @@ void TradeExecutor::onTick(Tick *tick) {
     }
 }
 
-void TradeExecutor::onOrder(Order *order) {
-    if (STATUS_FINISHED.count(order->status) > 0 && order->tradedVolume == order->realTradedVolume)
-        order->finished = true;
-    //auto startegy = this->strategyOrderMap[order->orderRef];
-    if (order->finished) {
-        //清除完结的对象
-        this->acct->orderMap.erase(order->orderRef);
-        auto vec = this->acct->workingMap[order->symbol];
-        std::remove_if(vec.begin(), vec.end(), [order](Order *existOrder) {
-            return order->orderRef == existOrder->orderRef;
-        });
-        delete order;
-    }
-}
-
-void TradeExecutor::onTrade(Trade *trade) {
-    //更新账户持仓
-    Position *position = this->acct->getPosition(trade->symbol, trade->getPosDirection());
-    if (trade->tradeType == OPEN)
-        position->tdPos += trade->tradedVolume;
-    else {
-        if (trade->tradeType == CLOSETD)
-            position->tdPos -= trade->tradedVolume;
-        else {
-            //平仓和平昨，都优先平昨
-            if (position->ydPos >= trade->tradedVolume)
-                position->ydPos -= trade->tradedVolume;
-            else {
-                position->tdPos -= trade->tradedVolume - position->ydPos;
-                position->ydPos = 0;
-            }
-        }
-    }
-}
-
 void TradeExecutor::clear() {
     auto iter = this->removeList.begin();
     while (iter != this->removeList.end()) {
@@ -253,7 +212,7 @@ void TradeExecutor::fastEventHandler() {
     long tickSeq = 0;
     while (true) {
         //轮询quote队列
-        if (acct->fastQueue->pop(event)) {
+        if (acct->mdGateway!= nullptr && acct->mdGateway->getQueue()->pop(event)) {
             switch (event.type) {
                 case EvType::STATUS: {
                     auto rsp = buildMsg(MSG_TYPE::ON_ACCT, *acct->acctInfo, this->id);

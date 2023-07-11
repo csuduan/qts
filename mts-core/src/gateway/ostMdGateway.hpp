@@ -25,42 +25,39 @@
 class OstMdGateway: public CUTMDSpi, public MdGateway
 {
 public:
-    OstMdGateway(Acct* acct): acct(acct){
+    OstMdGateway(QuoteInfo* quotaInfo): MdGateway(quotaInfo){
+        this->name=quotaInfo->id;
     }
     ~OstMdGateway() {}
     void OnFrontConnected() override{
         fmtlog::setThreadName("MdGateway");
         logi("MdGateway OnFrontConnected");
         CUTReqLoginField reqLoginField = {0};
-        strcpy(reqLoginField.UserID, acct->acctConf->user.c_str());
-        strcpy(reqLoginField.Password, acct->acctConf->pwd.c_str());
+        strcpy(reqLoginField.UserID, quotaInfo->user.c_str());
+        strcpy(reqLoginField.Password, quotaInfo->pwd.c_str());
         int ret = m_pUserApi->ReqLogin(&reqLoginField, this->nRequestID++);
         logi("MdGateway ReqLogin ret:{}", ret);
 
     }
     void OnFrontDisconnected(int nReason) override{
         logi("MdGateway OnFrontDisconnected n=",nReason);
-        this->isConnected = false;
-        this->acct->acctInfo->tdStatus= false;
-        this->acct->msgQueue->push(Event{EvType::STATUS,0});
+        this->setStatus(false);
     }
     void OnRspLogin(CUTRspLoginField *pRspLogin, CUTRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override{
         if (bIsLast && pRspInfo->ErrorID == 0) {
             this->tradingDay = pRspLogin->TradingDay;
             logi("{}  行情接口连接成功,交易日 = {}",name, this->tradingDay);
-            this->isConnected = true;
-            this->acct->acctInfo->mdStatus= true;
+            this->setStatus(true);
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             //重新订阅
-            timer.delay(5000, [this]() {
+            timer.delay(1000, [this]() {
                 this->reSubscribe();
             });
 
         } else {
             loge("{} 行情接口连接失败, ErrorMsg={}",name, pRspInfo->ErrorMsg);
-            this->acct->acctInfo->mdStatus= false;
+            this->setStatus(false);
         }
-        this->acct->msgQueue->push(Event{EvType::STATUS,0});
 
     }
     void OnRspError(CUTRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override{
@@ -78,6 +75,7 @@ public:
         long tsc=Context::get().tn.rdtsc();
         float updateTime=(float)pDepthMarketData->UpdateTime/1000;
 
+        //todo tick从对象池获取
         Tick *tickData = new Tick();
         tickData->tradingDay = to_string(pDepthMarketData->TradingDay);
         tickData->symbol = pDepthMarketData->InstrumentID;
@@ -100,7 +98,7 @@ public:
         tickData->askVolume1 = pDepthMarketData->AskVolume1;
         tickData->bidVolume1 = pDepthMarketData->BidVolume1;
         tickData->recvTsc=tsc;
-        this->acct->fastQueue->push(Event{EvType::TICK, tsc, tickData});
+        this->msgQueue->push(Event{EvType::TICK, tsc, tickData});
         //logi("MD OnRtnTick instrument=[{}] time=[{}] price=[{}]",
         //     pDepthMarketData->InstrumentID, updateTime, pDepthMarketData->LastPrice);
     }
@@ -126,17 +124,16 @@ public:
         //m_pUserApi = CUTMDApi::CreateMDApi();
         m_pUserApi->RegisterSpi(this);
         thread t([this]() {
-            this->Run();
+            this->run();
         });
         t.detach();
 
         return 0;
     }
     void disconnect() override{
-        if(this->isConnected== false)
+        if(this->connected== false)
             return;
-        this->isConnected= false;
-        this->acct->acctInfo->mdStatus= false;
+        this->setStatus(false);
         try {
             if (m_pUserApi != nullptr) {
                 m_pUserApi->Release();
@@ -150,19 +147,18 @@ public:
     void subscribe(set<string> &subContracts) override{
         int i = 0;
         for (auto &item: subContracts) {
-            if (acct->acctConf->subSet.count(item)>0)
+            if (quotaInfo->subSet.count(item)>0)
                 continue;
-            acct->acctConf->subSet.insert(item);
+            quotaInfo->subSet.insert(item);
 
             CUTSubInstrumentField req = {0};
-
             if(Util::starts_with(item,"6"))
                 req.ExchangeID= UT_EXG_SSE;
             else
                 req.ExchangeID = UT_EXG_SZSE;
             strcpy(req.InstrumentID, item.c_str());
 
-            if(isConnected){
+            if(connected){
                 int ret = this->m_pUserApi->SubscribeDepthMarketData(&req, 1);
                 logi("subscribeContract {} ret={}",item, ret);
             }
@@ -170,7 +166,7 @@ public:
     }
 
     void reSubscribe(){
-        for(auto & item :acct->acctConf->subSet){
+        for(auto & item :quotaInfo->subSet){
             CUTSubInstrumentField req = {0};
             if(Util::starts_with(item,"6"))
                 req.ExchangeID= UT_EXG_SSE;
@@ -179,7 +175,7 @@ public:
             strcpy(req.InstrumentID, item.c_str());
             int ret = this->m_pUserApi->SubscribeDepthMarketData(&req, 1);
         }
-        logi("subscribeContract count={}",acct->acctConf->subSet.size());
+        logi("resubscribeContract count={}",quotaInfo->subSet.size());
 
 
     }
@@ -211,14 +207,12 @@ private:
 
     Semaphore  semaphore={0};
 
-    string name="MdGateway";
-    Acct* acct;
+    string name;
     CUTMDApi* m_pUserApi;
-    bool  isConnected;
     string tradingDay;
     Timer timer;
-    void Run(){
-        const char *address = acct->acctConf->mdAddress.c_str();
+    void run(){
+        const char *address = quotaInfo->address.c_str();
         m_pUserApi->RegisterFront(const_cast<char *>(address));
         m_pUserApi->Init();
         m_pUserApi->Join();

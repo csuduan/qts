@@ -33,8 +33,7 @@ class CtpMdGateway: public CThostFtdcMdSpi, public MdGateway
 public:
     //std::function<void(TickData *)> tickDataCallBack = nullptr;
     //std::list<std::function<void(TickData)>> tickDataCallBack;
-    CtpMdGateway(Acct* acct): acct(acct){
-        this->queue=acct->fastQueue;
+    CtpMdGateway(QuoteInfo * quota): MdGateway(quota){
     }
     ~CtpMdGateway() {}
     void ReqUserLogin(){
@@ -49,14 +48,14 @@ public:
     }
     void OnFrontDisconnected(int nReason) override{
         logi("{} OnFrontDisconnected reson=[{}]", name,nReason);
-        this->isConnected = false;
+        this->setStatus(false);
     }
     void OnRspUserLogin(CThostFtdcRspUserLoginField* pRspUserLogin,CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast) override{
         logi("{} OnRspUserLogin",name);
         if (bIsLast && pRspInfo->ErrorID == 0) {
             this->tradingDay = this->m_pUserApi->GetTradingDay();
             logi("{}  行情接口连接成功,交易日 = {}", name,this->tradingDay);
-            this->isConnected = true;
+            this->setStatus(true);
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             //重新订阅
             this->reSubscribe();
@@ -95,7 +94,7 @@ public:
         tickData->askVolume1=pDepthMarketData->AskVolume1;
 
         tickData->recvTsc=Context::get().tn.rdtsc();
-        this->queue->push(Event{EvType::TICK, tickData->recvTsc, tickData});
+        this->getQueue()->push(Event{EvType::TICK, tickData->recvTsc, tickData});
         //logi("MD OnRtnTick instrument=[{}] time=[{}] price=[{}]",
         //     pDepthMarketData->InstrumentID, pDepthMarketData->UpdateTime,pDepthMarketData->LastPrice);
     }
@@ -110,12 +109,12 @@ public:
         char **str = new char *[subContracts.size() + 1];
         int i = 0;
         for (auto &item: subContracts) {
-            if (this->acct->acctConf->subSet.count(item)>0)
+            if (this->quotaInfo->subSet.count(item)>0)
                 continue;
-            this->acct->acctConf->subSet.insert(item);
+            this->quotaInfo->subSet.insert(item);
             str[i++] = const_cast<char *>(item.c_str());
         }
-        if (i > 0 && this->isConnected) {
+        if (i > 0 && this->connected) {
             int ret = this->m_pUserApi->SubscribeMarketData(str, i);
             logi("{} subscribeContract count:{} ret = {}",name, i, ret);
         }
@@ -148,34 +147,29 @@ public:
     }
 
     void reSubscribe(){
-        if(acct->acctConf->subSet.size()>0){
-            char **str = new char *[acct->acctConf->subSet.size() + 1];
+        if(this->quotaInfo->subSet.size()>0){
+            char **str = new char *[this->quotaInfo->subSet.size() + 1];
             int i = 0;
-            for (auto &item: acct->acctConf->subSet) {
+            for (auto &item: this->quotaInfo->subSet) {
                 str[i++] = const_cast<char *>(item.c_str());
             }
             int ret = this->m_pUserApi->SubscribeMarketData(str, i);
-            logi("{} reSubscribe  count={} ret = {}", name, acct->acctConf->subSet.size(),ret);
+            logi("{} reSubscribe  count={} ret = {}", name, this->quotaInfo->subSet.size(),ret);
         }
     }
 
     CMultiDelegate<void, Tick*> OnTickData;
 
 
-
 private:
     string name="MdGateway";
-    Acct* acct;
-    LockFreeQueue<Event> *queue;
-
     static inline  int nRequestID=0;
     // 指向CThostFtdcMduserApi实例的指针
     CThostFtdcMdApi* m_pUserApi;
-    bool  isConnected;
     string tradingDay;
     //LockFreeQueue<Event>* queue;
     void Run(){
-        const char *address = acct->acctConf->mdAddress.c_str();
+        const char *address = this->quotaInfo->address.c_str();
         m_pUserApi->RegisterFront(const_cast<char *>(address));
         m_pUserApi->Init();
         logi("{} ctp md connecting...{}",name, address);

@@ -61,7 +61,7 @@ public:
 
     template<typename callable, class... arguments>
     void delay(int delay, callable&& f, arguments&&... args){
-        //todo 采用线程池执行任务
+        //采用线程池执行任务
         std::function<typename std::result_of<callable(arguments...)>::type()> task
                 (std::bind(std::forward<callable>(f), std::forward<arguments>(args)...));
 

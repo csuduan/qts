@@ -1,0 +1,33 @@
+{
+  "desc": "交易账户配置",
+  "db": "/opt/dev/mts/mts.db",
+  "dataPath": "/opt/data/mts-trade",
+  "logPath": "/opt/data/mts-trade",
+  "port": 8083,
+  "accts": [
+    {
+      "id": "sim",
+      "group": "Future",
+      "tdAddress": "tcp://180.168.146.187:10201|9999|simnow_client_test|0000000000000000",
+      "tdType": "CTP",
+      "user": "048997",
+      "pwd": "123456!",
+      "enable": true,
+      "mdAddress": "tcp://180.168.146.187:10211",
+      "mdType": "CTP",
+      "subList": "ag2203,ni2203"
+    },
+    {
+      "id": "ost",
+      "group": "Security",
+      "tdAddress": "tcp://180.168.146.187:10201|9999|simnow_client_test|0000000000000000",
+      "tdType": "OST",
+      "user": "00122899",
+      "pwd": "123456",
+      "enable": true,
+      "mdAddress": "tcp://47.100.124.2:33008",
+      "mdType": "OST",
+      "subList": "000003,600958,000001,000002"
+    }
+  ]
+}

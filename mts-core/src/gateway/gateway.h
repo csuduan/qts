@@ -8,20 +8,46 @@
 #include <set>
 #include <thread>
 #include "fmtlog/fmtlog.h"
-
 class Acct;
 class MdGateway{
+protected:
+    bool connected= false;
+    QuoteInfo *quotaInfo;
+    LockFreeQueue<Event>  *msgQueue;
+
+    void inline setStatus(bool  status){
+        this->connected = status;
+        quotaInfo->status= status;
+        this->msgQueue->push(Event{EvType::STATUS,0});
+    }
+
 public:
+    string id;
+    MdGateway(QuoteInfo* quotaInfo): quotaInfo(quotaInfo){
+        msgQueue=new LockFreeQueue<Event>(100);
+        id=quotaInfo->id;
+    }
+    LockFreeQueue<Event> * getQueue(){
+        return this->msgQueue;
+    }
     /// 订阅合约
     /// \param contracts
     virtual void subscribe(set<string> &contracts) =0;
     virtual int  connect()=0;
     virtual void disconnect()=0;
+
 };
 
 class TdGateway{
 protected:
     bool connected= false;
+    LockFreeQueue<Event>  *msgQueue;
+
+    void inline setStatus(bool  status){
+        this->connected = status;
+        //quotaInfo->status= status;
+        this->msgQueue->push(Event{EvType::STATUS,0});
+    }
     string tradingDay;
 public:
     virtual int  connect(){return 0;};
@@ -32,14 +58,6 @@ public:
 
 
 };
-
-class GatewayCallback{
-public:
-    virtual void onTick(Tick tick){};
-    virtual void onRtnTrade(){};
-    virtual void onRtnOrder(){};
-};
-
 
 
 #endif //MTS_CORE_GATEWAY_H

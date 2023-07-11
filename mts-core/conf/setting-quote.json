@@ -1,0 +1,48 @@
+{
+  "desc": "行情收集器配置",
+  "db": "/opt/dev/mts/mts.db",
+  "dataPath": "/opt/data/mts-quote",
+  "logPath": "/opt/data/mts-quote",
+  "quotes": [
+    {
+      "id": "ost",
+      "group": "Security",
+      "user": "00122899",
+      "pwd": "123456",
+      "address": "tcp://47.100.124.2:33008",
+      "type": "OST",
+      "subList": "000003,600958,000001,000002",
+      "enable": true,
+      "autoConnect": true
+    },
+    {
+      "id": "ost-l2-sh",
+      "group": "Security",
+      "user": "048997",
+      "pwd": "123456!",
+      "address": "OR:233.57.1.103.37102:eth1,TI:233.57.1.104:37104:eth0,TR:233.57.1.103.37103:eth1",
+      "type": "EFH",
+      "subList": "600958,000003",
+      "enable": false
+    },
+    {
+      "id": "tora-l2-sh",
+      "group": "Security",
+      "user": "048997",
+      "pwd": "123456!",
+      "address": "tcp://210.14.72.17:16900",
+      "type": "tora",
+      "enable": false
+    },
+    {
+      "id": "tora-l2-sz",
+      "group": "Security",
+      "user": "048997",
+      "pwd": "123456!",
+      "address": "tcp://210.14.72.17:16900",
+      "type": "tora",
+      "enable": false
+    }
+
+  ]
+}

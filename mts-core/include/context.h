@@ -17,7 +17,7 @@ class Context:public Singleton<Context>{
 
 public:
     TSCNS tn;
-    config::Setting setting;
+    config::TradeSetting setting;
     vector<config::StrategySetting> strategySettings;
     string  acctId;
     Acct * acct;
@@ -40,7 +40,7 @@ public:
         logi("init context ...{}",acctId);
         //加载配置
         logi("start load setting.json");
-        string settingJson=Util::readFile("conf/setting.json");
+        string settingJson=Util::readFile("conf/setting-trade.json");
         xpack::json::decode(settingJson, setting);
         //账户信息由agent推送
         /*logi("start load account.json");

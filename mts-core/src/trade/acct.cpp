@@ -10,7 +10,8 @@ bool Acct::init() {
 
     //创建Gateway
     this->tdGateway = GatewayFactory::createTdGateway(this);
-    this->mdGateway = GatewayFactory::createMdGateway(this);
+    if(this->quotaInfo!= nullptr)
+        this->mdGateway = GatewayFactory::createMdGateway(this->quotaInfo);
 
     //初始化报单序号
     time_t now = time(nullptr);

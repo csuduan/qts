@@ -1,3 +1,5 @@
+
+
 //
 // Created by 段晴 on 2022/1/22.
 //
@@ -57,8 +59,6 @@ private:
 public:
     TradeExecutor(string acctId): id(acctId){}
 
-    void init();
-
     void start();
 
 
@@ -68,9 +68,6 @@ public:
 
     void onTick(Tick *tick);
 
-    void onOrder(Order *order);
-
-    void onTrade(Trade *trade);
 
     void createStrategy(StrategySetting *setting);
 
