@@ -11,6 +11,7 @@
 #include "ctpMdGateway.hpp"
 #include "ostMdGateway.hpp"
 #include "efhMdGateway.hpp"
+#include "toraL2MdGateway.hpp"
 #include "define.h"
 
 class Acct;
@@ -52,6 +53,8 @@ public:
             mdGateway=new OstMdGateway(quota);
         else if(quota->type=="EFH")
             mdGateway=new ElfMdGateway(quota);
+        else if(quota->type=="TORA")
+            mdGateway=new ToraL2MdGateway(quota);
         else
             throw "unknow mdType";
 

@@ -12,26 +12,14 @@
 using namespace  std;
 
 namespace config{
-
-
-    struct TradeSetting{
+    struct Setting{
         string db;
         string dataPath;
-        string logPath;
-        int port;
-        vector<AcctConf> accts;
-    XPACK(M(dataPath,logPath,db,port,accts))
-    };
-
-
-
-    struct QuoteSetting{
-        string db;
-        string dataPath;
-        string logPath;
+        bool log2File;
         int port;
         vector<QuoteInfo> quotes;
-    XPACK(M(dataPath,logPath,db,quotes),O(port))
+        vector<AcctConf> accts;
+    XPACK(M(dataPath,db),O(port,log2File,quotes,accts))
 
     };
 

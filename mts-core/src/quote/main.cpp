@@ -10,43 +10,15 @@
 #include <filesystem>
 
 #include "quotaExecutor.h"
+#include "context.h"
 
-//#include <stdio.h>
-
-void sigHandler(int signo) {
-    logw("recv sig {}", signo);
-    //logw("system will exit after 2s");
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-    fmtlog::poll();
-    exit(0);
-}
 
 int main(int argc,char *argv[]) {
-    signal(SIGABRT, sigHandler);
-    signal(SIGTERM, sigHandler);
-    signal(SIGHUP, sigHandler);
-    signal(SIGINT, sigHandler);
-    signal(SIGSTOP, sigHandler);
-    signal(SIGQUIT, sigHandler);
-
-
-    //初始化日志
-    if(!std::filesystem::exists("logs"))
-        std::filesystem::create_directories("logs");
-
-    string date=Util::getDate();
-    string file="logs/mts-quota_"+date+".log";
-    //fmtlog::setLogFile(file.c_str(), false);
-    fmtlog::setLogFile(stdout, false);
-    fmtlog::setThreadName("main");
-    fmtlog::startPollingThread(1e9);
 
 
 
-
-    //string acctId=argv[1];
+    Context::get().init("quote","conf/setting-quote.json");
     Monitor::get();
-
     QuotaExecutor * tradeExecutor =new QuotaExecutor();
     tradeExecutor->start();
 

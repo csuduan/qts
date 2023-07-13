@@ -7,41 +7,75 @@
 #include "singleton.h"
 #include "tscns.h"
 #include <thread>
+#include <filesystem>
 #include "fmtlog/fmtlog.h"
 #include "config.h"
 #include "common/util.hpp"
 #include "trade/acct.h"
+
+#include "signal.h"
 
 class Context:public Singleton<Context>{
     friend class Singleton<Context>;
 
 public:
     TSCNS tn;
-    config::TradeSetting setting;
-    vector<config::StrategySetting> strategySettings;
-    string  acctId;
-    Acct * acct;
-
-
+    config::Setting setting;
+    string id;
+    //vector<config::StrategySetting> strategySettings;
 
     //config::Config config;
 
-    //初始化上下
-    void init(const string& acctId){
+
+    void static sigHandler(int signo) {
+        logw("recv sig {}", signo);
+        //logw("system will exit after 2s");
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        fmtlog::poll();
+        exit(0);
+    }
+
+    //初始化上下文
+    void init(const string id,const string& settingPath){
+        this->id=id;
+        //加载配置文件
+        string settingJson=Util::readFile((char *) settingPath.c_str());
+        xpack::json::decode(settingJson, setting);
+
+        //创建目录
+        if(!std::filesystem::exists(setting.dataPath))
+            std::filesystem::create_directories(setting.dataPath);
+
+        //初始化日志
+        if(setting.log2File){
+            if(!std::filesystem::exists("logs"))
+                std::filesystem::create_directories("logs");
+            string date=Util::getDate();
+            string file="logs/"+id+"_"+date+".log";
+            fmtlog::setLogFile(file.c_str(), false);
+        }else{
+            fmtlog::setLogFile(stdout, false);
+        }
+        fmtlog::setThreadName("main");
+        fmtlog::startPollingThread(1e9);
+
+
         //初始化计时器
-        this->acctId=acctId;
         double ghz=tn.init();
         logi("init tsn,ghz:{}",ghz);
         std::this_thread::sleep_for(std::chrono::seconds(1));
         tn.calibrate();
 
+        //信号处理
+        signal(SIGABRT, sigHandler);
+        signal(SIGTERM, sigHandler);
+        signal(SIGINT, sigHandler);
+        signal(SIGSTOP, sigHandler);
+        signal(SIGQUIT, sigHandler);
 
-        //加载配置文件
-        logi("init context ...{}",acctId);
-        //加载配置
-        logi("start load setting.json");
-        string settingJson=Util::readFile("conf/setting-trade.json");
-        xpack::json::decode(settingJson, setting);
+        logi("init context  finish...{}",this->id);
+
+
         //账户信息由agent推送
         /*logi("start load account.json");
         string accountJson=Util::readFile("conf/account.json");
@@ -61,20 +95,20 @@ public:
         }*/
 
 
-        logi("start load strategy.json");
-        string xmlStrategy=Util::readFile("conf/strategy-ost.xml");
-        //config::StrConfig strConfig;
-        //xpack::xml::decode(xmlStrategy, strConfig);
-
-
-        string jsonStrategy=Util::readFile("conf/strategy.json");
-        vector<config::StrategySetting> settings;
-        xpack::json::decode(jsonStrategy, settings);
-        for(auto & setting :settings){
-            if(setting.accountId==this->acctId){
-                strategySettings.push_back(setting);
-            }
-        }
+//        logi("start load strategy.json");
+//        string xmlStrategy=Util::readFile("conf/strategy-ost.xml");
+//        //config::StrConfig strConfig;
+//        //xpack::xml::decode(xmlStrategy, strConfig);
+//
+//
+//        string jsonStrategy=Util::readFile("conf/strategy.json");
+//        vector<config::StrategySetting> settings;
+//        xpack::json::decode(jsonStrategy, settings);
+//        for(auto & setting :settings){
+//            if(setting.accountId==this->acctId){
+//                strategySettings.push_back(setting);
+//            }
+//        }
 
 
 

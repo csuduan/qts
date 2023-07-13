@@ -17,7 +17,6 @@ public:
 private:
     TSCNS tn;
     vector<MdGateway *> mdGateways;
-    config::QuoteSetting setting;
     void msgHanler();
 
     void connect();

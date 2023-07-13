@@ -23,7 +23,7 @@ struct TaskInfo{
 
 class TaskScheduler {
 private:
-    std::map<std::string ,TaskInfo> taskMap;
+    std::map<std::string ,TaskInfo*> taskMap;
     bool reset(TaskInfo & taskInfo){
         try
         {
@@ -47,10 +47,10 @@ private:
         while (true){
             for (auto & [name,taskInfo]: this->taskMap) {
                 std::time_t now = std::time(0);
-                if(!taskInfo.ready && difftime(now,taskInfo.next)>0){
+                if(!taskInfo->ready && difftime(now,taskInfo->next)>0){
                     //执行任务
-                    taskInfo.ready=true;
-                    auto task= &taskInfo;
+                    taskInfo->ready=true;
+                    auto task= taskInfo;
                     //task->task();
                     //this->reset(taskInfo);
                     //异步执行
@@ -67,15 +67,15 @@ private:
 
 public:
     void addTask(std::string name,std::string cron,std::function<void()> task){
-        TaskInfo taskInfo ;
-        taskInfo.name=name;
-        taskInfo.cron=cron;
-        taskInfo.task=task;
+        TaskInfo *taskInfo =new TaskInfo;
+        taskInfo->name=name;
+        taskInfo->cron=cron;
+        taskInfo->task=task;
 
-        if(this->reset(taskInfo))
+        if(this->reset(*taskInfo))
             //this->taskMap.insert(make_pair(taskInfo.name,std::move(taskInfo)));
-            this->taskMap[taskInfo.name] = std::move(taskInfo);
-        logi("add task:{}  success",taskInfo.name,taskInfo.cron);
+            this->taskMap[taskInfo->name] = taskInfo;
+        logi("add task:{}  {} success",taskInfo->name,taskInfo->cron);
     }
 
     void start(){

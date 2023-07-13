@@ -14,6 +14,7 @@ protected:
     bool connected= false;
     QuoteInfo *quotaInfo;
     LockFreeQueue<Event>  *msgQueue;
+    string tradingDay;
 
     void inline setStatus(bool  status){
         this->connected = status;
@@ -42,13 +43,14 @@ class TdGateway{
 protected:
     bool connected= false;
     LockFreeQueue<Event>  *msgQueue;
+    string tradingDay;
+
 
     void inline setStatus(bool  status){
         this->connected = status;
         //quotaInfo->status= status;
         this->msgQueue->push(Event{EvType::STATUS,0});
     }
-    string tradingDay;
 public:
     virtual int  connect(){return 0;};
     virtual int  disconnect(){};

@@ -31,16 +31,16 @@ public:
     ~OstMdGateway() {}
     void OnFrontConnected() override{
         fmtlog::setThreadName("MdGateway");
-        logi("MdGateway OnFrontConnected");
+        logi("Md[{}] OnFrontConnected",this->id);
         CUTReqLoginField reqLoginField = {0};
         strcpy(reqLoginField.UserID, quotaInfo->user.c_str());
         strcpy(reqLoginField.Password, quotaInfo->pwd.c_str());
         int ret = m_pUserApi->ReqLogin(&reqLoginField, this->nRequestID++);
-        logi("MdGateway ReqLogin ret:{}", ret);
+        logi("Md[{}] ReqLogin ret:{}", this->id,ret);
 
     }
     void OnFrontDisconnected(int nReason) override{
-        logi("MdGateway OnFrontDisconnected n=",nReason);
+        logi("Md[{}] OnFrontDisconnected n=",this->id,nReason);
         this->setStatus(false);
     }
     void OnRspLogin(CUTRspLoginField *pRspLogin, CUTRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override{

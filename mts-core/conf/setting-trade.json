@@ -2,7 +2,7 @@
   "desc": "交易账户配置",
   "db": "/opt/dev/mts/mts.db",
   "dataPath": "/opt/data/mts-trade",
-  "logPath": "/opt/data/mts-trade",
+  "log2File": false,
   "port": 8083,
   "accts": [
     {
