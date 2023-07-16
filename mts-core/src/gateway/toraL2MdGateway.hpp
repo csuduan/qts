@@ -10,80 +10,71 @@
 #include <stdlib.h>
 #include <iostream>
 #include "tora/TORATstpLev2MdApi.h"
-using namespace TORALEV2API;
-using namespace  std;
+
+//using namespace TORALEV2API;
 #include "gateway.h"
 
 
-class ToraL2MdGateway:public CTORATstpLev2MdSpi,public MdGateway{
+namespace TORALEV2API{
+    class ToraL2MdGateway : public CTORATstpLev2MdSpi, public MdGateway {
 
-public:
-    ToraL2MdGateway(QuoteInfo *quotaInfo): MdGateway(quotaInfo){
-    }
+    public:
+        ToraL2MdGateway(QuoteInfo *quotaInfo) : MdGateway(quotaInfo) {
+        }
 
-    ///当客户端与交易后台建立起通信连接时（还未登录前），该方法被调用。
-    virtual void OnFrontConnected()
-    {
-        fmtlog::setThreadName("MdGateway");
-        logi("Md[{}] OnFrontConnected",this->id);
-        CTORATstpReqUserLoginField acc{0};
-        //memset(&acc, 0, sizeof(acc));
-        strcpy(acc.LogInAccount, quotaInfo->user.c_str());
-        acc.LogInAccountType = TORA_TSTP_LACT_UserID;
-        strcpy(acc.Password, quotaInfo->pwd.c_str());
+        ///当客户端与交易后台建立起通信连接时（还未登录前），该方法被调用。
+        virtual void OnFrontConnected() {
+            fmtlog::setThreadName("MdGateway");
+            logi("Md[{}] OnFrontConnected", this->id);
+            CTORATstpReqUserLoginField acc{0};
+            //memset(&acc, 0, sizeof(acc));
+            strcpy(acc.LogInAccount, quotaInfo->user.c_str());
+            acc.LogInAccountType = TORA_TSTP_LACT_UserID;
+            strcpy(acc.Password, quotaInfo->pwd.c_str());
 
-        int ret = m_api->ReqUserLogin(&acc, this->nRequestID++);
-        logi("Md[{}] ReqLogin ret:{}",this->id,ret);
+            int ret = m_api->ReqUserLogin(&acc, this->nRequestID++);
+            logi("Md[{}] ReqLogin ret:{}", this->id, ret);
 
-    };
+        };
 
-    virtual void OnFrontDisconnected(int nReason)
-    {
-        logw("Md[{}] OnFrontDisconnected! nReason[{}]",this->id, nReason);
-        this->setStatus(false);
+        virtual void OnFrontDisconnected(int nReason) {
+            logw("Md[{}] OnFrontDisconnected! nReason[{}]", this->id, nReason);
+            this->setStatus(false);
 
-    };
+        };
 
-    ///错误应答
-    virtual void OnRspError(CTORATstpRspInfoField* pRspInfo, int nRequestID)
-    {
-        loge("Md[{}] OnRspError {}", this->id,pRspInfo->ErrorMsg);
-    };
 
-    ///登录请求响应
-    virtual void OnRspUserLogin(CTORATstpRspUserLoginField* pRspUserLogin, CTORATstpRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
-    {
-        if (pRspInfo && pRspInfo->ErrorID == 0)
-        {
-            this->tradingDay = pRspUserLogin->TradingDay;
-            if(this->tradingDay.length()==0)
-                this->tradingDay=Util::getDate();
-            logi("Md[{}]  行情接口连接成功,交易日 = {}",this->id, this->tradingDay);
-            this->setStatus(true);
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            int exchange;
-            if(this->id.find("-sh") != string::npos){
-                //上海
-                exchange = TORA_TSTP_EXD_SSE;
-            }else{
-                //深圳
-                exchange = TORA_TSTP_EXD_SZSE;
-            }
+        ///登录请求响应
+        virtual void
+        OnRspUserLogin(CTORATstpRspUserLoginField *pRspUserLogin, CTORATstpRspInfoField *pRspInfo, int nRequestID,
+                       bool bIsLast) {
+            if (pRspInfo && pRspInfo->ErrorID == 0) {
+                this->tradingDay = pRspUserLogin->TradingDay;
+                if (this->tradingDay.length() == 0)
+                    this->tradingDay = Util::getDate();
+                logi("Md[{}]  行情接口连接成功,交易日 = {}", this->id, this->tradingDay);
+                this->setStatus(true);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                int exchange;
+                if (this->id.find("-sh") != string::npos) {
+                    //上海
+                    exchange = TORA_TSTP_EXD_SSE;
+                } else {
+                    //深圳
+                    exchange = TORA_TSTP_EXD_SZSE;
+                }
 
-            //订阅所有合约
-            char* Securities[1];
-            Securities[0] = (char*)"00000000";
+                //订阅所有合约
+                char *Securities[1];
+                Securities[0] = (char *) "00000000";
 
-	// 快照行情订阅
-            int ret_md = m_api->SubscribeMarketData(Securities, sizeof(Securities) / sizeof(char*), exchange);
-            if (ret_md == 0)
-            {
-                logi("SubscribeMarketData:::Success,ret={}", ret_md);
-            }
-            else
-            {
-                loge("SubscribeMarketData:::Failed, ret={}", ret_md);
-            }
+                // 快照行情订阅
+                int ret_md = m_api->SubscribeMarketData(Securities, sizeof(Securities) / sizeof(char *), exchange);
+                if (ret_md == 0) {
+                    logi("SubscribeMarketData:::Success,ret={}", ret_md);
+                } else {
+                    loge("SubscribeMarketData:::Failed, ret={}", ret_md);
+                }
 //
 //#if 1	// 逐笔成交订阅
 //            int ret_t = m_api->SubscribeTransaction(Securities, sizeof(Securities) / sizeof(char*), exchange);
@@ -134,32 +125,30 @@ public:
 //
 //
 //#endif
-        }
-        else
-        {
-            loge("OnRspUserLogin fail!");
+            } else {
+                loge("OnRspUserLogin fail!");
+                this->setStatus(false);
+
+            }
+        };
+
+
+        // 登出请求响应
+        virtual void OnRspUserLogout(CTORATstpUserLogoutField *pUserLogout, CTORATstpRspInfoField *pRspInfo, int nRequestID,
+                                     bool bIsLast) {
+            logw("OnRspUserLogout!");
             this->setStatus(false);
+        };
 
-        }
-    };
+        // 订阅快照行情应答
+        virtual void OnRspSubMarketData(CTORATstpSpecificSecurityField *pSpecificSecurity, CTORATstpRspInfoField *pRspInfo,
+                                        int nRequestID, bool bIsLast) {
+            if (pRspInfo && pRspInfo->ErrorID == 0 && pSpecificSecurity) {
+                logi("OnRspSubMarketData SecurityID[{}] ExchangeID[{}] Success!", pSpecificSecurity->SecurityID,
+                     pSpecificSecurity->ExchangeID);
 
-
-    // 登出请求响应
-    virtual void OnRspUserLogout(CTORATstpUserLogoutField* pUserLogout, CTORATstpRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
-    {
-        logw("OnRspUserLogout!");
-        this->setStatus(false);
-    };
-
-    // 订阅快照行情应答
-    virtual void OnRspSubMarketData(CTORATstpSpecificSecurityField* pSpecificSecurity, CTORATstpRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
-    {
-        if (pRspInfo && pRspInfo->ErrorID == 0 && pSpecificSecurity)
-        {
-            logi("OnRspSubMarketData SecurityID[{}] ExchangeID[{}] Success!", pSpecificSecurity->SecurityID, pSpecificSecurity->ExchangeID);
-
-        }
-    };
+            }
+        };
 
 
 //    // 订阅逐笔成交行情应答
@@ -192,51 +181,52 @@ public:
 //    };
 
 
-    // 快照行情通知
-    virtual void OnRtnMarketData(CTORATstpLev2MarketDataField* pDepthMarketData, const int FirstLevelBuyNum, const int FirstLevelBuyOrderVolumes[], const int FirstLevelSellNum, const int FirstLevelSellOrderVolumes[])
-    {
-        long tsc=Context::get().tn.rdtsc();
-        //float updateTime=(float)pDepthMarketData->/1000;
+        // 快照行情通知
+        virtual void OnRtnMarketData(CTORATstpLev2MarketDataField *pDepthMarketData, const int FirstLevelBuyNum,
+                                     const int FirstLevelBuyOrderVolumes[], const int FirstLevelSellNum,
+                                     const int FirstLevelSellOrderVolumes[]) {
+            long tsc = Context::get().tn.rdtsc();
+            //float updateTime=(float)pDepthMarketData->/1000;
 
-        //todo tick从对象池获取
-        Tick *tickData = new Tick();
-        tickData->tradingDay = this->tradingDay;
-        tickData->symbol = pDepthMarketData->SecurityID;
-        tickData->exchange = pDepthMarketData->ExchangeID;
-        tickData->preClosePrice = pDepthMarketData->PreClosePrice;
-        tickData->openPrice = pDepthMarketData->OpenPrice;
-        tickData->lowPrice=pDepthMarketData->LowestPrice;
-        tickData->lowerLimit=pDepthMarketData->LowerLimitPrice;
-        tickData->highPrice=pDepthMarketData->HighestPrice;
-        tickData->upperLimit= pDepthMarketData->UpperLimitPrice;
-        tickData->volume = pDepthMarketData->TotalVolumeTrade;
-        tickData->lastPrice = pDepthMarketData->LastPrice;
+            //todo tick从对象池获取
+            Tick *tickData = new Tick();
+            tickData->tradingDay = this->tradingDay;
+            tickData->symbol = pDepthMarketData->SecurityID;
+            tickData->exchange = pDepthMarketData->ExchangeID;
+            tickData->preClosePrice = pDepthMarketData->PreClosePrice;
+            tickData->openPrice = pDepthMarketData->OpenPrice;
+            tickData->lowPrice = pDepthMarketData->LowestPrice;
+            tickData->lowerLimit = pDepthMarketData->LowerLimitPrice;
+            tickData->highPrice = pDepthMarketData->HighestPrice;
+            tickData->upperLimit = pDepthMarketData->UpperLimitPrice;
+            tickData->volume = pDepthMarketData->TotalVolumeTrade;
+            tickData->lastPrice = pDepthMarketData->LastPrice;
 
-        tickData->updateTime = pDepthMarketData->DataTimeStamp;
-        tickData->bidPrice1 = pDepthMarketData->BidPrice1;
-        tickData->bidPrice2 = pDepthMarketData->BidPrice2;
-        tickData->bidPrice3 = pDepthMarketData->BidPrice3;
-        tickData->bidPrice4 = pDepthMarketData->BidPrice4;
-        tickData->bidPrice5 = pDepthMarketData->BidPrice5;
-        tickData->askPrice1 = pDepthMarketData->AskPrice1;
-        tickData->askPrice2 = pDepthMarketData->AskPrice2;
-        tickData->askPrice3 = pDepthMarketData->AskPrice3;
-        tickData->askPrice4 = pDepthMarketData->AskPrice4;
-        tickData->askPrice5 = pDepthMarketData->AskPrice5;
-        tickData->askVolume1 = pDepthMarketData->AskVolume1;
-        tickData->askVolume2 = pDepthMarketData->AskVolume2;
-        tickData->askVolume3 = pDepthMarketData->AskVolume3;
-        tickData->askVolume4 = pDepthMarketData->AskVolume4;
-        tickData->askVolume5 = pDepthMarketData->AskVolume5;
+            tickData->updateTime = pDepthMarketData->DataTimeStamp;
+            tickData->bidPrice1 = pDepthMarketData->BidPrice1;
+            tickData->bidPrice2 = pDepthMarketData->BidPrice2;
+            tickData->bidPrice3 = pDepthMarketData->BidPrice3;
+            tickData->bidPrice4 = pDepthMarketData->BidPrice4;
+            tickData->bidPrice5 = pDepthMarketData->BidPrice5;
+            tickData->askPrice1 = pDepthMarketData->AskPrice1;
+            tickData->askPrice2 = pDepthMarketData->AskPrice2;
+            tickData->askPrice3 = pDepthMarketData->AskPrice3;
+            tickData->askPrice4 = pDepthMarketData->AskPrice4;
+            tickData->askPrice5 = pDepthMarketData->AskPrice5;
+            tickData->askVolume1 = pDepthMarketData->AskVolume1;
+            tickData->askVolume2 = pDepthMarketData->AskVolume2;
+            tickData->askVolume3 = pDepthMarketData->AskVolume3;
+            tickData->askVolume4 = pDepthMarketData->AskVolume4;
+            tickData->askVolume5 = pDepthMarketData->AskVolume5;
 
-        tickData->bidVolume1 = pDepthMarketData->BidVolume1;
-        tickData->bidVolume2 = pDepthMarketData->BidVolume2;
-        tickData->bidVolume3 = pDepthMarketData->BidVolume3;
-        tickData->bidVolume4 = pDepthMarketData->BidVolume4;
-        tickData->bidVolume5 = pDepthMarketData->BidVolume5;
+            tickData->bidVolume1 = pDepthMarketData->BidVolume1;
+            tickData->bidVolume2 = pDepthMarketData->BidVolume2;
+            tickData->bidVolume3 = pDepthMarketData->BidVolume3;
+            tickData->bidVolume4 = pDepthMarketData->BidVolume4;
+            tickData->bidVolume5 = pDepthMarketData->BidVolume5;
 
-        tickData->recvTsc=tsc;
-        this->msgQueue->push(Event{EvType::TICK, tsc, tickData});
+            tickData->recvTsc = tsc;
+            this->msgQueue->push(Event{EvType::TICK, tsc, tickData});
 
 //        printf("OnRtnMarketData TimeStamp[%d]  SecurityID[%s] ExchangeID[%c]  PreClosePrice[%f] LowestPrice[%f] HighestPrice[%f] OpenPrice[%f] LastPrice[%f]"
 //               "BidPrice{[%f] [%f] [%f] [%f] [%f] [%f] [%f] [%f] [%f] [%f]}"
@@ -277,7 +267,7 @@ public:
 //            printf("%d ", FirstLevelSellOrderVolumes[index]);
 //        }
 //        printf("}\n");
-    };
+        };
 
 //    // 逐笔成交通知
 //    virtual void OnRtnTransaction(CTORATstpLev2TransactionField* pTransaction)
@@ -368,70 +358,72 @@ public:
 //    };
 
 
-    void subscribe(set<string> &contracts) override{
+        void subscribe(set<string> &contracts) override {
 
-    }
-    int  connect() override{
-        void *handle = dlopen("lib/tora/liblev2mdapi.so", RTLD_LAZY);
-        if(handle == nullptr){
-            logi("MD[{}] load lib fail  [{}]",this->id, errno, dlerror());
-            return -1;
         }
 
-        typedef CTORATstpLev2MdApi *(*CreateApiMdFunc)(const char *);
-        CreateApiMdFunc pfnCreateFtdcMdApiFunc = (CreateApiMdFunc) dlsym(handle,
-                                                                         "_ZN11TORALEV2API18CTORATstpLev2MdApi19CreateTstpLev2MdApiERKcb");
-        if (pfnCreateFtdcMdApiFunc == nullptr) {
-            logi("MD[{}] load lib fail [{}] [{}]",this->id, errno, hstrerror(errno));
-            return -1;
-        }
-        m_api = pfnCreateFtdcMdApiFunc(".");
-
-        // 打印接口版本号
-        //logi("Level2MdApiVersion:[{}]", CTORATstpLev2MdApi::GetApiVersion());
-        // 创建接口对象
-        //CTORATstpLev2MdApi* demo_md_api = CTORATstpLev2MdApi::CreateTstpLev2MdApi();//TCP方式
-        //CTORATstpLev2MdApi *demo_md_api = CTORATstpLev2MdApi::CreateTstpLev2MdApi(TORA_TSTP_MST_MCAST);//组播方式、UDP方式
-
-        // 注册回调接口
-        m_api->RegisterSpi(this);
-        // 注册单个行情前置服务地址
-        std::thread t([this]() {
-            this->run();
-        });
-        t.detach();
-
-
-
-        return 0;
-    }
-    void disconnect() override{
-        if(this->connected== false)
-            return;
-        this->setStatus(false);
-        try {
-            if (m_api != nullptr) {
-                m_api->Release();
-                m_api = nullptr;
+        int connect() override {
+            void *handle = dlopen("lib/tora/liblev2mdapi.so", RTLD_LAZY);
+            if (handle == nullptr) {
+                logi("MD[{}] load lib fail  [{}]", this->id, errno, dlerror());
+                return -1;
             }
-        } catch (exception ex) {
-            loge("{} discounnect fail ,{}", quotaInfo->id, ex.what());
+
+            typedef CTORATstpLev2MdApi *(*CreateApiMdFunc)(const char *);
+            CreateApiMdFunc pfnCreateFtdcMdApiFunc = (CreateApiMdFunc) dlsym(handle,
+                                                                             "_ZN11TORALEV2API18CTORATstpLev2MdApi19CreateTstpLev2MdApiERKcb");
+            if (pfnCreateFtdcMdApiFunc == nullptr) {
+                logi("MD[{}] load lib fail [{}] [{}]", this->id, errno, hstrerror(errno));
+                return -1;
+            }
+            m_api = pfnCreateFtdcMdApiFunc(".");
+
+            // 打印接口版本号
+            //logi("Level2MdApiVersion:[{}]", CTORATstpLev2MdApi::GetApiVersion());
+            // 创建接口对象
+            //CTORATstpLev2MdApi* demo_md_api = CTORATstpLev2MdApi::CreateTstpLev2MdApi();//TCP方式
+            //CTORATstpLev2MdApi *demo_md_api = CTORATstpLev2MdApi::CreateTstpLev2MdApi(TORA_TSTP_MST_MCAST);//组播方式、UDP方式
+
+            // 注册回调接口
+            m_api->RegisterSpi(this);
+            // 注册单个行情前置服务地址
+            std::thread t([this]() {
+                this->run();
+            });
+            t.detach();
+
+            return 0;
         }
-    }
 
-private:
-    CTORATstpLev2MdApi* m_api;
-    static inline int nRequestID =0 ;
+        void disconnect() override {
+            if (this->connected == false)
+                return;
+            this->setStatus(false);
+            try {
+                if (m_api != nullptr) {
+                    m_api->Release();
+                    m_api = nullptr;
+                }
+            } catch (exception ex) {
+                loge("{} discounnect fail ,{}", quotaInfo->id, ex.what());
+            }
+        }
 
-    void run(){
-        const char *address = quotaInfo->address.c_str();
-        m_api->RegisterFront(const_cast<char *>(address));
-        // 注册组播地址
-        //demo_md_api->RegisterMulticast((char*)"udp://224.224.224.236: 8889", (char*)"172.16.22.203",NULL);	//请注意接口初始化时的输入参数,第三个参数用NULL就可以
+    private:
+        CTORATstpLev2MdApi *m_api;
+        static inline int nRequestID = 0;
 
-        m_api->Init();
-        m_api->Join();
-    }
-};
+        void run() {
+            const char *address = quotaInfo->address.c_str();
+            m_api->RegisterFront(const_cast<char *>(address));
+            // 注册组播地址
+            //demo_md_api->RegisterMulticast((char*)"udp://224.224.224.236: 8889", (char*)"172.16.22.203",NULL);	//请注意接口初始化时的输入参数,第三个参数用NULL就可以
+
+            m_api->Init();
+            m_api->Join();
+        }
+    };
+}
+
 
 #endif //MTS_CORE_TORAL2MDGATEWAY_H

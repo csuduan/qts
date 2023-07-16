@@ -386,7 +386,7 @@ public:
         if (pOrder != nullptr) {
             //只保存未完结的报单
             auto status = statusMap[pOrder->OrderStatus];
-            if (STATUS_FINISHED.count(status) == 0){
+            if (STATUS_FINISHED.count(status) == 0) {
                 Order *order = new Order();
                 order->orderRef = pOrder->OrderRef;
                 order->direction = pOrder->Direction == UT_D_Buy ? TRADE_DIRECTION::BUY : TRADE_DIRECTION::SELL;
@@ -401,7 +401,8 @@ public:
 
                 this->pAcct->orderMap[order->orderRef] = order;
 
-                logi("OnRspQryOrder\t{} {} {} {}  traded:{}/{} status:{} msg:{}", order->orderRef, order->symbol, order->offsetStr,
+                logi("OnRspQryOrder\t{} {} {} {}  traded:{}/{} status:{} msg:{}", order->orderRef, order->symbol,
+                     order->offsetStr,
                      order->directionStr, order->tradedVolume,
                      order->totalVolume, magic_enum::enum_name(order->status), order->statusMsg);
             }
@@ -420,7 +421,7 @@ public:
 
     ///请求查询成交响应
     void OnRspQryTrade(CUTTradeField *pTrade, CUTRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override {
-        if(pTrade!= nullptr){
+        if (pTrade != nullptr) {
             long tsc = Context::get().tn.rdtsc();
             Trade *trade = new Trade();
             trade->orderRef = trade->orderRef;
@@ -429,15 +430,15 @@ public:
             trade->tradeDate = pTrade->TradeDate;
             trade->tradeTime = pTrade->TradeTime;
             trade->symbol = pTrade->InstrumentID;
-            trade->direction = pTrade->Direction == UT_D_Buy?TRADE_DIRECTION::BUY:TRADE_DIRECTION::SELL;
-            trade->tradeType = pTrade->OffsetFlag== UT_OF_Open?TRADE_TYPE::OPEN:TRADE_TYPE::CLOSE;
+            trade->direction = pTrade->Direction == UT_D_Buy ? TRADE_DIRECTION::BUY : TRADE_DIRECTION::SELL;
+            trade->tradeType = pTrade->OffsetFlag == UT_OF_Open ? TRADE_TYPE::OPEN : TRADE_TYPE::CLOSE;
             trade->tradedVolume = pTrade->Volume;
             trade->tradedPrice = pTrade->Price;
             trade->exchange = pTrade->ExchangeID;
             trade->updateTsc = tsc;
 
             this->pAcct->tradeMap[trade->tradeId] = trade;
-            logi("OnRspQryTrade\t{} {} {} {} {} traded:{} price:{}",trade->tradeId, trade->orderRef, trade->symbol,
+            logi("OnRspQryTrade\t{} {} {} {} {} traded:{} price:{}", trade->tradeId, trade->orderRef, trade->symbol,
                  enum_string(trade->tradeType),
                  enum_string(trade->direction), pTrade->Volume, pTrade->Price);
         }
@@ -508,7 +509,7 @@ public:
         order->realTradedVolume += trade->tradedVolume;
 
         this->pAcct->onTrade(trade);
-        logi("OnRtnTrade\t{} {} {} {} {} traded:{} price:{}",trade->tradeId, trade->orderRef, trade->symbol,
+        logi("OnRtnTrade\t{} {} {} {} {} traded:{} price:{}", trade->tradeId, trade->orderRef, trade->symbol,
              enum_string(trade->tradeType),
              enum_string(trade->direction), pTrade->Volume, pTrade->Price);
     }
@@ -524,8 +525,6 @@ public:
     void OnErrRtnOrderAction(CUTOrderActionField *pOrderAction) override {
         loge("OnErrRtnOrderAction\t [{}] [{}]", pOrderAction->OrderRef, pOrderAction->ExchangeErrorID);
     }
-
-
 
 
 };

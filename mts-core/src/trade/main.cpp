@@ -49,7 +49,7 @@ int main(int argc,char *argv[]) {
 
     string acctId=argv[1];
     Monitor::get();
-
+    Context::get().init(acctId,"conf/setting-trade.json");
     TradeExecutor * tradeExecutor =new TradeExecutor(acctId);
     tradeExecutor->start();
 

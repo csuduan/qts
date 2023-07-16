@@ -2,7 +2,7 @@
   "desc": "行情收集器配置",
   "db": "/opt/dev/mts/mts.db",
   "dataPath": "/opt/data/mts-quote",
-  "log2File": true,
+  "log2File": false,
   "quotes": [
     {
       "id": "ost",
@@ -33,7 +33,7 @@
       "pwd": "123456",
       "address": "tcp://210.14.72.17:16900",
       "type": "TORA",
-      "enable": true,
+      "enable": false,
       "autoConnect": true
     },
     {
@@ -43,6 +43,26 @@
       "pwd": "123456",
       "address": "tcp://210.14.72.17:6900",
       "type": "TORA",
+      "enable": false,
+      "autoConnect": true
+    },
+    {
+      "id": "tora-l1",
+      "group": "Security",
+      "user": "",
+      "pwd": "",
+      "address": "tcp://210.14.72.21:4402",
+      "type": "TORA-L1",
+      "enable": false,
+      "autoConnect": true
+    },
+    {
+      "id": "tora-l1-24",
+      "group": "Security",
+      "user": "",
+      "pwd": "",
+      "address": "tcp://210.14.72.16:9402",
+      "type": "TORA-L1",
       "enable": true,
       "autoConnect": true
     }

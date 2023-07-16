@@ -4,6 +4,7 @@
 
 #ifndef MTS_CORE_GATEWAYFACTORY_HPP
 #define MTS_CORE_GATEWAYFACTORY_HPP
+
 #include "gateway.h"
 #include "trade/acct.h"
 #include "ctpTdGateway.hpp"
@@ -12,9 +13,11 @@
 #include "ostMdGateway.hpp"
 #include "efhMdGateway.hpp"
 #include "toraL2MdGateway.hpp"
+#include "toraL1MdGateway.hpp"
 #include "define.h"
 
 class Acct;
+
 class GatewayFactory {
 public:
     /**
@@ -22,45 +25,48 @@ public:
      * @param account
      * @return
      */
-    static TdGateway* createTdGateway(Acct * account){
-        logi("create tdGateway {}",account->id);
-        TdGateway *gateway= nullptr;
-        if(account->acctConf->tdType=="CTP"){
-            gateway=new CtpTdGateway(account);
-        }else if(account->acctConf->tdType=="OST"){
-            gateway=new OstTdGateway(account);
-        }else
+    static TdGateway *createTdGateway(Acct *account) {
+        logi("create tdGateway {}", account->id);
+        TdGateway *gateway = nullptr;
+        if (account->acctConf->tdType == "CTP") {
+            gateway = new CtpTdGateway(account);
+        } else if (account->acctConf->tdType == "OST") {
+            gateway = new OstTdGateway(account);
+        } else
             throw "unknow tdType";
 
-        if(account->autoConnect){
-            logi("connect tdGateway {}",account->id);
+        if (account->autoConnect) {
+            logi("connect tdGateway {}", account->id);
             gateway->connect();
         }
         return gateway;
     }
+
     /**
      * 创建行情接口
      * @param mdInfo
      * @return
      */
-    static MdGateway* createMdGateway(QuoteInfo* quota){
-        logi("create mdGateway {}",quota->id);
+    static MdGateway *createMdGateway(QuoteInfo *quota) {
+        logi("create mdGateway {}", quota->id);
         MdGateway *mdGateway = nullptr;
 
-        if(quota->type=="CTP")
-            mdGateway=new CtpMdGateway(quota);
-        else if(quota->type=="OST")
-            mdGateway=new OstMdGateway(quota);
-        else if(quota->type=="EFH")
-            mdGateway=new ElfMdGateway(quota);
-        else if(quota->type=="TORA")
-            mdGateway=new ToraL2MdGateway(quota);
+        if (quota->type == "CTP")
+            mdGateway = new CtpMdGateway(quota);
+        else if (quota->type == "OST")
+            mdGateway = new OstMdGateway(quota);
+        else if (quota->type == "EFH")
+            mdGateway = new ElfMdGateway(quota);
+        else if (quota->type == "TORA")
+            mdGateway = new TORALEV2API::ToraL2MdGateway(quota);
+        else if (quota->type == "TORA-L1")
+            mdGateway = new TORALEV1API::ToraL1MdGateway(quota);
         else
             throw "unknow mdType";
 
 
-        if(quota->autoConnect){
-            logi("connect mdGateway {}",quota->id);
+        if (quota->autoConnect) {
+            logi("connect mdGateway {}", quota->id);
             mdGateway->connect();
         }
         return mdGateway;

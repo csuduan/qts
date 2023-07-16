@@ -15,6 +15,15 @@
 
 #include "signal.h"
 
+class SegmentationFault :public exception{
+    const char * what () const throw ()
+    {
+        return "SegmentationFault";
+    }
+
+};
+
+
 class Context:public Singleton<Context>{
     friend class Singleton<Context>;
 
@@ -34,6 +43,15 @@ public:
         fmtlog::poll();
         exit(0);
     }
+
+
+    void static  sigSegmentationFaultHandler(int signo)
+    {
+        logw("recv  sig {}", signo);
+        throw SegmentationFault();
+    }
+
+
 
     //初始化上下文
     void init(const string id,const string& settingPath){
@@ -72,6 +90,8 @@ public:
         signal(SIGINT, sigHandler);
         signal(SIGSTOP, sigHandler);
         signal(SIGQUIT, sigHandler);
+        signal(SIGSEGV, sigSegmentationFaultHandler);
+
 
         logi("init context  finish...{}",this->id);
 

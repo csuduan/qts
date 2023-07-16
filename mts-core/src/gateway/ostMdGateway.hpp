@@ -22,31 +22,34 @@
 #include "trade/acct.h"
 
 
-class OstMdGateway: public CUTMDSpi, public MdGateway
-{
+class OstMdGateway : public CUTMDSpi, public MdGateway {
 public:
-    OstMdGateway(QuoteInfo* quotaInfo): MdGateway(quotaInfo){
-        this->name=quotaInfo->id;
+    OstMdGateway(QuoteInfo *quotaInfo) : MdGateway(quotaInfo) {
+        this->name = quotaInfo->id;
     }
+
     ~OstMdGateway() {}
-    void OnFrontConnected() override{
+
+    void OnFrontConnected() override {
         fmtlog::setThreadName("MdGateway");
-        logi("Md[{}] OnFrontConnected",this->id);
+        logi("Md[{}] OnFrontConnected", this->id);
         CUTReqLoginField reqLoginField = {0};
         strcpy(reqLoginField.UserID, quotaInfo->user.c_str());
         strcpy(reqLoginField.Password, quotaInfo->pwd.c_str());
         int ret = m_pUserApi->ReqLogin(&reqLoginField, this->nRequestID++);
-        logi("Md[{}] ReqLogin ret:{}", this->id,ret);
+        logi("Md[{}] ReqLogin ret:{}", this->id, ret);
 
     }
-    void OnFrontDisconnected(int nReason) override{
-        logi("Md[{}] OnFrontDisconnected n=",this->id,nReason);
+
+    void OnFrontDisconnected(int nReason) override {
+        logi("Md[{}] OnFrontDisconnected n=", this->id, nReason);
         this->setStatus(false);
     }
-    void OnRspLogin(CUTRspLoginField *pRspLogin, CUTRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override{
+
+    void OnRspLogin(CUTRspLoginField *pRspLogin, CUTRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override {
         if (bIsLast && pRspInfo->ErrorID == 0) {
             this->tradingDay = pRspLogin->TradingDay;
-            logi("{}  行情接口连接成功,交易日 = {}",name, this->tradingDay);
+            logi("{}  行情接口连接成功,交易日 = {}", name, this->tradingDay);
             this->setStatus(true);
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             //重新订阅
@@ -55,25 +58,28 @@ public:
             });
 
         } else {
-            loge("{} 行情接口连接失败, ErrorMsg={}",name, pRspInfo->ErrorMsg);
+            loge("{} 行情接口连接失败, ErrorMsg={}", name, pRspInfo->ErrorMsg);
             this->setStatus(false);
         }
 
     }
-    void OnRspError(CUTRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override{
-        loge("{} OnRspError {}", name,pRspInfo->ErrorMsg);
+
+    void OnRspError(CUTRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override {
+        loge("{} OnRspError {}", name, pRspInfo->ErrorMsg);
     }
 
-    void OnRspSubDepthMarketData(CUTSubInstrumentField *pSubInstrument, CUTRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override{
+    void OnRspSubDepthMarketData(CUTSubInstrumentField *pSubInstrument, CUTRspInfoField *pRspInfo, int nRequestID,
+                                 bool bIsLast) override {
         if (pRspInfo->ErrorID == 0) {
-            logi("{} OnRspSubMarketData {}", name,pSubInstrument->InstrumentID);
+            logi("{} OnRspSubMarketData {}", name, pSubInstrument->InstrumentID);
         } else
-            loge("{} OnRspSubMarketData fail {} {}", name,pSubInstrument->InstrumentID, Util::g2u(pRspInfo->ErrorMsg));
+            loge("{} OnRspSubMarketData fail {} {}", name, pSubInstrument->InstrumentID, Util::g2u(pRspInfo->ErrorMsg));
 
     }
-    void OnRtnDepthMarketData(CUTDepthMarketDataField *pDepthMarketData) override{
-        long tsc=Context::get().tn.rdtsc();
-        float updateTime=(float)pDepthMarketData->UpdateTime/1000;
+
+    void OnRtnDepthMarketData(CUTDepthMarketDataField *pDepthMarketData) override {
+        long tsc = Context::get().tn.rdtsc();
+        float updateTime = (float) pDepthMarketData->UpdateTime / 1000;
 
         //todo tick从对象池获取
         Tick *tickData = new Tick();
@@ -97,17 +103,16 @@ public:
         tickData->askPrice5 = pDepthMarketData->AskPrice5;
         tickData->askVolume1 = pDepthMarketData->AskVolume1;
         tickData->bidVolume1 = pDepthMarketData->BidVolume1;
-        tickData->recvTsc=tsc;
+        tickData->recvTsc = tsc;
         this->msgQueue->push(Event{EvType::TICK, tsc, tickData});
         //logi("MD OnRtnTick instrument=[{}] time=[{}] price=[{}]",
         //     pDepthMarketData->InstrumentID, updateTime, pDepthMarketData->LastPrice);
     }
 
 
-
-    int  connect() override {
+    int connect() override {
         void *handle = dlopen("lib/ost/libutmdapi.so", RTLD_LAZY);
-        if(handle == nullptr){
+        if (handle == nullptr) {
             logi("load libutmdapi.so fail  [{}]", errno, dlerror());
             return -1;
         }
@@ -130,8 +135,9 @@ public:
 
         return 0;
     }
-    void disconnect() override{
-        if(this->connected== false)
+
+    void disconnect() override {
+        if (this->connected == false)
             return;
         this->setStatus(false);
         try {
@@ -144,78 +150,80 @@ public:
         }
     }
 
-    void subscribe(set<string> &subContracts) override{
+    void subscribe(set<string> &subContracts) override {
         int i = 0;
         for (auto &item: subContracts) {
-            if (quotaInfo->subSet.count(item)>0)
+            if (quotaInfo->subSet.count(item) > 0)
                 continue;
             quotaInfo->subSet.insert(item);
 
             CUTSubInstrumentField req = {0};
-            if(Util::starts_with(item,"6"))
-                req.ExchangeID= UT_EXG_SSE;
+            if (Util::starts_with(item, "6"))
+                req.ExchangeID = UT_EXG_SSE;
             else
                 req.ExchangeID = UT_EXG_SZSE;
             strcpy(req.InstrumentID, item.c_str());
 
-            if(connected){
+            if (connected) {
                 int ret = this->m_pUserApi->SubscribeDepthMarketData(&req, 1);
-                logi("subscribeContract {} ret={}",item, ret);
+                logi("subscribeContract {} ret={}", item, ret);
             }
         }
     }
 
-    void reSubscribe(){
-        for(auto & item :quotaInfo->subSet){
+    void reSubscribe() {
+        for (auto &item: quotaInfo->subSet) {
             CUTSubInstrumentField req = {0};
-            if(Util::starts_with(item,"6"))
-                req.ExchangeID= UT_EXG_SSE;
+            if (Util::starts_with(item, "6"))
+                req.ExchangeID = UT_EXG_SSE;
             else
                 req.ExchangeID = UT_EXG_SZSE;
             strcpy(req.InstrumentID, item.c_str());
             int ret = this->m_pUserApi->SubscribeDepthMarketData(&req, 1);
         }
-        logi("resubscribeContract count={}",quotaInfo->subSet.size());
+        logi("resubscribeContract count={}", quotaInfo->subSet.size());
 
 
     }
 
-    CMultiDelegate<void, Tick*> OnTickData;
+    CMultiDelegate<void, Tick *> OnTickData;
 
 private:
-    static inline int nRequestID =0 ;
-    static inline map<TUTExchangeIDType,string> exgMap={
-            {UT_EXG_SSE,"SSE"},
-            {UT_EXG_SZSE,"SZE"},
-            {UT_EXG_SHFE,"SHFE"},
-            {UT_EXG_CFFEX,"CFFEX"},
-            {UT_EXG_DCE,"DCE"},
-            {UT_EXG_CZCE,"CZCE"},
-            {UT_EXG_INE,"INE"},
-            {UT_EXG_HKEX,"HK"}
+    static inline int nRequestID = 0;
+    static inline map<TUTExchangeIDType, string> exgMap = {
+            {UT_EXG_SSE,   "SSE"},
+            {UT_EXG_SZSE,  "SZE"},
+            {UT_EXG_SHFE,  "SHFE"},
+            {UT_EXG_CFFEX, "CFFEX"},
+            {UT_EXG_DCE,   "DCE"},
+            {UT_EXG_CZCE,  "CZCE"},
+            {UT_EXG_INE,   "INE"},
+            {UT_EXG_HKEX,  "HK"}
     };
-    static inline map<string,TUTExchangeIDType> reExgMap={
-            {"SSE",UT_EXG_SSE},
-            {"SZE",UT_EXG_SZSE},
-            {"SHFE",UT_EXG_SHFE},
-            {"CFFEX",UT_EXG_CFFEX},
-            {"DCE",UT_EXG_DCE},
-            {"CZCE",UT_EXG_CZCE},
-            {"INE",UT_EXG_INE},
-            {"HK",UT_EXG_HKEX}
+    static inline map<string, TUTExchangeIDType> reExgMap = {
+            {"SSE",   UT_EXG_SSE},
+            {"SZE",   UT_EXG_SZSE},
+            {"SHFE",  UT_EXG_SHFE},
+            {"CFFEX", UT_EXG_CFFEX},
+            {"DCE",   UT_EXG_DCE},
+            {"CZCE",  UT_EXG_CZCE},
+            {"INE",   UT_EXG_INE},
+            {"HK",    UT_EXG_HKEX}
     };
 
-    Semaphore  semaphore={0};
+    Semaphore semaphore = {0};
 
     string name;
-    CUTMDApi* m_pUserApi;
+    CUTMDApi *m_pUserApi;
     string tradingDay;
     Timer timer;
-    void run(){
+
+    void run() {
         const char *address = quotaInfo->address.c_str();
         m_pUserApi->RegisterFront(const_cast<char *>(address));
         m_pUserApi->Init();
         m_pUserApi->Join();
     }
 };
+
 #endif //TRADECORE_OSTMDAPI_HPP

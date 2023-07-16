@@ -13,16 +13,13 @@
 #include "context.h"
 
 
-int main(int argc,char *argv[]) {
-
-
-
-    Context::get().init("quote","conf/setting-quote.json");
+int main(int argc, char *argv[]) {
+    Context::get().init("quote", "conf/setting-quote.json");
     Monitor::get();
-    QuotaExecutor * tradeExecutor =new QuotaExecutor();
+    QuotaExecutor *tradeExecutor = new QuotaExecutor();
     tradeExecutor->start();
 
-    while (true){
+    while (true) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
     return 0;

@@ -20,7 +20,7 @@ private:
 
     string id;
     CThostFtdcTraderApi *m_pUserApi;
-    Acct * account;
+    Acct *account;
     int frontId = 0;// 前置机编号
     int sessionId = 0;// 会话编号
     vector<Position> tmpPositons;
@@ -34,7 +34,7 @@ private:
     string authCode;
 
 
-    void Run(){
+    void Run() {
         const char *address = this->address.c_str();
         m_pUserApi->RegisterFront(const_cast<char *>(address));
         m_pUserApi->Init();
@@ -42,8 +42,8 @@ private:
     }
 
 
-    static inline int nRequestID=0;
-    static inline map<TThostFtdcOrderStatusType, ORDER_STATUS> statusMap={
+    static inline int nRequestID = 0;
+    static inline map<TThostFtdcOrderStatusType, ORDER_STATUS> statusMap = {
             {THOST_FTDC_OST_AllTraded,             ORDER_STATUS::ALLTRADED},
             {THOST_FTDC_OST_PartTradedQueueing,    ORDER_STATUS::QUEUEING},
             {THOST_FTDC_OST_PartTradedNotQueueing, ORDER_STATUS::NOTQUEUEING},
@@ -52,7 +52,7 @@ private:
             {THOST_FTDC_OST_Canceled,              ORDER_STATUS::CANCELLED},
             {THOST_FTDC_OST_Unknown,               ORDER_STATUS::UNKNOWN}
     };
-    static inline map<int, string> qryRetMsgMap={
+    static inline map<int, string> qryRetMsgMap = {
             {0,  "成功"},
             {-1, "网络连接失败"},
             {-2, "未处理请求超过许可数"},
@@ -66,20 +66,20 @@ public:
         this->id = account->id;
 
         vector<string> tmp;
-        Util::split(account->acctConf->tdAddress,tmp,"|");
-        this->address=tmp[0];
-        this->brokerId=tmp[1];
-        this->appId=tmp[2];
-        this->authCode=tmp[3];
+        Util::split(account->acctConf->tdAddress, tmp, "|");
+        this->address = tmp[0];
+        this->brokerId = tmp[1];
+        this->appId = tmp[2];
+        this->authCode = tmp[3];
 
     }
 
     ~CtpTdGateway() {}
 
     ///连接
-    int connect() override{
+    int connect() override {
         void *handle = dlopen("lib/ctp/thosttraderapi_se.so", RTLD_LAZY);
-        if(handle == nullptr){
+        if (handle == nullptr) {
             logi("load thosttraderapi.dll fail [{}] [{}]", errno, strerror(errno));
             return -1;
         }
@@ -116,7 +116,7 @@ public:
     }
 
     ///插入报单
-    bool insertOrder(Order *order) override{
+    bool insertOrder(Order *order) override {
         CThostFtdcInputOrderField req = {0};
         strcpy(req.BrokerID, this->brokerId.c_str());
         strcpy(req.InvestorID, account->acctConf->user.c_str());
@@ -178,11 +178,11 @@ public:
         } else {
             account->orderMap[order->orderRef] = order;
         }
-        return  ret==0;
+        return ret == 0;
     }
 
     ///撤销报单
-    void cancelOrder(Action *order) override{
+    void cancelOrder(Action *order) override {
         if (!this->isConnected()) {
             loge("Not connected");
             return;
@@ -208,7 +208,7 @@ public:
     }
 
     ///查询持仓
-    void reqQryPosition(){
+    void reqQryPosition() {
         if (!this->isConnected()) {
             loge("Not connected");
             return;
@@ -218,16 +218,16 @@ public:
         strcpy(cThostFtdcQryInvestorPositionField.BrokerID, this->brokerId.c_str());
         strcpy(cThostFtdcQryInvestorPositionField.InvestorID, account->acctConf->user.c_str());
         int ret = this->m_pUserApi->ReqQryInvestorPosition(&cThostFtdcQryInvestorPositionField, this->nRequestID++);
-        logi("查询持仓,ret={}",  ret);
+        logi("查询持仓,ret={}", ret);
 
     }
 
     ///用户口令更新请求
-    void reqUserPasswordUpdate(){
+    void reqUserPasswordUpdate() {
     }
 
     ///前置连接响应
-    void OnFrontConnected() override{
+    void OnFrontConnected() override {
         fmtlog::setThreadName("TdGateway");
         logi("OnFrontConnected");
 
@@ -243,13 +243,13 @@ public:
     }
 
     ///前置断开响应
-    void OnFrontDisconnected(int nReason) override{
+    void OnFrontDisconnected(int nReason) override {
         logi("OnFrontDisconnected");
     }
 
     ///客户端认证响应
     void OnRspAuthenticate(CThostFtdcRspAuthenticateField *pRspAuthenticateField, CThostFtdcRspInfoField *pRspInfo,
-                           int nRequestID, bool bIsLast) override{
+                           int nRequestID, bool bIsLast) override {
         logi("OnRspAuthenticate ");
         if (pRspInfo->ErrorID == 0) {
             CThostFtdcReqUserLoginField reqUserLogin = {0};
@@ -268,7 +268,7 @@ public:
 
     ///登录请求响应
     void OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
-                        bool bIsLast) override{
+                        bool bIsLast) override {
         logi("OnRspUserLogin");
         if (pRspInfo->ErrorID == 0) {
             this->sessionId = pRspUserLogin->SessionID;
@@ -288,7 +288,7 @@ public:
 
 
         } else {
-            loge("交易接口登录成功失败! ErrorID:{},ErrorMsg:{}",  pRspInfo->ErrorID, pRspInfo->ErrorMsg);
+            loge("交易接口登录成功失败! ErrorID:{},ErrorMsg:{}", pRspInfo->ErrorID, pRspInfo->ErrorMsg);
             this->connected = false;
         }
 
@@ -297,7 +297,7 @@ public:
 
     ///登出请求响应
     void OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
-                         bool bIsLast) override{
+                         bool bIsLast) override {
         logw("OnRspUserLogout");
         this->connected = false;
     }
@@ -308,20 +308,20 @@ public:
     }
 
     ///报单通知
-    void OnRtnOrder(CThostFtdcOrderField *pOrder) override{
-        int orderRef=atoi(pOrder->OrderRef);
-        if (account->orderMap.count(orderRef)==0)
+    void OnRtnOrder(CThostFtdcOrderField *pOrder) override {
+        int orderRef = atoi(pOrder->OrderRef);
+        if (account->orderMap.count(orderRef) == 0)
             return;
-        long tsc=Context::get().tn.rdtsc();
+        long tsc = Context::get().tn.rdtsc();
         Order *order = account->orderMap[orderRef];
         //order->tradedVolume = order.TradedVolume;
         order->orderSysId = pOrder->OrderSysID;
         order->tradedVolume = pOrder->VolumeTraded;
         order->status = statusMap[pOrder->OrderStatus];
-        order->statusStr= enum_string(order->status);
+        order->statusStr = enum_string(order->status);
         order->statusMsg = pOrder->StatusMsg;
         order->updateTime = pOrder->UpdateTime;
-        order->updateTsc=tsc;
+        order->updateTsc = tsc;
         //错单识别
         if (order->statusMsg.find("拒绝") != string::npos ||
             order->statusMsg.find("禁止") != string::npos ||
@@ -334,17 +334,18 @@ public:
             order->status = ORDER_STATUS::ERROR;
         }
         this->account->onOrder(order);
-        logi("{} OnRtnOrder {} {} traded:{}/{} status:{} msg:{}", id, order->orderRef, order->symbol, order->tradedVolume,
+        logi("{} OnRtnOrder {} {} traded:{}/{} status:{} msg:{}", id, order->orderRef, order->symbol,
+             order->tradedVolume,
              order->totalVolume, order->statusStr, order->statusMsg);
     }
 
     ///成交通知
-    void OnRtnTrade(CThostFtdcTradeField *pTrade) override{
-        int orderRef=atoi(pTrade->OrderRef);
-        if (!account->orderMap.count(orderRef)>0)
+    void OnRtnTrade(CThostFtdcTradeField *pTrade) override {
+        int orderRef = atoi(pTrade->OrderRef);
+        if (!account->orderMap.count(orderRef) > 0)
             return;
 
-        long tsc=Context::get().tn.rdtsc();
+        long tsc = Context::get().tn.rdtsc();
         Order *order = account->orderMap[orderRef];
         Trade *trade = new Trade();
         trade->orderRef = order->orderRef;
@@ -360,20 +361,21 @@ public:
         trade->tradedVolume = pTrade->Volume;
         trade->tradedPrice = pTrade->Price;
         trade->exchange = pTrade->ExchangeID;
-        trade->updateTsc=tsc;
+        trade->updateTsc = tsc;
 
         this->account->onTrade(trade);
-        logi("{} OnRtnTrade {} {} {} {} traded:{}", id, trade->orderRef, trade->symbol, magic_enum::enum_name(trade->tradeType),
+        logi("{} OnRtnTrade {} {} {} {} traded:{}", id, trade->orderRef, trade->symbol,
+             magic_enum::enum_name(trade->tradeType),
              magic_enum::enum_name(trade->direction), pTrade->Volume);
 
 
     }
 
     ///报单录入错误回报
-    void OnErrRtnOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo) override{
-        int orderRef=atoi(pInputOrder->OrderRef);
-        loge("OnErrRtnOrderInsert Error! orderRef:{} {}", pInputOrder->OrderRef,pRspInfo->ErrorMsg);
-        if (account->orderMap.count(orderRef)>0) {
+    void OnErrRtnOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo) override {
+        int orderRef = atoi(pInputOrder->OrderRef);
+        loge("OnErrRtnOrderInsert Error! orderRef:{} {}", pInputOrder->OrderRef, pRspInfo->ErrorMsg);
+        if (account->orderMap.count(orderRef) > 0) {
             Order *order = account->orderMap[orderRef];
             order->status = ORDER_STATUS::ERROR;
             order->statusMsg = pRspInfo->ErrorMsg;
@@ -382,18 +384,18 @@ public:
     }
 
     ///报单操作错误回报
-    void OnErrRtnOrderAction(CThostFtdcOrderActionField *pOrderAction, CThostFtdcRspInfoField *pRspInfo) override{
+    void OnErrRtnOrderAction(CThostFtdcOrderActionField *pOrderAction, CThostFtdcRspInfoField *pRspInfo) override {
         //CTP检测失败时触发
         loge("OnErrRtnOrderAction");
     }
 
     ///报单录入请求响应
     void OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
-                          bool bIsLast) override{
+                          bool bIsLast) override {
         //CTP检测失败时触发
-        int orderRef=atoi(pInputOrder->OrderRef);
-        loge("OnRspOrderInsert Error! orderRef:{} {}", pInputOrder->OrderRef,pRspInfo->ErrorMsg);
-        if (account->orderMap.count(orderRef)>0) {
+        int orderRef = atoi(pInputOrder->OrderRef);
+        loge("OnRspOrderInsert Error! orderRef:{} {}", pInputOrder->OrderRef, pRspInfo->ErrorMsg);
+        if (account->orderMap.count(orderRef) > 0) {
             Order *order = account->orderMap[orderRef];
             order->status = ORDER_STATUS::ERROR;
             order->statusMsg = pRspInfo->ErrorMsg;
@@ -405,12 +407,12 @@ public:
     ///报单操作请求响应
     void OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAction, CThostFtdcRspInfoField *pRspInfo,
                           int nRequestID, bool bIsLast) override {
-        loge("OnRspOrderAction {}",pRspInfo->ErrorMsg);
+        loge("OnRspOrderAction {}", pRspInfo->ErrorMsg);
     }
 
     ///请求查询报单响应
     void OnRspQryOrder(CThostFtdcOrderField *pOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
-                       bool bIsLast) override{
+                       bool bIsLast) override {
         //todo 可用来查询挂单
     }
 
@@ -419,9 +421,9 @@ public:
 
     ///请求查询投资者持仓响应
     void OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInvestorPosition, CThostFtdcRspInfoField *pRspInfo,
-                                  int nRequestID, bool bIsLast) override{
+                                  int nRequestID, bool bIsLast) override {
 
-        if(pInvestorPosition!=NULL){
+        if (pInvestorPosition != NULL) {
             //持仓更新
             string symbol = pInvestorPosition->InstrumentID;
             POS_DIRECTION direction =
@@ -429,7 +431,7 @@ public:
             logi("{} OnRspQryInvestorPosition {} {} pos:{}", id, symbol, magic_enum::enum_name(direction),
                  pInvestorPosition->Position);
             string key = symbol + "-" + to_string(direction);
-            if (!account->accoPositionMap.count(key)>0) {
+            if (!account->accoPositionMap.count(key) > 0) {
                 Position *position = new Position(pInvestorPosition->InstrumentID, direction);
                 account->accoPositionMap[key] = position;
             }
@@ -446,8 +448,8 @@ public:
 
     ///请求查询资金账户响应
     void OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount, CThostFtdcRspInfoField *pRspInfo,
-                                int nRequestID, bool bIsLast) override{
-        if(pTradingAccount !=NULL){
+                                int nRequestID, bool bIsLast) override {
+        if (pTradingAccount != NULL) {
             logi("{} 资金信息： 静态:{}\t动态:{}\t平仓:{}\t持仓:{}\t手续费:{}\t入金:{}\t可用:{}\t保证金:{}",
                  id, pTradingAccount->PreBalance,
                  pTradingAccount->Balance,
@@ -480,7 +482,7 @@ public:
 
     ///投资者结算结果确认响应
     void OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm,
-                                    CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override{
+                                    CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override {
         logi("{} OnRspSettlementInfoConfirm", id);
         if (bIsLast) {
             timer.delay(500, [this]() {
@@ -502,19 +504,19 @@ public:
 
     ///请求查询合约手续费率响应
     void OnRspQryInstrumentCommissionRate(CThostFtdcInstrumentCommissionRateField *pInstrumentCommissionRate,
-                                          CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override{
+                                          CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) override {
         //todo 查询手续费率
     }
 
     ///请求查询合约响应
     void OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID,
-                            bool bIsLast) override{
+                            bool bIsLast) override {
 
-        if(pInstrument!=NULL){
+        if (pInstrument != NULL) {
             if (strlen(pInstrument->InstrumentID) <= 10) {
                 //过滤掉组合合约
                 Contract *contract;
-                if (account->contractMap.count(pInstrument->InstrumentID)>0)
+                if (account->contractMap.count(pInstrument->InstrumentID) > 0)
                     contract = account->contractMap[pInstrument->InstrumentID];
                 else {
                     contract = new Contract;

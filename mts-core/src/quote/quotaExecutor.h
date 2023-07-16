@@ -4,6 +4,7 @@
 
 #ifndef MTS_CORE_QUOTAEXECUTOR_H
 #define MTS_CORE_QUOTAEXECUTOR_H
+
 #include "data.h"
 #include "gateway/gateway.h"
 #include "tscns.h"
@@ -17,9 +18,11 @@ public:
 private:
     TSCNS tn;
     vector<MdGateway *> mdGateways;
+
     void msgHanler();
 
     void connect();
+
     void disconnect();
 
 };

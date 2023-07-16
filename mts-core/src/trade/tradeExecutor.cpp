@@ -35,7 +35,6 @@ using std::placeholders::_1;
 
 void TradeExecutor::start() {
     logi("tradeExecutor {} init...", this->id);
-    Context::get().init(this->id);
 
     logi("tradeExecutor {} start udsServer...", this->id);
     //启动udsServer
@@ -62,41 +61,50 @@ void TradeExecutor::start() {
     //从db读取账户配置
     string dbPath = Context::get().setting.db;
     this->sqliteHelper = new SqliteHelper(dbPath);
-    auto acctConf=this->sqliteHelper->queryAcctConf(this->id);
+    auto acctConf = this->sqliteHelper->queryAcctConf(this->id);
 
     //创建账户
-    this->acct=new Acct(acctConf);
-    Context::get().acct=this->acct;
+    this->acct = new Acct(acctConf);
     this->acct->init();
 
+    //读取策略配置
+    logi("start load strategy.json");
+    string xmlStrategy = Util::readFile("conf/strategy-ost.xml");
+    //config::StrConfig strConfig;
+    //xpack::xml::decode(xmlStrategy, strConfig);
+
+
+    string jsonStrategy = Util::readFile("conf/strategy.json");
+    vector<config::StrategySetting> settings;
+    xpack::json::decode(jsonStrategy, settings);
 
 
     try {
-        for (auto &setting: Context::get().strategySettings) {
+        for (auto &setting: settings) {
             if (setting.accountId != this->id)
                 continue;
             StrategySetting *strategySetting = buildStrategySetting(setting);
             this->createStrategy(strategySetting);
 
 
-            //创建bar
-            for (auto &symbol: setting.contracts) {
-                if (setting.barLevel == 0)
-                    continue;
-                if (!barGeneratorMap.count(symbol) > 0) {
-                    barGeneratorMap[symbol] = new vector<BarGenerator *>();
-                }
-                auto barGenvec = barGeneratorMap[symbol];
-                BAR_LEVEL level = (BAR_LEVEL) setting.barLevel;
-                auto it = find_if(barGenvec->begin(), barGenvec->end(), [level](BarGenerator *bg) {
-                    return bg->level = level;
-                });
-                if (it == barGenvec->end()) {
-                    //不存在
-                    barGenvec->push_back(new BarGenerator(symbol, (BAR_LEVEL) setting.barLevel));
-                }
-
-            }
+            //todo 创建bar
+//            for (auto &symbol: setting.contracts) {
+//                if (setting.barLevel == 0)
+//                    continue;
+//                if (!barGeneratorMap.count(symbol) > 0) {
+//                    barGeneratorMap[symbol] = new vector<BarGenerator *>();
+//                }
+//                auto barGenvec = barGeneratorMap[symbol];
+//                BAR_LEVEL level = (BAR_LEVEL) setting.barLevel;
+//                auto it = find_if(barGenvec->begin(), barGenvec->end(), [level](BarGenerator *bg) {
+//                    return bg->level = level;
+//                });
+//                if (it == barGenvec->end()) {
+//                    //不存在
+//                    barGenvec->push_back(new BarGenerator(symbol, (BAR_LEVEL) setting.barLevel));
+//                }
+//
+//            }
 
         }
     } catch (exception ex) {
@@ -110,7 +118,7 @@ void TradeExecutor::start() {
     std::thread msgThread(std::bind(&TradeExecutor::msgHandler, this));
     msgThread.detach();
 
-    std::thread testPushThread([this]{
+    std::thread testPushThread([this] {
 //        while (true){
 //            auto msg = buildMsg(MSG_TYPE::ON_ACCT, *acct->acctInfo, this->id);
 //            this->udsServer->push(*msg);
@@ -138,7 +146,6 @@ void TradeExecutor::subContract(set<string> contracts, Strategy *strategy) {
 }
 
 
-
 void TradeExecutor::createStrategy(StrategySetting *setting) {
     //创建策略
     Strategy *strategy = factory::get().produce(setting->strategyType);
@@ -146,13 +153,12 @@ void TradeExecutor::createStrategy(StrategySetting *setting) {
     strategyMap[setting->strategyId] = strategy;
     //订阅合约
     set<string> contracts;
-    if(!setting->refSymbol.empty())
+    if (!setting->refSymbol.empty())
         contracts.insert(setting->refSymbol);
-    if(!setting->trgSymbol.empty())
+    if (!setting->trgSymbol.empty())
         contracts.insert(setting->trgSymbol);
     this->subContract(contracts, strategy);
 }
-
 
 
 void TradeExecutor::onTick(Tick *tick) {
@@ -186,7 +192,6 @@ void TradeExecutor::clear() {
 }
 
 
-
 void TradeExecutor::fastEventHandler() {
     fmtlog::setThreadName("fastHandler");
     //setpriority(PRIO_PROCESS, 0, -10);
@@ -212,7 +217,7 @@ void TradeExecutor::fastEventHandler() {
     long tickSeq = 0;
     while (true) {
         //轮询quote队列
-        if (acct->mdGateway!= nullptr && acct->mdGateway->getQueue()->pop(event)) {
+        if (acct->mdGateway != nullptr && acct->mdGateway->getQueue()->pop(event)) {
             switch (event.type) {
                 case EvType::STATUS: {
                     auto rsp = buildMsg(MSG_TYPE::ON_ACCT, *acct->acctInfo, this->id);
@@ -253,13 +258,13 @@ void TradeExecutor::msgHandler() {
                         this->udsServer->push(*msg);
                         break;
                     }
-                    case EvType::READY:{
+                    case EvType::READY: {
                         //账户状态就绪
                         set<string> contracts;
-                        int i=0;
-                        for (const auto &item : this->acct->accoPositionMap){
+                        int i = 0;
+                        for (const auto &item: this->acct->accoPositionMap) {
                             //if(i++<20)
-                                contracts.insert(item.second->symbol);
+                            contracts.insert(item.second->symbol);
                         }
                         this->acct->subscribe(contracts);
                         break;
@@ -304,7 +309,6 @@ Message *TradeExecutor::onRequest(Message *msg) {
             if (this->acct == nullptr) {
                 AcctConf acctConf;
                 msg->jsonData.decode(acctConf);
-                Context::get().acct = this->acct;
                 this->cv.notify_one();
             }
             response->data = xpack::json::encode(acct->acctInfo);
@@ -316,7 +320,7 @@ Message *TradeExecutor::onRequest(Message *msg) {
         }
         case MSG_TYPE::QRY_POSITION: {
             vector<Position> pos;
-            for (const auto &item : this->acct->accoPositionMap)
+            for (const auto &item: this->acct->accoPositionMap)
                 pos.push_back(*item.second);
             response->data = xpack::json::encode(pos);
             break;
