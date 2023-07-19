@@ -29,7 +29,7 @@ public:
     string id;
 
     MdGateway(QuoteInfo *quotaInfo) : quotaInfo(quotaInfo) {
-        msgQueue = new LockFreeQueue<Event>(100);
+        msgQueue = new LockFreeQueue<Event>(102400);
         id = quotaInfo->id;
     }
 

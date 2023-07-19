@@ -5,36 +5,34 @@
 #ifndef MTS_CORE_TORAL3MDGATEWAY_H
 #define MTS_CORE_TORAL3MDGATEWAY_H
 
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <iostream>
-#include "tora/TORATstpXMdApi.h"
 #include "context.h"
+#include "tora/TORATstpXMdApi.h"
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "gateway.h"
 #include "data.h"
-#include <netdb.h>
+#include "gateway.h"
 #include <dlfcn.h>
+#include <netdb.h>
 
-namespace TORALEV1API{
+namespace TORALEV1API {
     class ToraL1MdGateway : public CTORATstpXMdSpi, public MdGateway {
 
     public:
-        ToraL1MdGateway(QuoteInfo *quotaInfo) : MdGateway(quotaInfo) {}
-
+        ToraL1MdGateway(QuoteInfo *quotaInfo) : MdGateway(quotaInfo) {
+        }
+        
         virtual void OnFrontConnected() {
             fmtlog::setThreadName("MdGateway");
             logi("Md[{}] OnFrontConnected", this->id);
 
             CTORATstpReqUserLoginField req_user_login_field{0};
-            //memset(&req_user_login_field, 0, sizeof(req_user_login_field));
+            // memset(&req_user_login_field, 0, sizeof(req_user_login_field));
 
-            int ret = m_api->ReqUserLogin(&req_user_login_field, this->nRequestID++
-            );
+            int ret = m_api->ReqUserLogin(&req_user_login_field, this->nRequestID++);
             logi("Md[{}] ReqLogin ret:{}", this->id, ret);
-
         }
 
         virtual void OnFrontDisconnected(int nReanson) {
@@ -43,7 +41,8 @@ namespace TORALEV1API{
         }
 
         virtual void OnRspUserLogin(CTORATstpRspUserLoginField *pRspUserLoginField,
-                                    CTORATstpRspInfoField *pRspInfoField, int nRequestID) {
+                                    CTORATstpRspInfoField *pRspInfoField,
+                                    int nRequestID) {
             if (pRspInfoField->ErrorID == 0) {
                 this->tradingDay = pRspUserLoginField->TradingDay;
                 if (this->tradingDay.length() == 0)
@@ -54,11 +53,22 @@ namespace TORALEV1API{
 
 
                 //订阅所有合约
-                char *Securities[1];
-                Securities[0] = (char *) "00000000";
+                // char *Securities[1];
+                // Securities[0] = (char *) "688598";
+
+
+                if (quotaInfo->subSet.size() == 0)
+                    quotaInfo->subSet.insert("00000000");
+                char *Securities[quotaInfo->subSet.size()];
+                int i = 0;
+                for (auto &str: quotaInfo->subSet) {
+                    Securities[i++] = (char *) str.c_str();
+                }
+
 
                 // 快照行情订阅
-                int ret_md = m_api->SubscribeMarketData(Securities, sizeof(Securities) / sizeof(char *), 0);
+                int ret_md = m_api->SubscribeMarketData(
+                        Securities, quotaInfo->subSet.size(), TORA_TSTP_EXD_SSE);
                 if (ret_md == 0) {
                     logi("SubscribeMarketData:::Success,ret={}", ret_md);
                 } else {
@@ -68,23 +78,31 @@ namespace TORALEV1API{
                 loge("OnRspUserLogin fail!");
                 this->setStatus(false);
             }
-
         }
-        virtual void OnRspUserLogout(CTORATstpUserLogoutField *pUserLogoutField, TORALEV1API::CTORATstpRspInfoField *pRspInfoField, int nRequestID) {
+
+        virtual void
+        OnRspUserLogout(CTORATstpUserLogoutField *pUserLogoutField,
+                        TORALEV1API::CTORATstpRspInfoField *pRspInfoField,
+                        int nRequestID) {
             logw("OnRspUserLogout!");
             this->setStatus(false);
         }
 
-        virtual void OnRspSubMarketData(CTORATstpSpecificSecurityField *pSpecificSecurityField, TORALEV1API::CTORATstpRspInfoField *pRspInfoField) {
-            if (pRspInfoField && pRspInfoField->ErrorID == 0 && pSpecificSecurityField) {
-                logi("OnRspSubMarketData SecurityID[{}] ExchangeID[{}] Success!", pSpecificSecurityField->SecurityID,
+        virtual void
+        OnRspSubMarketData(CTORATstpSpecificSecurityField *pSpecificSecurityField,
+                           TORALEV1API::CTORATstpRspInfoField *pRspInfoField) {
+            if (pRspInfoField && pRspInfoField->ErrorID == 0 &&
+                pSpecificSecurityField) {
+                logi("OnRspSubMarketData SecurityID[{}] ExchangeID[{}] Success!",
+                     pSpecificSecurityField->SecurityID,
                      pSpecificSecurityField->ExchangeID);
             }
         }
 
         virtual void OnRtnMarketData(CTORATstpMarketDataField *pDepthMarketData) {
             long tsc = Context::get().tn.rdtsc();
-//todo tick从对象池获取
+            // todo tick从对象池获取
+
             Tick *tickData = new Tick();
             tickData->tradingDay = this->tradingDay;
             tickData->symbol = pDepthMarketData->SecurityID;
@@ -98,7 +116,9 @@ namespace TORALEV1API{
             tickData->volume = pDepthMarketData->Volume;
             tickData->lastPrice = pDepthMarketData->LastPrice;
 
-            tickData->updateTime = Util::str2time(string(pDepthMarketData->UpdateTime)) + pDepthMarketData->UpdateMillisec / 1000.0;
+            tickData->updateTime =
+                    Util::str2time(string(pDepthMarketData->UpdateTime)) +
+                    pDepthMarketData->UpdateMillisec / 1000.0;
 
             tickData->bidPrice1 = pDepthMarketData->BidPrice1;
             tickData->bidPrice2 = pDepthMarketData->BidPrice2;
@@ -123,12 +143,11 @@ namespace TORALEV1API{
             tickData->bidVolume5 = pDepthMarketData->BidVolume5;
 
             tickData->recvTsc = tsc;
+            // delete tickData;
             this->msgQueue->push(Event{EvType::TICK, tsc, tickData});
         }
 
-        void subscribe(set<string> &contracts) override {
-
-        }
+        void subscribe(set<string> &contracts) override {}
 
         int connect() override {
             void *handle = dlopen("lib/tora/libxfastmdapi.so", RTLD_LAZY);
@@ -137,25 +156,22 @@ namespace TORALEV1API{
                 return -1;
             }
 
-            using CreateApiMdFunc = CTORATstpXMdApi *(*)(char const&,char const&);
-            CreateApiMdFunc pfnCreateFtdcMdApiFunc = (CreateApiMdFunc) dlsym(handle,
-                                                                             "_ZN11TORALEV1API15CTORATstpXMdApi16CreateTstpXMdApiERKcS2_");
+            using CreateApiMdFunc = CTORATstpXMdApi *(*)(char const &, char const &);
+            CreateApiMdFunc pfnCreateFtdcMdApiFunc = (CreateApiMdFunc) dlsym(
+                    handle, "_ZN11TORALEV1API15CTORATstpXMdApi16CreateTstpXMdApiERKcS2_");
             if (pfnCreateFtdcMdApiFunc == nullptr) {
                 logi("MD[{}] load lib fail [{}] [{}]", this->id, errno, strerror(errno));
                 return -1;
             }
-            m_api = pfnCreateFtdcMdApiFunc(TORA_TSTP_MST_TCP,TORA_TSTP_MST_TCP);
+            m_api = pfnCreateFtdcMdApiFunc(TORA_TSTP_MST_TCP, TORA_TSTP_MST_TCP);
 
             // 注册回调接口
             m_api->RegisterSpi(this);
             // 注册单个行情前置服务地址
-            std::thread t([this]() {
-                this->run();
-            });
+            std::thread t([this]() { this->run(); });
             t.detach();
 
             return 0;
-
         }
 
         void disconnect() override {
@@ -176,20 +192,18 @@ namespace TORALEV1API{
         CTORATstpXMdApi *m_api;
         static inline int nRequestID = 0;
 
-
         void run() {
             const char *address = quotaInfo->address.c_str();
             m_api->RegisterFront(const_cast<char *>(address));
             // 注册组播地址
-            //demo_md_api->RegisterMulticast((char*)"udp://224.224.224.236: 8889", (char*)"172.16.22.203",NULL);	//请注意接口初始化时的输入参数,第三个参数用NULL就可以
+            // demo_md_api->RegisterMulticast((char*)"udp://224.224.224.236: 8889",
+            // (char*)"172.16.22.203",NULL);
+            // //请注意接口初始化时的输入参数,第三个参数用NULL就可以
 
             m_api->Init();
             m_api->Join();
         }
-
     };
-}
+} // namespace TORALEV1API
 
-
-
-#endif //MTS_CORE_TORAL3MDGATEWAY_H
+#endif // MTS_CORE_TORAL3MDGATEWAY_H

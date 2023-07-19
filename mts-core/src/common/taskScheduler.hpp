@@ -55,8 +55,11 @@ private:
                     //this->reset(taskInfo);
                     //异步执行
                     std::thread workThread([this,task](){
+                        logi("start task:{},curTime:{}",task->name,ctime(&task->next));
                         task->task();
                         this->reset(*task);
+                        logi("finish task:{},nextTime:{}",task->name,ctime(&task->next));
+
                     });
                     workThread.detach();
                 }

@@ -217,7 +217,8 @@ void TradeExecutor::fastEventHandler() {
     long tickSeq = 0;
     while (true) {
         //轮询quote队列
-        if (acct->mdGateway != nullptr && acct->mdGateway->getQueue()->pop(event)) {
+        if (acct->mdGateway != nullptr && !acct->mdGateway->getQueue()->isEmpty()) {
+            acct->mdGateway->getQueue()->pop(event);
             switch (event.type) {
                 case EvType::STATUS: {
                     auto rsp = buildMsg(MSG_TYPE::ON_ACCT, *acct->acctInfo, this->id);
@@ -236,8 +237,10 @@ void TradeExecutor::fastEventHandler() {
                     break;
                 }
             }
-            if (event.data != nullptr)
+            if (event.data != nullptr) {
                 delete event.data;
+                event.data = nullptr;
+            }
         }
     }
 }

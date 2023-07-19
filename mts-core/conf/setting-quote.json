@@ -53,6 +53,7 @@
       "pwd": "",
       "address": "tcp://210.14.72.21:4402",
       "type": "TORA-L1",
+      "subFile": "symbol-sh.txt",
       "enable": false,
       "autoConnect": true
     },
@@ -63,9 +64,9 @@
       "pwd": "",
       "address": "tcp://210.14.72.16:9402",
       "type": "TORA-L1",
+      "subFile": "symbol-sh.txt",
       "enable": true,
       "autoConnect": true
     }
-
   ]
 }

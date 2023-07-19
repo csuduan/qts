@@ -13,11 +13,36 @@ void QuotaExecutor::start() {
     for (auto &quotaInfo: Context::get().setting.quotes) {
         if (quotaInfo.enable == false)
             continue;
-        vector<string> tmp;
-        Util::split(quotaInfo.subList, tmp, ",");
-        for (auto &item: tmp)
-            quotaInfo.subSet.insert(item);
-        tmp.clear();
+        if (quotaInfo.subList.length() > 0) {
+            vector<string> tmp;
+            Util::split(quotaInfo.subList, tmp, ",");
+            for (auto &item: tmp)
+                quotaInfo.subSet.insert(item);
+            tmp.clear();
+        }
+
+        if (quotaInfo.subFile.length() > 0) {
+            std::ifstream ifs;
+            string file = "conf/" + quotaInfo.subFile;
+            ifs.open(file, ios::in);
+            if (ifs.is_open()) {
+                string line;
+                while (getline(ifs, line)) {
+                    if (line.length() == 0)
+                        continue;
+                    if (line.find("#") != string::npos)
+                        continue;
+                    vector<string> tmp;
+                    Util::split(line, tmp, ".");
+                    quotaInfo.subSet.insert(tmp[0]);
+                    tmp.clear();
+                }
+                ifs.close();
+            } else
+                loge("open file:{} fail", file);
+
+        }
+
 
         MdGateway *mdGateway = GatewayFactory::createMdGateway(&quotaInfo);
         this->mdGateways.emplace_back(mdGateway);
@@ -31,15 +56,14 @@ void QuotaExecutor::start() {
 
 
     TaskScheduler *scheduler = new TaskScheduler;
-    auto testTask = []() {
+    scheduler->addTask("test", "0 0 * * * ?", []() {
         logi("test---");
-    };
-    scheduler->addTask("test", "0 50 21 * * ?", testTask);
-    scheduler->addTask("connect", "0 9 * * * MON-FRI", [this]() {
+    });
+    scheduler->addTask("connect", "0 25 09 * * *", [this]() {
         for (auto gateway: this->mdGateways)
             gateway->connect();
     });
-    scheduler->addTask("disconnect", "0 30 15 * * MON-FRI", [this]() {
+    scheduler->addTask("disconnect", "0 30 15 * * *", [this]() {
         for (auto gateway: this->mdGateways)
             gateway->disconnect();
     });
@@ -55,13 +79,20 @@ void QuotaExecutor::msgHanler() {
 
     while (true) {
         //轮询所有的quote队列
+        bool find = false;
         for (auto &mdGateway: this->mdGateways) {
-            if (mdGateway != nullptr && mdGateway->getQueue()->pop(event)) {
+            if (mdGateway != nullptr && !mdGateway->getQueue()->isEmpty()) {
+                if (mdGateway->getQueue()->isFull()) {
+                    loge("md[{}] queue is full!", mdGateway->id);
+                }
+                mdGateway->getQueue()->pop(event);
+                find = true;
                 try {
                     switch (event.type) {
                         case EvType::TICK: {
+                            //Tick *tick = std::any_cast<Tick *>(event.data);
                             Tick *tick = (Tick *) event.data;
-                            if(tick== nullptr)
+                            if (tick == nullptr)
                                 continue;
 
                             string id = mdGateway->id;
@@ -87,7 +118,8 @@ void QuotaExecutor::msgHanler() {
                                     "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                                     tick->symbol, tick->tradingDay, tick->actionDay, tick->updateTime,
                                     tick->preClosePrice, tick->preSettlePrice,
-                                    tick->openPrice, tick->lowPrice, tick->highPrice, tick->lowerLimit, tick->upperLimit,
+                                    tick->openPrice, tick->lowPrice, tick->highPrice, tick->lowerLimit,
+                                    tick->upperLimit,
                                     tick->lastPrice, tick->lastVolume,
                                     tick->bidPrice1, tick->bidPrice2, tick->bidPrice3, tick->bidPrice4, tick->bidPrice5,
                                     tick->askPrice1, tick->askPrice2, tick->askPrice3, tick->askPrice4, tick->askPrice5,
@@ -96,22 +128,28 @@ void QuotaExecutor::msgHanler() {
                                     tick->askVolume1, tick->askVolume2, tick->askVolume3, tick->askVolume4,
                                     tick->askVolume5);
                             qFile->ofs << dat << endl;
-
+                            //delete tick;
+                            //event.data.reset();
                             break;
                         }
                         default: {
+
+
                             break;
                         }
                     }
-                    if (event.data != nullptr)
+                    if (event.data != nullptr) {
                         delete event.data;
-                }catch (exception ex){
-                    loge("event hanler exception!{}",ex.what());
+                        event.data = nullptr;
+                    }
+                } catch (exception ex) {
+                    loge("event hanler exception!{}", ex.what());
                 }
 
             }
         }
-        std::this_thread::sleep_for(std::chrono::microseconds (100));
+        if (!find)
+            std::this_thread::sleep_for(std::chrono::microseconds(100));
     }
 }
 

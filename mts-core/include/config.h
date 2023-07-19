@@ -9,6 +9,7 @@
 #include <vector>
 #include "xpack/json.h"
 #include "xpack/xml.h"
+#include "message.h"
 using namespace  std;
 
 namespace config{

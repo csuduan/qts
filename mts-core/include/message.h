@@ -36,12 +36,13 @@ struct QuoteInfo {
     string pwd;
     string address;
     string subList;
+    string subFile;
     bool enable;
     bool autoConnect;
 
     bool status;
     set<string> subSet;
-XPACK(M(id, type, address,enable), O(user, pwd, subList,autoConnect));
+XPACK(M(id, type, address,enable), O(user, pwd, subList,subFile,autoConnect));
 };
 
 struct AcctConf {

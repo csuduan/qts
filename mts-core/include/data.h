@@ -17,6 +17,7 @@
 #include "message.h"
 #include<fstream>
 #include <iostream>
+#include <any>
 
 
 using std::string;
@@ -28,6 +29,7 @@ public:
     EvType type;
     long tsc;
     void *data;
+    //std::any data;
 };
 
 
@@ -57,7 +59,6 @@ XPACK(M(name, type, symbol, exchange), O(priceTick, longMarginRatio, multiple))
 };
 
 
-
 struct Position {
     string id;//持仓编号（合约代码-方向）
     string symbol; // 代码
@@ -85,9 +86,9 @@ struct Position {
         this->direction = direction;
         this->id = this->symbol + "-" + string(enum_string(direction));
     }
+
 XPACK(M(id, symbol, exchange, direction, pos, ydPos, tdPos, ydPosition), O(useMargin));
 };
-
 
 
 struct Order {
@@ -124,19 +125,20 @@ struct Order {
 
     int realTradedVolume;//实际成交手数(来自trade)
 
-    POS_DIRECTION getPosDirection(){
+    POS_DIRECTION getPosDirection() {
         if (offset == TRADE_TYPE::OPEN)
             return direction == TRADE_DIRECTION::BUY ? POS_DIRECTION::LONG : POS_DIRECTION::SHORT;
         else
             return direction == TRADE_DIRECTION::SELL ? POS_DIRECTION::LONG : POS_DIRECTION::SHORT;
     }
 
-XPACK(M(tradingDay, orderRef, symbol, exchange, offsetStr, directionStr, price, totalVolume, tradedVolume, statusStr, statusMsg, updateTime));
+XPACK(M(tradingDay, orderRef, symbol, exchange, offsetStr, directionStr, price, totalVolume, tradedVolume, statusStr,
+        statusMsg, updateTime));
 
 };
 
 
-struct Action{
+struct Action {
     int orderRef;
     int frontId;
     long long sessionId;
@@ -181,7 +183,7 @@ struct Tick {
     string exchange; // 交易所代码
     string tradingDay; //交易日
     string actionDay;  //自然日
-    float  updateTime; //时间 格式:091230.500
+    float updateTime; //时间 格式:091230.500
 
     string source;//来源
 
@@ -226,7 +228,7 @@ struct Tick {
     //用于性能统计的相关字段
     long recvTsc;  //接收时间  tsc
     long eventTsc;//事件触发时间 tsc
-    XPACK(M(symbol, exchange, tradingDay, actionDay, updateTime, lastPrice, bidPrice1, askPrice1));
+XPACK(M(symbol, exchange, tradingDay, actionDay, updateTime, lastPrice, bidPrice1, askPrice1));
 
 };
 
@@ -252,7 +254,8 @@ struct Bar {
 
     bool saved = false;//是否持久化
 
-XPACK(M(level,symbol,exchange,tradingDay,actionDay,barTime,updateTime,open,high,low,close,volume,openInterest,tickCount));
+XPACK(M(level, symbol, exchange, tradingDay, actionDay, barTime, updateTime, open, high, low, close, volume,
+        openInterest, tickCount));
 
 
 };
@@ -268,7 +271,7 @@ struct StrategySetting {
     map<string, string> paramMap;
 };
 
-struct QuotaFile{
+struct QuotaFile {
     std::ofstream ofs;
     string date;
     string fname;
