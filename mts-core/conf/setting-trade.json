@@ -27,7 +27,8 @@
       "enable": true,
       "mdAddress": "tcp://47.100.124.2:33008",
       "mdType": "OST",
-      "subList": "600000,600958,000001,000002"
+      "subList": "600000,600958,000001,000002",
+      "straFile": "conf/strategy-ost.xml"
     },
     {
       "id": "ost-sh",

@@ -20,6 +20,7 @@
 #include "cpuin.h"
 #include "dataBuilder.h"
 #include "message.h"
+#include "strategy/strategyUtil.hpp"
 
 #include "signal.h"
 
@@ -61,33 +62,31 @@ void TradeExecutor::start() {
     //从db读取账户配置
     string dbPath = Context::get().setting.db;
     this->sqliteHelper = new SqliteHelper(dbPath);
-    auto acctConf = this->sqliteHelper->queryAcctConf(this->id);
+    //auto acctConf = this->sqliteHelper->queryAcctConf(this->id);
+    AcctConf *acctConf = nullptr;
+    for (auto &acct: Context::get().setting.accts) {
+        if (acct.id == this->id)
+            acctConf = &acct;
+    }
 
+    if (acctConf == nullptr) {
+        loge("can not find acctConfig[{}]", this->id);
+        throw;
+    }
     //创建账户
     this->acct = new Acct(acctConf);
     this->acct->init();
 
-    //读取策略配置
-    logi("start load strategy.json");
-    string xmlStrategy = Util::readFile("conf/strategy-ost.xml");
-    //config::StrConfig strConfig;
-    //xpack::xml::decode(xmlStrategy, strConfig);
 
-
-    string jsonStrategy = Util::readFile("conf/strategy.json");
-    vector<config::StrategySetting> settings;
-    xpack::json::decode(jsonStrategy, settings);
-
-
-    try {
-        for (auto &setting: settings) {
-            if (setting.accountId != this->id)
-                continue;
-            StrategySetting *strategySetting = buildStrategySetting(setting);
-            this->createStrategy(strategySetting);
-
-
-            //todo 创建bar
+    //string xmlStrategy = Util::readFile("conf/strategy-ost.xml");
+    if (acctConf->straFile.length() > 0) {
+        //读取策略配置
+        logi("start load strategy from:{}", acctConf->straFile);
+        vector<StrategySetting> strSetting = StrategyUtil::parseConfig(acctConf->straFile);
+        try {
+            for (auto &setting: strSetting) {
+                this->createStrategy(&setting);
+                //todo 创建bar
 //            for (auto &symbol: setting.contracts) {
 //                if (setting.barLevel == 0)
 //                    continue;
@@ -106,9 +105,10 @@ void TradeExecutor::start() {
 //
 //            }
 
+            }
+        } catch (exception ex) {
+            loge("load strategy fail,{}", ex.what());
         }
-    } catch (exception ex) {
-        loge("load strategy fail,{}", ex.what());
     }
 
 
@@ -158,6 +158,7 @@ void TradeExecutor::createStrategy(StrategySetting *setting) {
     if (!setting->trgSymbol.empty())
         contracts.insert(setting->trgSymbol);
     this->subContract(contracts, strategy);
+    logi("create strategy,id:{}  type:{}", setting->strategyId, setting->strategyType);
 }
 
 

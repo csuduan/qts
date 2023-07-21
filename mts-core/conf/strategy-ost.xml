@@ -1,9 +1,6 @@
-<config>
-    <strategy id="kzz0" type="strxxx" candle="5M10S" lmt="0.5"  len1="120" len2="620" opn="4" cls="-3">
-        <ref id="603538" volptt="500" trgid="113618" vol="100" />
-    </strategy>
-
-    <strategy id="kzz1" type="strxxx" candle="5M10S" lmt="0.5"  len1="120" len2="620" opn="4" cls="-3">
-        <ref id="603538" volptt="500" trgid="113618" vol="100" />
-    </strategy>
-</config>
+<strategys>
+    <strategy id="kzz0" type="strgold" candle="1T" lmt="0.5" len1="120" len2="620" opn="4" cls="-3"
+              refid="603538" volptt="500" trgid="113618" vol="100"/>
+    <strategy id="kzz1" type="strgold" candle="1T" lmt="0.5" len1="120" len2="620" opn="4" cls="-3"
+              refid="603538" volptt="500" trgid="113618" vol="100"/>
+</strategys>

@@ -42,7 +42,7 @@ struct QuoteInfo {
 
     bool status;
     set<string> subSet;
-XPACK(M(id, type, address,enable), O(user, pwd, subList,subFile,autoConnect));
+XPACK(M(id, type, address, enable), O(user, pwd, subList, subFile, autoConnect));
 };
 
 struct AcctConf {
@@ -56,9 +56,10 @@ struct AcctConf {
     string mdAddress;
     string mdType;
     string subList;
+    string straFile;
     bool enable;
 XPACK(M(id, group, tdType, tdAddress, mdType, mdAddress, enable),
-      O(owner, user, pwd, subList));
+      O(owner, user, pwd, subList, straFile));
 };
 
 struct AcctInfo {
@@ -66,7 +67,7 @@ struct AcctInfo {
     string group;
 
     //状态
-    bool status= true;//账户状态
+    bool status = true;//账户状态
     bool tdStatus = false;
     bool mdStatus = false;
     bool pauseOpen = false;
@@ -88,7 +89,7 @@ struct AcctInfo {
     double deposit = 0; // 入金
     double withdraw = 0; // 出金
 
-XPACK(M(id,group ,tdStatus, mdStatus, balance, available, commission, margin, closeProfit, positionProfit));
+XPACK(M(id, group, tdStatus, mdStatus, balance, available, commission, margin, closeProfit, positionProfit));
 
 };
 

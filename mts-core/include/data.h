@@ -261,7 +261,6 @@ XPACK(M(level, symbol, exchange, tradingDay, actionDay, barTime, updateTime, ope
 };
 
 struct StrategySetting {
-    string acctId;
     string strategyId;
     string strategyType;
     BAR_LEVEL barLevel;
