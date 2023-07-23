@@ -1,7 +1,6 @@
 package org.mts.common.model.acct;
 
 import lombok.Data;
-import org.mts.common.rpc.uds.UdsClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,7 +20,6 @@ public class AcctInfo {
     private Boolean mdStatus = false;
     private Boolean pauseOpen = false;
     private Boolean pauseClose = false;
-
 
     //资金信息
     private BigDecimal balance=BigDecimal.ZERO;

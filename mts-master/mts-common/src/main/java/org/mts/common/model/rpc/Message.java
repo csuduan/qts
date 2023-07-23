@@ -17,7 +17,6 @@ public class Message {
     private String data;//报文体
 
     public Message(){
-
     }
     public Message(Enums.MSG_TYPE type,Object data){
         this.type=type;

@@ -5,14 +5,13 @@
 
 
 # 架构
-![架构图](https://github.com/csuduan/images/raw/5ed2532c8a07485f3f4ab17375341a421ad0c1d0/mts.png)
+![架构图](./mts.png)
 
 * mts-core    交易核心
 C++版低延迟交易程序(tick2trade<5us)
-* mts-master  管理中心
-> mts-admin  只需部署一个admin,负责管理多个mts-agent  
-> mts-agent  每台交易服务器部署一个agent，负责管理多个mts-core
-* mts-web     管理WEB
+* mts-amin   管理中心
+支持管理多个交易核心
+* mts-web     WEB客户端
 
 
 

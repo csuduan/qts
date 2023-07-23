@@ -1,6 +1,6 @@
 <strategys>
-    <strategy id="kzz0" type="strgold" candle="1T" lmt="0.5" len1="120" len2="620" opn="4" cls="-3"
+    <strategy id="kzz0" type="strgold" candle="1T" lmt="0.5" len1="10" len2="100" opn="4" cls="-3"
               refid="603538" volptt="500" trgid="113618" vol="100"/>
-    <strategy id="kzz1" type="strgold" candle="1T" lmt="0.5" len1="120" len2="620" opn="4" cls="-3"
-              refid="603538" volptt="500" trgid="113618" vol="100"/>
+    <!--    <strategy id="kzz1" type="strgold" candle="1T" lmt="0.5" len1="20" len2="200" opn="4" cls="-3"-->
+    <!--              refid="603538" volptt="500" trgid="113618" vol="100"/>-->
 </strategys>
