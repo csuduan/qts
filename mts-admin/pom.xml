@@ -16,9 +16,8 @@
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <modules>
-        <module>mts-admin</module>
+        <module>mts-app</module>
         <module>mts-common</module>
-        <module>mts-proxy</module>
     </modules>
 
     <properties>
