@@ -1,8 +1,11 @@
 *.h  linguist-language=C++
 *.hpp  linguist-language=C++
-*.html linguist-language=Java 
-*.js linguist-language=Java 
-*.css linguist-language=Java
-*.scss linguist-language=Java
-*.ts linguist-language=Java
-*.vue linguist-language=Java
+
+*.html linguist-detectable=false 
+*.js linguist-detectable=false 
+*.css linguist-detectable=false
+*.scss linguist-detectable=false
+*.ts linguist-detectable=false
+*.vue linguist-detectable=false
+
+mts-web/* linguist-vendored
