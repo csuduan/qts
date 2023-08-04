@@ -3,13 +3,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>mts-master</artifactId>
+        <artifactId>fts-master</artifactId>
         <groupId>org.mts</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>mts-admin</artifactId>
+    <artifactId>fts-admin</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -19,7 +19,7 @@
     <dependencies>
         <dependency>
             <groupId>org.mts</groupId>
-            <artifactId>mts-common</artifactId>
+            <artifactId>fts-common</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -98,7 +98,7 @@
     </dependencies>
 
     <build>
-        <finalName>mts-admin</finalName>
+        <finalName>fts-admin</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
