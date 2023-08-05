@@ -1,0 +1,30 @@
+[
+  {
+    "accountId": "sim",
+    "strategyId": "DEMO-AU_AG",
+    "className": "GoldStrategy",
+    "barLevel": 5,
+    "contracts": [
+      "cu2206",
+      "ni2203"
+    ],
+    "paramMap": {
+      "P0": "0",
+      "P1": "1"
+    }
+  },
+  {
+    "accountId": "ost",
+    "strategyId": "DEMO-AU_AG",
+    "className": "GoldStrategy",
+    "barLevel": 1,
+    "contracts": [
+      "000001",
+      "000002"
+    ],
+    "paramMap": {
+      "P0": "0",
+      "P1": "1"
+    }
+  }
+]

@@ -1,0 +1,87 @@
+[
+  {
+    "path": "/system",
+    "redirect": "/system/role/index",
+    "meta": {
+      "icon": "setting",
+      "title": "系统",
+      "rank": 2
+    },
+    "children": [
+      {
+        "path": "/system/role/index",
+        "name": "role",
+        "meta": {
+          "title": "角色管理"
+        }
+      },
+      {
+        "path": "/system/user/index",
+        "name": "user",
+        "meta": {
+          "title": "用户管理"
+        }
+      },
+      {
+        "path": "/permission",
+        "redirect": "/permission/page/index",
+        "meta": {
+          "title": "权限管理"
+        },
+        "children": [
+          {
+            "path": "/permission/page/index",
+            "name": "permissionPage",
+            "meta": {
+              "title": "页面权限"
+            }
+          },
+          {
+            "path": "/permission/button/index",
+            "name": "permissionButton",
+            "meta": {
+              "title": "按钮权限"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/acct",
+    "redirect": "/acct/view/index",
+    "meta": {
+      "icon": "chart-line",
+      "title": "账户",
+      "rank": 3
+    },
+    "children": [
+      {
+        "path": "/acct/view/index",
+        "name": "view",
+        "meta": {
+          "title": "账户视图"
+        }
+      },
+      {
+        "path": "/acct/view/detail",
+        "name": "viewDetail",
+        "meta": {
+          "title": "",
+          "showLink": false,
+          "keepAlive": true,
+          "dynamicLevel": 3,
+          "refreshRedirect": "/acct/view/index"
+
+        }
+      },
+      {
+        "path": "/acct/trade/index",
+        "name": "trade",
+        "meta": {
+          "title": "账户交易"
+        }
+      }
+    ]
+  }
+]

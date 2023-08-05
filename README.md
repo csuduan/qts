@@ -1,19 +1,19 @@
-# Flash Trade System
-极速交易系统(FTS)
+# Quick Trading System
+极速交易系统(qts)
 
-**fts当前处于开发阶段，暂不可用，正在快马加鞭中...**
+**qts当前处于开发阶段，暂不可用，正在快马加鞭中...**
 
 
 # 架构
-![架构图](./mts.png)
+![架构图](./qts.png)
 
-* fts-ctrader   交易核心(C++)
+* qts-ctrader   交易核心(C++)
 C++版交易程序，低延迟(tick2trade<5us)
-* fts-trader    交易核心
+* qts-trader    交易核心
 常规版本交易程序，一般延迟
-* fts-master   管理中心
+* qts-master   管理中心
 支持管理多个交易核心
-* fts-web     WEB客户端
+* qts-web     WEB客户端
 
 
 
