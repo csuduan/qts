@@ -1,11 +1,11 @@
 package org.qts.admin.task;
 
 import lombok.extern.slf4j.Slf4j;
-import org.fts.common.entity.Enums;
-import org.fts.common.entity.Message;
-import org.fts.common.entity.event.MessageEvent;
-import org.fts.common.entity.msg.LogMsg;
-import org.fts.common.utils.SpringUtils;
+import org.qts.common.entity.Enums;
+import org.qts.common.entity.Message;
+import org.qts.common.entity.event.MessageEvent;
+import org.qts.common.entity.msg.LogMsg;
+import org.qts.common.utils.SpringUtils;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 

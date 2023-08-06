@@ -2,8 +2,8 @@ package org.qts.admin.service;
 
 import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
-import org.fts.common.entity.Message;
-import org.fts.common.entity.event.MessageEvent;
+import org.qts.common.entity.Message;
+import org.qts.common.entity.event.MessageEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 

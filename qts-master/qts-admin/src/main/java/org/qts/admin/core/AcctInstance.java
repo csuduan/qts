@@ -1,9 +1,9 @@
 package org.qts.admin.core;
 
 import lombok.Data;
-import org.fts.common.entity.Enums;
-import org.fts.common.entity.acct.AcctDetail;
-import org.fts.common.entity.config.AcctConf;
+import org.qts.common.entity.Enums;
+import org.qts.common.entity.acct.AcctDetail;
+import org.qts.common.entity.config.AcctConf;
 
 @Data
 public class AcctInstance {

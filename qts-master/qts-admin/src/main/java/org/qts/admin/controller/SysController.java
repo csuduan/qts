@@ -3,11 +3,11 @@ package org.qts.admin.controller;
 import com.alibaba.fastjson.JSON;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
-import org.fts.common.entity.Page;
+import org.qts.common.entity.Page;
 import org.qts.admin.entity.sys.Role;
 import org.qts.admin.entity.sys.Router;
 import org.qts.admin.entity.sys.UserInfo;
-import org.qts.admin.service.AcctService;
+import org.qts.admin.manager.AcctManager;
 import org.qts.admin.service.SysService;
 import org.qts.admin.service.WebSocketService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +25,7 @@ public class SysController {
     @Autowired
     private SysService sysService;
     @Autowired
-    private AcctService agentService;
+    private AcctManager agentService;
     @Autowired
     private WebSocketService webSocketService;
 

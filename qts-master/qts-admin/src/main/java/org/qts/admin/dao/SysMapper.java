@@ -2,7 +2,7 @@ package org.qts.admin.dao;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
-import org.fts.common.entity.po.RouterPo;
+import org.qts.common.entity.po.RouterPo;
 
 import java.util.List;
 

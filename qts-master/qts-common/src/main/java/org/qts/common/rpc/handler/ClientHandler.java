@@ -6,7 +6,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.qts.common.entity.Message;
-import org.fts.common.model.Enums;
+import org.qts.common.model.Enums;
 import org.qts.common.rpc.listener.ClientListener;
 import org.qts.common.rpc.future.SyncWriteFuture;
 import org.qts.common.rpc.future.SyncWriteMap;

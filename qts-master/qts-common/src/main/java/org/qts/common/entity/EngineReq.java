@@ -1,7 +1,7 @@
 package org.qts.common.entity;
 
 import lombok.Data;
-import org.fts.common.model.Enums;
+import org.qts.common.entity.Enums;
 
 @Data
 public class EngineReq {

@@ -1,7 +1,7 @@
 package org.qts.admin.exception;
 
 import lombok.extern.slf4j.Slf4j;
-import org.fts.common.entity.ReturnCode;
+import org.qts.common.entity.ReturnCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;

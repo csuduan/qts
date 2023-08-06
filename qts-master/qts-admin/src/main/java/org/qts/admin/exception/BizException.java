@@ -2,7 +2,7 @@ package org.qts.admin.exception;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.fts.common.entity.ReturnCode;
+import org.qts.common.entity.ReturnCode;
 
 @Data
 @AllArgsConstructor

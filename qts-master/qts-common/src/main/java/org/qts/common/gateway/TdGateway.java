@@ -3,8 +3,8 @@ package org.qts.common.gateway;
 
 import org.qts.common.entity.Contract;
 import org.qts.common.entity.LoginInfo;
-import org.fts.common.entity.trade.*;
-import org.fts.common.entity.acct.*;
+import org.qts.common.entity.trade.*;
+import org.qts.common.entity.acct.*;
 import org.qts.common.entity.acct.AcctInfo;
 import org.qts.common.entity.acct.AcctPos;
 import org.qts.common.entity.trade.CancelOrderReq;

@@ -4,7 +4,7 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
-import org.fts.common.entity.po.CachePo;
+import org.qts.common.entity.po.CachePo;
 
 import java.util.List;
 

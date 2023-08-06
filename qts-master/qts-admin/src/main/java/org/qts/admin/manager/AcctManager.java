@@ -1,14 +1,15 @@
-package org.qts.admin.service;
+package org.qts.admin.manager;
 
 import lombok.extern.slf4j.Slf4j;
 import org.qts.admin.core.AcctInstance;
 import org.qts.admin.dao.ConfMapper;
-import org.fts.common.entity.Message;
-import org.fts.common.entity.acct.AcctInfo;
-import org.fts.common.entity.config.AcctConf;
-import org.fts.common.entity.event.MessageEvent;
-import org.fts.common.rpc.tcp.server.ServerListener;
-import org.fts.common.rpc.tcp.server.TcpServer;
+import org.qts.admin.service.WebSocketService;
+import org.qts.common.entity.Message;
+import org.qts.common.entity.acct.AcctInfo;
+import org.qts.common.entity.config.AcctConf;
+import org.qts.common.entity.event.MessageEvent;
+import org.qts.common.rpc.tcp.server.ServerListener;
+import org.qts.common.rpc.tcp.server.TcpServer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
@@ -25,7 +26,7 @@ import java.util.Map;
  */
 @Service
 @Slf4j
-public class AcctService implements ServerListener {
+public class AcctManager implements ServerListener {
     @Autowired
     private ConfMapper confMapper;
     @Autowired
@@ -40,7 +41,7 @@ public class AcctService implements ServerListener {
     private int port;
 
 
-    public AcctService(){
+    public AcctManager(){
 
     }
 
@@ -99,7 +100,7 @@ public class AcctService implements ServerListener {
 
 
     public Boolean acctOperate(String acctId,Enums.MSG_TYPE type,String data){
-        org.fts.common.entity.Message.Message rsp=tradeService.request(acctId,type,data);
+        org.qts.common.entity.Message.Message rsp=tradeService.request(acctId,type,data);
         return rsp.getSuccess();
     }
 

@@ -1,7 +1,7 @@
 package org.qts.common.entity;
 
 import lombok.Data;
-import org.fts.common.model.acct.AcctConf;
+import org.qts.common.entity.config.AcctConf;
 
 @Data
 public class LoginInfo {

@@ -2,7 +2,7 @@ package org.qts.common.entity;
 
 import com.alibaba.fastjson.JSON;
 import lombok.Data;
-import org.fts.common.model.Enums;
+import org.qts.common.entity.Enums;
 
 import java.util.List;
 

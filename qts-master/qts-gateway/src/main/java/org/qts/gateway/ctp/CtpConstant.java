@@ -1,7 +1,7 @@
 package org.qts.gateway.ctp;
 
-import org.fts.common.entity.Constant;
-import org.fts.common.entity.Enums;
+import org.qts.common.entity.Constant;
+import org.qts.common.entity.Enums;
 
 import java.util.HashMap;
 import java.util.Map;

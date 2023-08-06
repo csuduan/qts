@@ -1,8 +1,8 @@
 package org.qts.common.utils;
 
 
-import org.fts.common.entity.*;
-import org.fts.common.entity.trade.*;
+import org.qts.common.entity.*;
+import org.qts.common.entity.trade.*;
 import org.qts.common.entity.Constant;
 import org.qts.common.entity.trade.Bar;
 import org.qts.common.entity.trade.Tick;

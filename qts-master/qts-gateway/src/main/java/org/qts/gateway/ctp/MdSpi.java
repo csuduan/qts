@@ -5,10 +5,10 @@ import java.io.IOException;
 import java.util.HashMap;
 
 import ctp.thostmduserapi.*;
-import org.fts.common.entity.MdInfo;
+import org.qts.common.entity.MdInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
-import org.fts.common.entity.trade.Tick;
+import org.qts.common.entity.trade.Tick;
 
 /**
  * @author sun0x00@gmail.com

@@ -3,15 +3,15 @@ package org.qts.admin.service;
 import lombok.extern.slf4j.Slf4j;
 import org.qts.admin.dao.ConfMapper;
 import org.qts.admin.exception.BizException;
-import org.fts.common.entity.Message;
-import org.fts.common.entity.acct.AcctInst;
-import org.fts.common.entity.acct.AcctInfo;
-import org.fts.common.entity.event.MessageEvent;
-import org.fts.common.entity.msg.ConfMsg;
-import org.fts.common.rpc.listener.ClientListener;
-import org.fts.common.rpc.uds.UdsClient;
-import org.fts.common.utils.SequenceUtil;
-import org.fts.common.utils.SpringUtils;
+import org.qts.common.entity.Message;
+import org.qts.common.entity.acct.AcctInst;
+import org.qts.common.entity.acct.AcctInfo;
+import org.qts.common.entity.event.MessageEvent;
+import org.qts.common.entity.msg.ConfMsg;
+import org.qts.common.rpc.listener.ClientListener;
+import org.qts.common.rpc.uds.UdsClient;
+import org.qts.common.utils.SequenceUtil;
+import org.qts.common.utils.SpringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -95,11 +95,11 @@ public class TradeService implements ClientListener {
         return true;
     }
 
-    public org.fts.common.entity.Message.Message request(String acctId, Enums.MSG_TYPE type, Object data){
-        return this.request(acctId,new org.fts.common.entity.Message.Message(type,data));
+    public org.qts.common.entity.Message.Message request(String acctId, Enums.MSG_TYPE type, Object data){
+        return this.request(acctId,new org.qts.common.entity.Message.Message(type,data));
     }
 
-    public org.fts.common.entity.Message.Message request(String acctId, org.fts.common.entity.Message.Message req){
+    public org.qts.common.entity.Message.Message request(String acctId, org.qts.common.entity.Message.Message req){
         if(!this.acctInstMap.containsKey(acctId)
                 || !this.acctInstMap.get(acctId).getUdsClient().isConnected())
             throw  new BizException("账户未连接");
@@ -108,7 +108,7 @@ public class TradeService implements ClientListener {
         req.setRequestId(requestId);
         log.info("request==>req:{}",req);
         var client=this.acctInstMap.get(acctId).getUdsClient();
-        org.fts.common.entity.Message.Message rsp=client.request(req);
+        org.qts.common.entity.Message.Message rsp=client.request(req);
         log.info("request==>rsp:{}",rsp);
         return  rsp;
     }
@@ -122,7 +122,7 @@ public class TradeService implements ClientListener {
             acctInst.getAcctInfo().setStatus(true);
             //查询账户信息
             try {
-                org.fts.common.entity.Message.Message rsp=this.request(id,Enums.MSG_TYPE.QRY_ACCT,null);
+                org.qts.common.entity.Message.Message rsp=this.request(id,Enums.MSG_TYPE.QRY_ACCT,null);
                 AcctInfo acctInfo=rsp.getData(AcctInfo.class);
                 BeanUtils.copyProperties(acctInfo,acctInst.getAcctInfo());
                 acctInst.getAcctInfo().setStatus(true);
@@ -139,11 +139,11 @@ public class TradeService implements ClientListener {
             acctInst.getAcctInfo().setMdStatus(false);
         }
         //推送给admin
-        SpringUtils.pushEvent(new MessageEvent(new org.fts.common.entity.Message.Message(Enums.MSG_TYPE.ON_ACCT,acctInst.getAcctInfo())));
+        SpringUtils.pushEvent(new MessageEvent(new org.qts.common.entity.Message.Message(Enums.MSG_TYPE.ON_ACCT,acctInst.getAcctInfo())));
     }
 
     @Override
-    public void onMessage(org.fts.common.entity.Message.Message msg) {
+    public void onMessage(org.qts.common.entity.Message.Message msg) {
         log.info("onMessage:{}",msg);
         AcctInst acctInst=this.acctInstMap.get(msg.getAcctId());
         switch (msg.getType()){

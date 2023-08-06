@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>qts-master</artifactId>
-        <groupId>org.fts</groupId>
+        <groupId>org.qts</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -18,7 +18,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.fts</groupId>
+            <groupId>org.qts</groupId>
             <artifactId>qts-common</artifactId>
         </dependency>
         <dependency>
@@ -108,7 +108,7 @@
 <!--                    <includeSystemScope>true</includeSystemScope>-->
                     <includes>
                         <include>
-                            <groupId>org.fts</groupId>
+                            <groupId>org.qts</groupId>
                             <artifactId>fts-common</artifactId>
                         </include>
                     </includes>
@@ -152,7 +152,7 @@
                             <outputDirectory>${project.build.directory}/lib</outputDirectory>
                             <excludeGroupIds>
                                 <!-- 只排除业务模块相关的jar包，多个用英文逗号分割-->
-                                org.fts
+                                org.qts
                             </excludeGroupIds>
                         </configuration>
                     </execution>

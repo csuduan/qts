@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@MapperScan(basePackages = {"org.fts.admin.dao"})
-@ComponentScan({"org.fts.common","org.fts.admin"})
+@MapperScan(basePackages = {"org.qts.admin.dao"})
+@ComponentScan({"org.qts.common","org.qts.admin"})
 public class AdminApplication {
     public static void main(String[] args) {
         SpringApplication.run(AdminApplication.class, args);

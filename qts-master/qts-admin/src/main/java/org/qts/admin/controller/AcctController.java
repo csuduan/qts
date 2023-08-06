@@ -4,11 +4,11 @@ import com.alibaba.fastjson.JSON;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
-import org.fts.common.entity.trade.AcctOpReq;
-import org.fts.common.entity.Page;
-import org.qts.admin.service.AcctService;
-import org.fts.common.model.acct.AcctDetail;
-import org.fts.common.entity.acct.AcctInfo;
+import org.qts.admin.manager.AcctManager;
+import org.qts.common.entity.trade.AcctOpReq;
+import org.qts.common.entity.Page;
+import org.qts.common.model.acct.AcctDetail;
+import org.qts.common.entity.acct.AcctInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +20,7 @@ import java.util.List;
 @Slf4j
 public class AcctController {
     @Autowired
-    private AcctService agentService;
+    private AcctManager agentService;
 
     @ApiOperation(value = "获取账户列表")
     @GetMapping(value = "/list")
