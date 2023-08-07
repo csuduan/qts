@@ -61,7 +61,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         String acctId=ctx.channel().attr(ATTRI_ACCT_ID).get();
         if(StringUtils.isNotEmpty(channelId)){
             this.acctChannelMap.remove(channelId);
-            this.listener.onConnect(acctId,false);
+            this.listener.onStatus(acctId,false);
         }
     }
 
@@ -78,7 +78,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             ctx.channel().attr(ATTRI_ACCT_ID).set(acctId);
 
             acctChannelMap.put(acctId,ctx.channel());
-            listener.onConnect(acctId,true);
+            listener.onStatus(acctId,true);
         }else if(request.getType()!= Enums.MSG_TYPE.PING){
             //通用处理
             Message response=listener.onRequest(request);

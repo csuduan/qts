@@ -9,9 +9,9 @@ import org.qts.common.entity.config.AcctConf;
 public class AcctInstance {
     private AcctConf acctConf;
     private AcctDetail acctDetail;
-    private Enums.ACCT_STATUS  acctStatus;
-    private Process process;
+    private Enums.ACCT_STATUS  acctStatus= Enums.ACCT_STATUS.UNKNOW;
+    private int pid;
     public AcctInstance(AcctConf acctConf){
-
+        this.acctConf=acctConf;
     }
 }

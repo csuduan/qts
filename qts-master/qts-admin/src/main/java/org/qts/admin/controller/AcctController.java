@@ -5,9 +5,10 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.qts.admin.manager.AcctManager;
+import org.qts.common.entity.Response;
+import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.trade.AcctOpReq;
 import org.qts.common.entity.Page;
-import org.qts.common.model.acct.AcctDetail;
 import org.qts.common.entity.acct.AcctInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -46,7 +47,7 @@ public class AcctController {
     public Response<Boolean> operateAcct(@RequestBody AcctOpReq req){
         Response<Boolean> response=new Response<>();
         String data= JSON.toJSONString(req.getData());
-        response.setData(agentService.acctOperate(req.getAcctId(),req.getType(),data));
+        //response.setData(agentService.acctOperate(req.getAcctId(),req.getType(),data));
         return response;
     }
 }

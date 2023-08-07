@@ -2,9 +2,13 @@ package org.qts.common.entity.acct;
 
 import lombok.Data;
 import org.qts.common.entity.LoginInfo;
+import org.qts.common.entity.config.AcctConf;
+import org.qts.common.entity.trade.Trade;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -13,27 +17,12 @@ import java.util.Map;
 @Data
 public class AcctDetail  extends AcctInfo implements Serializable{
 
-	private static final long serialVersionUID = 6823946394104654905L;
-
 	private LoginInfo loginInfo;//登录信息
+	private List<AcctPos> acctPosList=new ArrayList<>();
+	private List<Trade> tradeList = new ArrayList<>();
 
-	private String id;//账户编号，唯一标识
-	private String name;//账户名称
-	private String currency; // 币种
+	public  AcctDetail(AcctConf conf){
+		super(conf);
+	}
 
-	// 资产相关
-	private double preBalance; // 昨日账户结算净值
-	private double balance; // 账户净值
-	private double available; // 可用资金
-	private double commission; // 今日手续费
-	private double margin; // 保证金占用
-	private double closeProfit; // 平仓盈亏
-	private double positionProfit; // 持仓盈亏
-	private double deposit; // 入金
-	private double withdraw; // 出金
-
-
-
-	//账户持仓(用于校验)
-	private Map<String, AcctPos> accoPositionMap = new HashMap<>();
 }

@@ -1,49 +1,60 @@
 package org.qts.trader.engine;
 
 import com.alibaba.fastjson.JSON;
-import com.bingbei.mts.common.entity.*;
-import com.bingbei.mts.common.gateway.MdGateway;
-import com.bingbei.mts.common.service.PersistSerivce;
-import com.bingbei.mts.common.service.extend.event.EventConstant;
-import com.bingbei.mts.common.service.extend.event.FastEvent;
-import com.bingbei.mts.common.service.extend.event.FastEventDynamicHandlerAbstract;
-import com.bingbei.mts.common.service.impl.FastEventEngineServiceImpl;
-import com.bingbei.mts.common.utils.BarGenerator;
-import com.bingbei.mts.common.utils.SpringUtils;
-import com.bingbei.mts.trade.gateway.GatwayFactory;
-import com.bingbei.mts.trade.strategy.StrategySetting;
+import lombok.Data;
+import org.qts.common.disruptor.FastEventEngineService;
+import org.qts.common.disruptor.event.EventConstant;
+import org.qts.common.disruptor.event.FastEvent;
+import org.qts.common.disruptor.event.FastEventDynamicHandlerAbstract;
+import org.qts.common.disruptor.impl.FastEventEngineServiceImpl;
+import org.qts.common.entity.*;
+import org.qts.common.entity.acct.AcctDetail;
+import org.qts.common.entity.trade.*;
+import org.qts.common.gateway.MdGateway;
+import org.qts.common.gateway.TdGateway;
+import org.qts.common.utils.BarGenerator;
+import org.qts.common.utils.SpringUtils;
+import org.qts.gateway.GatwayFactory;
+import org.qts.trader.strategy.Strategy;
+import org.qts.trader.strategy.StrategySetting;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 交易引擎
  */
 @Slf4j
+@Data
 public class TradeEngine extends FastEventDynamicHandlerAbstract {
-    private String id;
-    private EngineContext engineContext;
+    private GatwayFactory gatwayFactory;
+    private FastEventEngineService fastEventEngineService;
+    //最新行情
+    private Map<String, Tick> lastTickMap = new HashMap<>();
+    //策略信息
+    private Map<String, Strategy> stringStrategyMap=new HashMap<>();
+    //报单信息
+    private Map<String, Order> workingOrderMap = new HashMap<>();
+    //报单-策略 映射map
+    private Map<String,Strategy> strategyOrderMap =new HashMap<>();
+    //成交信息
+    private Map<String, Trade> tradeMap = new HashMap<>();
+    //订阅列表
+    private Set<String> subsSet=new HashSet<>();
+
+
+    private MdGateway mdGateway;
+    private TdGateway tdGateway;
 
     private MdInfo mdInfo;
-    private MdGateway mdGateway;
     //account-tradeExecutor
-    Map<String, TradeExecutor> tradeExecutorMap=new HashMap<>();
-    public String getId(){
-        return this.id;
-    }
 
     private Map<String, BarGenerator> barGeneratorMap=new HashMap<>();
 
-    public TradeEngine(String engineId, MdInfo mdInfo){
-        this.id=engineId;
-        this.engineContext=new EngineContext();
-        this.engineContext.setPersistSerivce(SpringUtils.getBean(PersistSerivce.class));
-        this.engineContext.setGatwayFactory(SpringUtils.getBean(GatwayFactory.class));
+    public TradeEngine(AcctDetail acct){
         String waitStrategy=SpringUtils.getContext().getEnvironment().getProperty("fastEventEngine.WaitStrategy");
-        this.engineContext.setFastEventEngineService(new FastEventEngineServiceImpl(waitStrategy));
-        this.engineContext.getFastEventEngineService().addHandler(this);
+        this.fastEventEngineService=new FastEventEngineServiceImpl(waitStrategy);
+        this.fastEventEngineService.addHandler(this);
         subscribeEvent(EventConstant.EVENT_TICK);
         subscribeEvent(EventConstant.EVENT_TRADE);
         subscribeEvent(EventConstant.EVENT_ORDER);
@@ -53,54 +64,26 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
         subscribeEvent(EventConstant.EVENT_ERROR);
         subscribeEvent(EventConstant.EVENT_GATEWAY);
 
-        this.changeMd(mdInfo);
-        this.loadContract();
+
+        this.tdGateway=this.gatwayFactory.createTdGateway(acct,this.fastEventEngineService);
+        this.mdGateway= this.gatwayFactory.createMdGateway(mdInfo,this.fastEventEngineService);
+
+
+        //this.loadContract();
     }
-    private void loadContract(){
-        List<Contract> contracts=engineContext.getPersistSerivce().getContracts();
-    }
-    public void changeMd(MdInfo mdInfo){
+
+    public void connect(){
+        if(this.tdGateway!=null)
+            this.tdGateway.connect();
         if(this.mdGateway!=null)
-            this.mdGateway.close();
-        this.mdInfo=mdInfo;
-        this.mdGateway=engineContext.getGatwayFactory().createMdGateway(mdInfo,this.engineContext.getFastEventEngineService());
-        this.mdGateway.connect();
-        engineContext.setMdGateway(this.mdGateway);
-    }
-    public void createTradeExecutor(Account account){
-        this.tradeExecutorMap.put(account.getId(),new TradeExecutor(account,this.engineContext));
-        log.info("交易引擎添加账户{}成功",account.getId());
+            this.mdGateway.connect();;
 
     }
-
-    public void createStrategy(StrategySetting strategySetting){
-        TradeExecutor tradeExecutor=this.tradeExecutorMap.get(strategySetting.getAccountId());
-        tradeExecutor.createStrategy(strategySetting);
-    }
-    public void connect(String accountId){
-        var tradeExecutor=this.tradeExecutorMap.get(accountId);
-        if(tradeExecutor==null){
-            log.warn("找不到账户交易执行器-{}",accountId);
-            return;
-        }
-        tradeExecutor.connect();
-
-
-    }
-    public void discount(String accountId){
-        var tradeExecutor=this.tradeExecutorMap.get(accountId);
-        if(tradeExecutor==null){
-            log.warn("找不到账户交易执行器-{}",accountId);
-            return;
-        }
-        tradeExecutor.disconnect();
-
-    }
-    public void connnectMd(){
-        this.mdGateway.connect();
-    }
-    public void disconnectMd(){
-        this.mdGateway.close();
+    public void discount(){
+        if(this.tdGateway!=null)
+            this.tdGateway.close();
+        if(this.mdGateway!=null)
+            this.mdGateway.close();;
     }
 
 
@@ -115,11 +98,6 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
             //log.info("{}",tick);
             onTick(tick);
         }
-        //以下为账户相关事件
-        TradeExecutor tradeExecutor=this.tradeExecutorMap.get(fastEvent.getAccountId());
-        if(tradeExecutor==null)
-            return;
-
 
         switch (fastEvent.getEventType()){
             case EventConstant.EVENT_TRADE ->{
@@ -169,10 +147,20 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
     }
 
     private void onTick(Tick tick) {
-        this.engineContext.getLastTickMap().put(tick.getSymbol(), tick);
-        this.tradeExecutorMap.values().forEach(x->{
-            x.onTick(tick);
+        if(!this.subsSet.contains(tick.getSymbol()))
+            return;
+
+        this.lastTickMap.put(tick.getSymbol(),tick);
+        Set<Strategy> strategySet=this.subsMap.get(tick.getSymbol());
+        strategySet.forEach(x->{
+            try {
+                x.onTick(tick);
+            }catch (Exception ex){
+                log.error("策略{}处理Tick {} 失败",x.getStrategySetting().getStrategyId(),tick.getSymbol(),ex);
+            }
+
         });
+
         BarGenerator barGenerator;
         if(!barGeneratorMap.containsKey(tick.getSymbol())){
             //创建bar
@@ -190,6 +178,4 @@ public class TradeEngine extends FastEventDynamicHandlerAbstract {
         //更新bar
         barGenerator.updateTick(tick);
     }
-
-
 }

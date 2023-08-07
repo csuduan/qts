@@ -1,18 +1,16 @@
 package org.qts.trader.engine;
 
-import com.bingbei.mts.common.entity.Tick;
-import com.bingbei.mts.common.gateway.MdGateway;
-import com.bingbei.mts.common.service.FastEventEngineService;
-import com.bingbei.mts.common.service.PersistSerivce;
-import com.bingbei.mts.trade.gateway.GatwayFactory;
+import org.qts.common.disruptor.FastEventEngineService;
+import org.qts.common.entity.trade.Tick;
+import org.qts.common.gateway.MdGateway;
 import lombok.Data;
+import org.qts.gateway.GatwayFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Data
 public class EngineContext {
-    private PersistSerivce persistSerivce;
     //private StrategyEngine strategyEngine;
     private GatwayFactory gatwayFactory;
 

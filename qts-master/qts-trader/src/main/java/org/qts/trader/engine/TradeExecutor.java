@@ -1,9 +1,12 @@
 package org.qts.trader.engine;
 
-import com.bingbei.mts.common.entity.*;
-import com.bingbei.mts.common.gateway.TdGateway;
-import com.bingbei.mts.trade.strategy.Strategy;
-import com.bingbei.mts.trade.strategy.StrategySetting;
+import lombok.Data;
+import org.qts.common.entity.*;
+import org.qts.common.entity.acct.AcctDetail;
+import org.qts.common.entity.config.AcctConf;
+import org.qts.common.gateway.TdGateway;
+import org.qts.trader.strategy.Strategy;
+import org.qts.trader.strategy.StrategySetting;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Constructor;
@@ -14,34 +17,26 @@ import java.util.*;
  */
 @Slf4j
 public class TradeExecutor {
-    private Account account;
-    private EngineContext context;
+    private AcctConf acctConf;
+    private AcctDetail acctDetail;
+    private TradeEngine tradeEngine;
     private TdGateway tdGateway;
 
     //合约订阅列表
     private Map<String, Set<Strategy>> subsMap = new HashMap<>();
     //合约信息
     private Map<String, Contract> contractMap = new HashMap<>();
-    //tick信息
-    private Map<String, Tick> lastTickMap=new HashMap<>();
-    //策略信息
-    private Map<String, Strategy> stringStrategyMap=new HashMap<>();
-    //报单信息
-    private Map<String, Order> workingOrderMap = new HashMap<>();
-    //报单-策略 映射map
-    private Map<String,Strategy> strategyOrderMap =new HashMap<>();
-    //成交信息
-    private Map<String, Trade> tradeMap = new HashMap<>();
+
+
     //本地仓位(区别与账户仓位)
     //private Map<String, LocalPosition> localPositionMap = new HashMap<>();
 
-    public TradeExecutor(Account account, EngineContext engineContext){
-        this.account=account;
-        this.context=engineContext;
-        this.tdGateway=engineContext.getGatwayFactory().createTdGateway(account,this.context.getFastEventEngineService());
+    public TradeExecutor(AcctConf acctConf){
+        this.acctConf=acctConf;
+        this.acctDetail = new AcctDetail(acctConf);
+        this.tradeEngine = new TradeEngine(this.acctDetail);
 
     }
-
     /**
      * 订阅合约
      * @param symbol
@@ -53,7 +48,7 @@ public class TradeExecutor {
 
         Set<Strategy> set=subsMap.get(symbol);
         set.add(strategy);
-        this.context.getMdGateway().subscribe(symbol);
+        this.tradeEngine.getMdGateway().subscribe(symbol);
 
     }
 

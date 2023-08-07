@@ -4,5 +4,5 @@ import org.qts.common.entity.Message;
 
 public interface ServerListener {
     Message onRequest(Message req);
-    void onConnect(String acctId, Boolean connected);
+    void onStatus(String acctId, Boolean connected);
 }
