@@ -19,7 +19,6 @@
         <module>qts-admin</module>
         <module>qts-common</module>
         <module>qts-trader</module>
-        <module>qts-gateway</module>
     </modules>
 
     <properties>
@@ -128,11 +127,6 @@
             <dependency>
                 <groupId>org.qts</groupId>
                 <artifactId>qts-trader</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.qts</groupId>
-                <artifactId>qts-gateway</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

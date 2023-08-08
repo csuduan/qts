@@ -29,7 +29,8 @@ public class LoginInfo {
         this.appId = tmp2[1];
         this.authCode = tmp2[2];
     }
+
     public LoginInfo(AcctConf acctConf){
-        //TODO
+        this(acctConf.getId(),acctConf.getUser(),acctConf.getTdAddress());
     }
 }

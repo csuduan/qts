@@ -64,7 +64,7 @@ public class UdsClient {
         }
     }
 
-    public Message.Message request(Message.Message req){
+    public Message request(Message req){
         try {
             return writer.writeAndSync(channel, req, 5000);
         }catch (Exception ex){

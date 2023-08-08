@@ -52,4 +52,6 @@ public interface MdGateway {
      * 响应连接事件
      */
     void onConnect();
+
+    boolean isConnected();
 }

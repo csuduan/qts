@@ -23,10 +23,104 @@
            <groupId>org.qts</groupId>
            <artifactId>qts-common</artifactId>
        </dependency>
+
        <dependency>
-           <groupId>org.qts</groupId>
-           <artifactId>qts-gateway</artifactId>
+           <groupId>utapi</groupId>
+           <artifactId>utapi</artifactId>
+           <version>1.0</version>
+           <scope>system</scope>
+           <systemPath>${project.basedir}/../lib/OST/utapi.jar</systemPath>
        </dependency>
+
+       <dependency>
+           <groupId>ctp</groupId>
+           <artifactId>trader-api</artifactId>
+           <version>1.0</version>
+           <scope>system</scope>
+           <systemPath>${project.basedir}/../lib/CTP_6.3.15/linux/thosttraderapi.jar</systemPath>
+       </dependency>
+
+       <dependency>
+           <groupId>ctp</groupId>
+           <artifactId>md-api</artifactId>
+           <version>1.0</version>
+           <scope>system</scope>
+           <systemPath>${project.basedir}/../lib/CTP_6.3.15/linux/thostmduserapi.jar</systemPath>
+       </dependency>
+
    </dependencies>
+
+    <build>
+        <finalName>qts-trader</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <layout>ZIP</layout>
+                    <!--                    <includeSystemScope>true</includeSystemScope>-->
+                    <includes>
+                        <include>
+                            <groupId>org.qts</groupId>
+                            <artifactId>fts-common</artifactId>
+                        </include>
+                    </includes>
+
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <!-- 把构建根目录的lib文件夹配置成ClassPath路径 -->
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                        </manifest>
+                        <manifestEntries>
+                            <Class-Path>./</Class-Path>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!--  打包所有依赖到指定的libs目录下（第一次需要，拿到所有依赖之后注释即可）-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>cdn</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <type>jar</type>
+                            <includeTypes>jar</includeTypes>
+                            <includeScope>runtime</includeScope>
+                            <!--依赖包的输出路径-->
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                            <excludeGroupIds>
+                                <!-- 只排除业务模块相关的jar包，多个用英文逗号分割-->
+                                org.qts
+                            </excludeGroupIds>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--打包时候跳过测试（缩短时间）-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.4.2</version>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

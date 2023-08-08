@@ -1,7 +1,7 @@
 package org.qts.common.entity.msg;
 
 import lombok.Data;
-import org.qts.common.model.acct.AcctConf;
+import org.qts.common.entity.config.AcctConf;
 
 import java.util.List;
 

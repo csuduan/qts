@@ -1,6 +1,5 @@
 package org.qts.trader.strategy;
 
-import com.bingbei.mts.common.entity.SubscribeReq;
 import lombok.Data;
 
 import java.io.Serializable;

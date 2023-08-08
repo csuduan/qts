@@ -7,11 +7,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class SyncWriteFuture implements WriteFuture<Message.Message> {
+public class SyncWriteFuture implements WriteFuture<Message> {
     private CountDownLatch latch = new CountDownLatch(1);
     private final long begin = System.currentTimeMillis();
     private long timeout;
-    private Message.Message response;
+    private Message response;
     private final String requestId;
     private boolean writeResult;
     private Throwable cause;
@@ -49,11 +49,11 @@ public class SyncWriteFuture implements WriteFuture<Message.Message> {
         return requestId;
     }
 
-    public Message.Message response() {
+    public Message response() {
         return response;
     }
 
-    public void setResponse(Message.Message response) {
+    public void setResponse(Message response) {
         this.response = response;
         latch.countDown();
     }
@@ -70,12 +70,12 @@ public class SyncWriteFuture implements WriteFuture<Message.Message> {
         return false;
     }
 
-    public Message.Message get() throws InterruptedException, ExecutionException {
+    public Message get() throws InterruptedException, ExecutionException {
         latch.wait();
         return response;
     }
 
-    public Message.Message get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public Message get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         if (latch.await(timeout, unit)) {
             return response;
         }

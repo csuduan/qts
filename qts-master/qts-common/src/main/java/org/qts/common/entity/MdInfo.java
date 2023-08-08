@@ -16,5 +16,4 @@ public class MdInfo {
         this.type=address.split("\\|")[0];
         this.mdAddress=address.split("\\|")[1];
     }
-
 }

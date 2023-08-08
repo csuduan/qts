@@ -62,7 +62,7 @@ public class TcpClient {
         }
     }
 
-    public Message.Message request(Message.Message req){
+    public Message request(Message req){
         try {
             log.info("cliet[{}] request:{}",name,req);
             return writer.writeAndSync(channel, req, 5000);

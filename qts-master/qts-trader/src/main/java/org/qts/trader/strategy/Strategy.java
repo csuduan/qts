@@ -1,6 +1,6 @@
 package org.qts.trader.strategy;
 
-import com.bingbei.mts.common.entity.*;
+import org.qts.common.entity.trade.*;
 
 import java.util.Map;
 
@@ -65,7 +65,7 @@ public interface Strategy {
 	 * 
 	 * @return
 	 */
-	Map<String, LocalPosition> getPositionMap();
+	Map<String, Position> getPositionMap();
 
 
 	/**

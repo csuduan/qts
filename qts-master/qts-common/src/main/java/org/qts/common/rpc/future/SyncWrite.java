@@ -12,7 +12,7 @@ import java.util.concurrent.TimeoutException;
 
 public class SyncWrite {
 
-    public Message.Message writeAndSync(final Channel channel, final Message.Message request, final long timeout) throws Exception {
+    public Message writeAndSync(final Channel channel, final Message request, final long timeout) throws Exception {
 
         if (channel == null) {
             throw new NullPointerException("channel");
@@ -30,16 +30,16 @@ public class SyncWrite {
         //String requestId = SequenceUtil.getLocalSerialNo(16);
         //request.setRequestId(requestId);
 
-        WriteFuture<Message.Message> future = new SyncWriteFuture(request.getRequestId());
+        WriteFuture<Message> future = new SyncWriteFuture(request.getRequestId());
         SyncWriteMap.syncKey.put(request.getRequestId(), future);
 
-        Message.Message response = doWriteAndSync(channel, request, timeout, future);
+        Message response = doWriteAndSync(channel, request, timeout, future);
 
         SyncWriteMap.syncKey.remove(request.getRequestId());
         return response;
     }
 
-    private Message.Message doWriteAndSync(final Channel channel, final Message.Message request, final long timeout, final WriteFuture<Message.Message> writeFuture) throws Exception {
+    private Message doWriteAndSync(final Channel channel, final Message request, final long timeout, final WriteFuture<Message> writeFuture) throws Exception {
 
         String msg= JSON.toJSONString(request);
         channel.writeAndFlush(msg).addListener(new ChannelFutureListener() {
@@ -53,7 +53,7 @@ public class SyncWrite {
             }
         });
 
-        Message.Message response = writeFuture.get(timeout, TimeUnit.MILLISECONDS);
+        Message response = writeFuture.get(timeout, TimeUnit.MILLISECONDS);
         if (response == null) {
             if (writeFuture.isTimeout()) {
                 throw new TimeoutException();

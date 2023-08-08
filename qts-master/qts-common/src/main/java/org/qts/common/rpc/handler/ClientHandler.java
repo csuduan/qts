@@ -5,8 +5,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.qts.common.entity.Enums;
 import org.qts.common.entity.Message;
-import org.qts.common.model.Enums;
 import org.qts.common.rpc.listener.ClientListener;
 import org.qts.common.rpc.future.SyncWriteFuture;
 import org.qts.common.rpc.future.SyncWriteMap;
@@ -37,7 +37,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         log.info("{} Channel connected......", id);
         threadPool.submit(()->{
             //发送PING
-            Message.Message pingMsg=new Message.Message(Enums.MSG_TYPE.PING,null);
+            Message pingMsg=new Message(Enums.MSG_TYPE.PING,null);
             String ping=JSON.toJSONString(pingMsg);
             ctx.channel().writeAndFlush(ping);
             //状态处理
@@ -62,7 +62,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         log.info("收到消息: {}", msg.toString());
-        Message.Message response = JSON.parseObject(msg.toString(), Message.Message.class);
+        Message response = JSON.parseObject(msg.toString(), Message.class);
         response.setSuccess(true);
         if(StringUtils.hasLength(response.getRequestId())) {
             String requestId = response.getRequestId();

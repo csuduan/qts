@@ -18,7 +18,7 @@ public interface WriteFuture<T> extends Future<T> {
 
     T response();
 
-    void setResponse(Message.Message response);
+    void setResponse(Message response);
 
     boolean isTimeout();
 

@@ -1,6 +1,5 @@
 package org.qts.common.utils;
 
-import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.FileCopyUtils;
 

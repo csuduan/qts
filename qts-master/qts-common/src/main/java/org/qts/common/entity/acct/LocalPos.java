@@ -3,6 +3,7 @@ package org.qts.common.entity.acct;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.qts.common.entity.Constant;
+import org.qts.common.entity.trade.Position;
 import org.qts.common.entity.trade.Order;
 import org.qts.common.entity.trade.Trade;
 import org.qts.common.entity.Enums;
@@ -255,7 +256,7 @@ public class LocalPos implements Serializable {
 	 * 
 	 * @param position
 	 */
-	public void updatePosition(AcctPos position) {
+	public void updatePosition(Position position) {
 		if (Constant.DIRECTION_LONG.equals(position.getDirection())) {
 			longPos = position.getPosition();
 			longYd = position.getYdPosition();

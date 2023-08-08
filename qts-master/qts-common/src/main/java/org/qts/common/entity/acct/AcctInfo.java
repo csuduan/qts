@@ -1,12 +1,18 @@
 package org.qts.common.entity.acct;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.qts.common.entity.LoginInfo;
 import org.qts.common.entity.config.AcctConf;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * 账户基本信息
+ */
 @Data
+@NoArgsConstructor
 public class AcctInfo {
     private AcctConf acctConf;
     private String id;
@@ -24,13 +30,15 @@ public class AcctInfo {
     private Boolean pauseClose = false;
 
     //资金信息
-    private BigDecimal balance=BigDecimal.ZERO;
-    private BigDecimal mv=BigDecimal.ZERO;
-    private BigDecimal balanceProfit=BigDecimal.ZERO;
-    private BigDecimal closeProfit=BigDecimal.ZERO;
-    private BigDecimal margin=BigDecimal.ZERO;//保证金
-    private BigDecimal marginRate=BigDecimal.ZERO;//保证金占比
-    private BigDecimal fee=BigDecimal.ZERO;
+    private Double available ;
+    private Double balance;
+    private Double preBalance;
+    private Double mv;
+    private Double balanceProfit;
+    private Double closeProfit;
+    private Double margin;//保证金
+    private Double marginRate;//保证金占比
+    private Double commission;
 
     private LocalDate updateTimestamp;//更新时间
 

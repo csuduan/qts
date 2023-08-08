@@ -98,7 +98,7 @@
     </dependencies>
 
     <build>
-        <finalName>fts-master</finalName>
+        <finalName>qts-admin</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
