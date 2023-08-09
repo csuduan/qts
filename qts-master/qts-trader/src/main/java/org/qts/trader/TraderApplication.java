@@ -19,9 +19,12 @@ public class TraderApplication implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         log.info("qts trader running...");
-        //加载账户配置
-        AcctConf acctConf=new AcctConf();
-
         //启动账户执行器
+
+        //启动rpc客户端
+
+        while (true)
+            Thread.sleep(5000);
+        //log.info("qts trader stop...");
     }
 }

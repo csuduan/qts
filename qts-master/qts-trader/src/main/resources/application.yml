@@ -1,0 +1,19 @@
+logging:
+  config: classpath:log4j2.xml
+
+fastEventEngine:
+  WaitStrategy: SleepingWaitStrategy
+chronicleQueueBasePath: D:\\redtorch\\ChronicleQueue
+
+spring:
+  application:
+    name: qts-trader
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:/opt/dev/mts/mts.db
+
+mybatis:
+  mapper-locations: classpath:mapping/*.xml
+
+
+

@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping(value = "/v1/trade")
 @Slf4j
 public class TradeController {
-    @Autowired
-    private TradeManager tradeEngineManager;
+    //@Autowired
+    //private TradeManager tradeEngineManager;
 
 //    @ApiOperation(value = "交易操作")
 //    @PostMapping(value = "/operate")

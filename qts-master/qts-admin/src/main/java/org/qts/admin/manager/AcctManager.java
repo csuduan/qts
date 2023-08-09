@@ -2,7 +2,7 @@ package org.qts.admin.manager;
 
 import lombok.extern.slf4j.Slf4j;
 import org.qts.admin.core.AcctInstance;
-import org.qts.admin.dao.ConfMapper;
+import org.qts.common.dao.ConfMapper;
 import org.qts.admin.exception.BizException;
 import org.qts.admin.service.WebSocketService;
 import org.qts.common.entity.Enums;
@@ -15,8 +15,6 @@ import org.qts.common.rpc.tcp.server.ServerListener;
 import org.qts.common.rpc.tcp.server.TcpServer;
 import org.qts.common.utils.ProcessUtil;
 import org.qts.common.utils.SequenceUtil;
-import org.qts.common.utils.SpringUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;

@@ -1,6 +1,7 @@
 package org.qts.trader.core;
 
 import com.alibaba.fastjson.JSON;
+import org.qts.common.dao.AcctMapper;
 import org.qts.common.disruptor.FastEventService;
 import org.qts.common.disruptor.event.FastEvent;
 import org.qts.common.disruptor.event.FastEventHandlerAbstract;
@@ -18,7 +19,11 @@ import org.qts.trader.gateway.GatwayFactory;
 import org.qts.trader.strategy.Strategy;
 import org.qts.trader.strategy.StrategySetting;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.lang.reflect.Constructor;
 import java.util.*;
 
@@ -26,7 +31,14 @@ import java.util.*;
  * 账户执行器
  */
 @Slf4j
+@Component
 public class AcctExecutor extends FastEventHandlerAbstract {
+    @Value("${acctId}")
+    private String acctId;
+    @Autowired
+    private AcctMapper acctMapper;
+
+
     private AcctInfo acctInfo;
     private AcctDetail acctDetail;
     private FastEventService fastEventService;
@@ -46,14 +58,14 @@ public class AcctExecutor extends FastEventHandlerAbstract {
 
 
 
-
     //本地仓位(区别与账户仓位)
     //private Map<String, LocalPosition> localPositionMap = new HashMap<>();
-
     private Map<String, BarGenerator> barGeneratorMap=new HashMap<>();
 
 
-    public AcctExecutor(AcctConf acctConf){
+    @PostConstruct
+    public void init(){
+        AcctConf acctConf=acctMapper.queryAcctConf(acctId);
         this.acctInfo =new AcctInfo(acctConf);
         this.acctDetail = new AcctDetail(acctConf);
 

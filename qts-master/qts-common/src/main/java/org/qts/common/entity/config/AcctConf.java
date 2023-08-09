@@ -5,8 +5,8 @@ import lombok.Data;
 @Data
 public class AcctConf {
     private String id;
-    private String group;
     private String name;
+    private String group;
     private String user;
     private String pwd;
     private String tdAddress;
@@ -14,5 +14,5 @@ public class AcctConf {
     private String mdType;
     private String mdAddress;
     private String enable;
-
+    private String subList;
 }
