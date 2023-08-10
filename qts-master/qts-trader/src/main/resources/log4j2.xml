@@ -6,7 +6,7 @@
         <property name="LOG_PATTERN" value="%date{HH:mm:ss.SSS} [%thread] [%-5level] [%logger{36} %4L] - %msg%n" />
         <!-- 定义日志存储的路径 -->
         <property name="FILE_PATH" value="/opt/logs/qts" />
-        <property name="FILE_NAME" value="qts-trader.log" />
+        <property name="FILE_NAME" value="qts-trader-${sys:acctId}.log" />
     </Properties>
 
     <appenders>

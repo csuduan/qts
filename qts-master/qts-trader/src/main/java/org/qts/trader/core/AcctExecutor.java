@@ -11,20 +11,17 @@ import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.acct.AcctInfo;
 import org.qts.common.entity.config.AcctConf;
 import org.qts.common.entity.trade.*;
-import org.qts.common.gateway.MdGateway;
-import org.qts.common.gateway.TdGateway;
+import org.qts.trader.gateway.MdGateway;
+import org.qts.trader.gateway.TdGateway;
 import org.qts.common.utils.BarGenerator;
 import org.qts.common.utils.SpringUtils;
 import org.qts.trader.gateway.GatwayFactory;
-import org.qts.trader.strategy.Strategy;
-import org.qts.trader.strategy.StrategySetting;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.lang.reflect.Constructor;
 import java.util.*;
 
 /**
@@ -66,6 +63,7 @@ public class AcctExecutor extends FastEventHandlerAbstract {
     @PostConstruct
     public void init(){
         AcctConf acctConf=acctMapper.queryAcctConf(acctId);
+        log.info("账户配置:{}",acctConf);
         this.acctInfo =new AcctInfo(acctConf);
         this.acctDetail = new AcctDetail(acctConf);
 

@@ -19,6 +19,7 @@
         <module>qts-admin</module>
         <module>qts-common</module>
         <module>qts-trader</module>
+        <module>qts-test</module>
     </modules>
 
     <properties>

@@ -8,7 +8,7 @@ public class LoginInfo {
     private String tdType;
     private String address;
     private String brokerId;
-    private String accoutId;
+    private String acctId;
 
     private String userId;
     private String useName;
@@ -17,7 +17,7 @@ public class LoginInfo {
     private String appId;
 
     public LoginInfo(String accoundId, String userInfo, String tdAddress) {
-        this.accoutId = accoundId;
+        this.acctId = accoundId;
         var tmp = userInfo.split("\\|");
         this.userId = tmp[0];
         this.password = tmp[1];
@@ -31,6 +31,14 @@ public class LoginInfo {
     }
 
     public LoginInfo(AcctConf acctConf){
-        this(acctConf.getId(),acctConf.getUser(),acctConf.getTdAddress());
+        this.acctId = acctConf.getId();
+        this.userId = acctConf.getUser();
+        this.password = acctConf.getPwd();
+        this.tdType = acctConf.getTdType();
+        var tmp1 = acctConf.getTdAddress().split("\\|");
+        this.address = tmp1[0];
+        this.brokerId = tmp1[1];
+        this.appId = tmp1[2];
+        this.authCode = tmp1[3];
     }
 }

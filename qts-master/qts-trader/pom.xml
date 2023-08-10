@@ -29,7 +29,7 @@
            <artifactId>utapi</artifactId>
            <version>1.0</version>
            <scope>system</scope>
-           <systemPath>${project.basedir}/../lib/OST/utapi.jar</systemPath>
+           <systemPath>${project.basedir}/../lib/ost/utapi.jar</systemPath>
        </dependency>
 
        <dependency>
@@ -37,7 +37,7 @@
            <artifactId>trader-api</artifactId>
            <version>1.0</version>
            <scope>system</scope>
-           <systemPath>${project.basedir}/../lib/CTP_6.3.15/linux/thosttraderapi.jar</systemPath>
+           <systemPath>${project.basedir}/../lib/ctp/thosttraderapi.jar</systemPath>
        </dependency>
 
        <dependency>
@@ -45,7 +45,7 @@
            <artifactId>md-api</artifactId>
            <version>1.0</version>
            <scope>system</scope>
-           <systemPath>${project.basedir}/../lib/CTP_6.3.15/linux/thostmduserapi.jar</systemPath>
+           <systemPath>${project.basedir}/../lib/ctp/thostmduserapi.jar</systemPath>
        </dependency>
 
    </dependencies>
