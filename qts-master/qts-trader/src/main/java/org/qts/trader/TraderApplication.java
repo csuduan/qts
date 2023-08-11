@@ -8,6 +8,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
+import java.util.concurrent.CountDownLatch;
+
 @SpringBootApplication
 @ComponentScan({"org.qts.common","org.qts.trader"})
 @Slf4j
@@ -23,8 +25,11 @@ public class TraderApplication implements CommandLineRunner {
 
         //启动rpc客户端
 
-        while (true)
-            Thread.sleep(5000);
+
+        // 注册钩子函数 当程序收到"kill"信号时 执行countDown
+        CountDownLatch countDown = new CountDownLatch(1);
+        Runtime.getRuntime().addShutdownHook(new Thread(countDown::countDown));
+        countDown.await();
         //log.info("qts trader stop...");
     }
 }
