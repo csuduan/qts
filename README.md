@@ -19,17 +19,26 @@ C++版交易程序，低延迟(tick2trade<5us)
 
 # 部署启动
 1. 环境准备
-* 拷贝mts.sqlite到/opt/mts/data
-* 拷贝依赖lib到/opt/mts/lib
+* 服务器安装jdk17
+* 拷贝qts.sqlite到服务器中/opt/dev/qts
+* 拷贝依赖lib到/opt/dev/qts/qts-master
+* 设置环境变量  
+```
+export LD_LIBRARY_PATH=/opt/dev/qts/qts-master/lib/ctp:$LD_LIBRARY_PATH
+```
 
 2. 启动管理器
-java -Djava.library.path=/tmp/mts/jctp/lib mts-admin.jar
+java qts-admin.jar
 
-3. 启动交易核心
 
-4. 启动WEB
+3. 启动WEB
 * 执行命令 npm run serve
 * 浏览器访问http://localhost:8080/
+
+
+4. 启动交易核心
+* 手动启动  java -DacctId=xxx -jar qts-trader.jar  
+* qts-admin启动
 
 
 # 参考
@@ -49,6 +58,6 @@ jar cf jctp-6.3.19.jar xyz
 * redtorch
   https://github.com/sun0x00/redtorch
 * 支持的网关类型
-  CTP15  CTP6.3.15
-  CTP19  CTP6.3.19
+  CTP
   OST
+  TORA
