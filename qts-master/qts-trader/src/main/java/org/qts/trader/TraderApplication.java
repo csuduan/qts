@@ -1,8 +1,6 @@
 package org.qts.trader;
 
 import lombok.extern.slf4j.Slf4j;
-import org.mybatis.spring.annotation.MapperScan;
-import org.qts.common.entity.config.AcctConf;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -21,15 +19,10 @@ public class TraderApplication implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         log.info("qts trader running...");
-        //启动账户执行器
-
-        //启动rpc客户端
-
-
         // 注册钩子函数 当程序收到"kill"信号时 执行countDown
         CountDownLatch countDown = new CountDownLatch(1);
         Runtime.getRuntime().addShutdownHook(new Thread(countDown::countDown));
         countDown.await();
-        //log.info("qts trader stop...");
+        log.info("qts trader stop...");
     }
 }

@@ -1,6 +1,5 @@
 package org.qts.trader.gateway.tora;
 
-import org.qts.common.disruptor.FastEventService;
 import org.qts.common.entity.Contract;
 import org.qts.common.entity.LoginInfo;
 import org.qts.common.entity.acct.AcctInfo;
@@ -10,7 +9,7 @@ import org.qts.trader.gateway.TdGateway;
 
 public class ToraTdGateway implements TdGateway {
 
-    public ToraTdGateway(FastEventService fastEventService,AcctInfo acctInfo){
+    public ToraTdGateway(AcctInfo acctInfo){
 
     }
     @Override

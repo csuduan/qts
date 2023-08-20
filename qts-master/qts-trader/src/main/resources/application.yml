@@ -1,7 +1,7 @@
 logging:
   config: classpath:log4j2.xml
 
-fastEventEngine:
+fastQueue:
   WaitStrategy: SleepingWaitStrategy
 chronicleQueueBasePath: D:\\redtorch\\ChronicleQueue
 

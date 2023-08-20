@@ -2,7 +2,7 @@ package org.qts.admin.manager;
 
 import lombok.extern.slf4j.Slf4j;
 import org.qts.admin.core.AcctInstance;
-import org.qts.common.dao.ConfMapper;
+import org.qts.common.dao.AcctMapper;
 import org.qts.admin.exception.BizException;
 import org.qts.admin.service.WebSocketService;
 import org.qts.common.entity.Enums;
@@ -33,7 +33,7 @@ import java.util.Map;
 @Slf4j
 public class AcctManager implements ServerListener {
     @Autowired
-    private ConfMapper confMapper;
+    private AcctMapper acctMapper;
     @Autowired
     private WebSocketService webSocketService;
 
@@ -56,13 +56,16 @@ public class AcctManager implements ServerListener {
         tcpServer.start(port,this);
 
         //初始化
-        var list =confMapper.getAcctConf();
+        var list =acctMapper.getAcctConf();
         for(AcctConf acctConf :list){
             acctConfMap.put(acctConf.getId(),acctConf);
             this.startAcctInstance(acctConf);
         }
     }
 
+    public List<AcctConf> getAcctConfs(){
+        return this.acctConfMap.values().stream().toList();
+    }
     public List<AcctInfo> getAcctInfos(){
         return acctInstanceMap.values().stream().map(x->(AcctInfo)x.getAcctDetail()).toList();
     }

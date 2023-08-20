@@ -86,11 +86,18 @@ public interface Enums {
         }
     };
 
-    enum ACCT_OPERATE {
+    enum ACCT_CMD {
         CONNECT,
         DISCONNECT,
         PAUSE_TRADE,
         RESUME_TRADE,
+        ORDER,
+        CANCEL,
+        QRY_TRADE,
+        QRY_ORDER,
+        QRY_POSITION,
+        QRY_ACCT,
+
     }
     enum MSG_TYPE {
         RETURN,

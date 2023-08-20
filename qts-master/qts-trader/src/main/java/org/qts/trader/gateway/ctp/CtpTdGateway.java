@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import ctp.thosttraderapi.*;
 import lombok.Synchronized;
 import org.apache.commons.io.FileUtils;
-import org.qts.common.disruptor.FastEventService;
+import org.qts.common.disruptor.FastQueue;
 import org.qts.common.disruptor.event.FastEvent;
 import org.qts.common.entity.Constant;
 import org.qts.common.entity.Contract;
@@ -33,7 +33,6 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 	static {
 		try {
 			System.loadLibrary("thosttraderapi_wrap");
-			log.info("加载库文件成功!");
 		} catch (Exception e) {
 			log.error("加载库失败!", e);
 		}
@@ -42,9 +41,8 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 	private String tdName;
 	private AcctInfo acctInfo;
 
-	//private HashMap<String,Contract> contractHashMap=new HashMap<>();
 	protected LoginInfo loginInfo;
-	protected FastEventService fastEventService;
+	protected FastQueue fastQueue;
 
 	private CThostFtdcTraderApi tdApi;
 
@@ -63,9 +61,9 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 	private Timer timer = new Timer();
 
 
-	public CtpTdGateway(FastEventService fastEventEngineService, AcctInfo acctInfo) {
+	public CtpTdGateway(AcctInfo acctInfo) {
 		this.acctInfo = acctInfo;
-		this.fastEventService = fastEventEngineService;
+		this.fastQueue = acctInfo.getFastQueue();
 		this.loginInfo= new LoginInfo(acctInfo.getAcctConf());
 		this.tdName = loginInfo.getUserId();
 		log.info("交易接口{}开始初始化",loginInfo.getAcctId());
@@ -426,7 +424,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 			Order order=this.orderMap.get(orderRef);
 			order.setStatus(Enums.ORDER_STATUS.ERROR);
 			order.setStatusMsg(pRspInfo.getErrorMsg());
-			this.fastEventService.emitEvent(FastEvent.EVENT_ORDER,order);
+			this.fastQueue.emitEvent(FastEvent.EVENT_ORDER,order);
 			// 发送委托事件
 			log.error("{}交易接口发单错误回报(柜台)! ErrorID:{},ErrorMsg:{}", tdName, pRspInfo.getErrorID(),
 					pRspInfo.getErrorMsg());
@@ -676,7 +674,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 					}
 				}
 				// 发送持仓事件
-				this.fastEventService.emitEvent(FastEvent.EVENT_POSITION,tmpPosition);
+				this.fastQueue.emitEvent(FastEvent.EVENT_POSITION,tmpPosition);
 
 			}
 
@@ -706,7 +704,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 				+ pTradingAccount.getDeposit() + pTradingAccount.getCloseProfit() + pTradingAccount.getPositionProfit()
 				+ pTradingAccount.getCashIn() - pTradingAccount.getCommission();
 		account.setBalance(balance);
-		this.fastEventService.emitEvent(FastEvent.EVENT_ACCT,account);
+		this.fastQueue.emitEvent(FastEvent.EVENT_ACCT,account);
 
 		log.info("{} 账户查询完毕,Avaliable:{},Balance:{}",tdName,account.getAvailable(),account.getBalance());
 		try {
@@ -766,7 +764,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 			}
 		}
 
-		this.fastEventService.emitEvent(FastEvent.EVENT_CONTRACT,contract);
+		this.fastQueue.emitEvent(FastEvent.EVENT_CONTRACT,contract);
 
 		if (bIsLast) {
 			log.info("{} 交易接口合约信息获取完成!共计{}条", tdName,contractMap.size());
@@ -837,7 +835,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 		order.setStatus(CtpConstant.statusMapReverse.get(pOrder.getOrderStatus()));
 		order.setTradedVolume(pOrder.getVolumeTotalOriginal());
 		order.setUpdateTime(pOrder.getUpdateTime());
-		fastEventService.emitEvent(FastEvent.EVENT_ORDER,order);
+		fastQueue.emitEvent(FastEvent.EVENT_ORDER,order);
 	}
 
 	// 成交回报
@@ -858,7 +856,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 		trade.setVolume(pTrade.getVolume());
 		trade.setTradeDate(pTrade.getTradeDate());
 		trade.setTradeTime(pTrade.getTradeTime());
-		fastEventService.emitEvent(FastEvent.EVENT_TRADE,trade);
+		fastQueue.emitEvent(FastEvent.EVENT_TRADE,trade);
 	}
 
 	// 发单错误回报（交易所）
@@ -868,7 +866,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 			Order order=this.orderMap.get(orderRef);
 			order.setStatus(Enums.ORDER_STATUS.ERROR);
 			order.setStatusMsg(pRspInfo.getErrorMsg());
-			fastEventService.emitEvent(FastEvent.EVENT_ORDER,order);
+			fastQueue.emitEvent(FastEvent.EVENT_ORDER,order);
 			// 发送委托事件
 			log.error("{}交易接口发单错误回报（交易所）! ErrorID:{},ErrorMsg:{}", tdName, pRspInfo.getErrorID(),
 					pRspInfo.getErrorMsg());

@@ -1,7 +1,6 @@
 package org.qts.admin.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.qts.common.dao.ConfMapper;
 import org.qts.admin.manager.AcctManager;
 import org.qts.common.entity.Enums;
 import org.qts.common.entity.Message;
@@ -17,8 +16,6 @@ import java.util.List;
 @Slf4j
 public class TradeService  {
 
-    @Autowired
-    private ConfMapper confMapper;
     @Autowired
     private AcctManager acctManager;
 

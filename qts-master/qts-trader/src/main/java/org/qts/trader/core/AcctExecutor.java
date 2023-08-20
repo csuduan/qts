@@ -2,10 +2,9 @@ package org.qts.trader.core;
 
 import com.alibaba.fastjson.JSON;
 import org.qts.common.dao.AcctMapper;
-import org.qts.common.disruptor.FastEventService;
+import org.qts.common.disruptor.FastQueue;
 import org.qts.common.disruptor.event.FastEvent;
 import org.qts.common.disruptor.event.FastEventHandlerAbstract;
-import org.qts.common.disruptor.impl.FastEventServiceImpl;
 import org.qts.common.entity.*;
 import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.acct.AcctInfo;
@@ -35,10 +34,7 @@ public class AcctExecutor extends FastEventHandlerAbstract {
     @Autowired
     private AcctMapper acctMapper;
 
-
     private AcctInfo acctInfo;
-    private AcctDetail acctDetail;
-    private FastEventService fastEventService;
     private MdGateway mdGateway;
     private TdGateway tdGateway;
     private StrategyEngine strategyEngine;
@@ -52,11 +48,6 @@ public class AcctExecutor extends FastEventHandlerAbstract {
     //报单列表(orderRef-order)
     private Map<String, Order> workingOrderMap = new HashMap<>();
 
-
-
-
-    //本地仓位(区别与账户仓位)
-    //private Map<String, LocalPosition> localPositionMap = new HashMap<>();
     private Map<String, BarGenerator> barGeneratorMap=new HashMap<>();
 
 
@@ -65,12 +56,7 @@ public class AcctExecutor extends FastEventHandlerAbstract {
         AcctConf acctConf=acctMapper.queryAcctConf(acctId);
         log.info("账户配置:{}",acctConf);
         this.acctInfo =new AcctInfo(acctConf);
-        this.acctDetail = new AcctDetail(acctConf);
-
-
-        String waitStrategy= SpringUtils.getContext().getEnvironment().getProperty("fastEventEngine.WaitStrategy");
-        this.fastEventService =new FastEventServiceImpl(waitStrategy);
-        this.fastEventService.addHandler(this);
+        this.acctInfo.getFastQueue().addHandler(this);
         subscribeEvent(FastEvent.EVENT_TICK);
         subscribeEvent(FastEvent.EVENT_TRADE);
         subscribeEvent(FastEvent.EVENT_ORDER);
@@ -80,14 +66,20 @@ public class AcctExecutor extends FastEventHandlerAbstract {
         subscribeEvent(FastEvent.EVENT_ERROR);
         subscribeEvent(FastEvent.EVENT_GATEWAY);
 
-        this.tdGateway= GatwayFactory.createTdGateway(acctInfo,this.fastEventService);
-        this.mdGateway= GatwayFactory.createMdGateway(acctInfo,this.fastEventService);
+        this.tdGateway= GatwayFactory.createTdGateway(acctInfo);
+        this.mdGateway= GatwayFactory.createMdGateway(acctInfo);
 
         this.strategyEngine =new StrategyEngine();
 
     }
 
-    public void start(){
+    public void close(){
+        try {
+            this.tdGateway.close();
+            this.mdGateway.close();
+        }catch (Exception ex){
+            log.error("acctExecutor close...");
+        }
 
     }
 
@@ -150,10 +142,6 @@ public class AcctExecutor extends FastEventHandlerAbstract {
             barGenerator = barGeneratorMap.get(tick.getSymbol());
         //更新bar
         barGenerator.updateTick(tick);
-
-
-
-
     }
     public void onBar(Bar bar){
 
@@ -180,7 +168,7 @@ public class AcctExecutor extends FastEventHandlerAbstract {
 
     }
     public void onAccoPosition(Position accoPosition){
-        this.acctDetail.getPositions().put(accoPosition.getId(), accoPosition);
+        this.acctInfo.getPositions().put(accoPosition.getId(), accoPosition);
     }
 
     @Override

@@ -1,4 +1,4 @@
-package org.qts.common.disruptor.impl;
+package org.qts.common.disruptor;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -6,7 +6,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import lombok.extern.slf4j.Slf4j;
-import org.qts.common.disruptor.FastEventService;
 import org.qts.common.disruptor.event.FastEvent;
 import org.qts.common.disruptor.event.FastEventHandler;
 import org.qts.common.disruptor.event.FastEventFactory;
@@ -26,7 +25,7 @@ import com.lmax.disruptor.util.DaemonThreadFactory;
 
 //@PropertySource(value = { "classpath:rt-core.properties" })
 @Slf4j
-public class FastEventServiceImpl implements FastEventService {
+public class FastQueue {
 	private static ExecutorService executor = Executors.newCachedThreadPool(DaemonThreadFactory.INSTANCE);
 
 	private final Map<EventHandler<FastEvent>, BatchEventProcessor<FastEvent>> handlerProcessorMap = new ConcurrentHashMap<>();
@@ -38,7 +37,7 @@ public class FastEventServiceImpl implements FastEventService {
 	//@Value("${engine.event.FastEventEngine.WaitStrategy}")
 	//private String waitStrategy;
 
-	public FastEventServiceImpl(String waitStrategy) {
+	public FastQueue(String waitStrategy) {
 		log.info("fastEventEngine start,{}",waitStrategy);
 		if ("BusySpinWaitStrategy".equals(waitStrategy)) {
 			disruptor = new Disruptor<FastEvent>(new FastEventFactory(), 65536, DaemonThreadFactory.INSTANCE,
@@ -56,7 +55,6 @@ public class FastEventServiceImpl implements FastEventService {
 		ringBuffer = disruptor.start();
 	}
 
-	@Override
 	public synchronized BatchEventProcessor<FastEvent> addHandler(FastEventHandler handler) {
 		BatchEventProcessor<FastEvent> processor;
 		processor = new BatchEventProcessor<FastEvent>(ringBuffer, ringBuffer.newBarrier(), handler);
@@ -66,7 +64,6 @@ public class FastEventServiceImpl implements FastEventService {
 		return processor;
 	}
 
-	@Override
 	public void removeHandler(FastEventHandler handler) {
 		if (handlerProcessorMap.containsKey(handler)) {
 			BatchEventProcessor<FastEvent> processor = handlerProcessorMap.get(handler);
@@ -89,11 +86,9 @@ public class FastEventServiceImpl implements FastEventService {
 
 	}
 
-	@Override
 	public RingBuffer<FastEvent> getRingBuffer() {
 		return ringBuffer;
 	}
-	@Override
 	public  void  emitEvent(String eventType,Object data){
 		RingBuffer<FastEvent> ringBuffer = getRingBuffer();
 		long sequence = ringBuffer.next(); // Grab the next sequence

@@ -1,7 +1,5 @@
 package org.qts.trader.gateway.tora;
 
-import org.qts.common.disruptor.FastEventService;
-import org.qts.common.entity.MdInfo;
 import org.qts.common.entity.acct.AcctInfo;
 import org.qts.trader.gateway.MdGateway;
 
@@ -10,7 +8,7 @@ import java.util.List;
 public class ToraMdGateway implements MdGateway {
 
 
-    public ToraMdGateway(FastEventService fastEventEngineService, AcctInfo acctInfo) {
+    public ToraMdGateway(AcctInfo acctInfo) {
 
     }
 

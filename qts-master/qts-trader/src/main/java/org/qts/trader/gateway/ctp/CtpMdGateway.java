@@ -5,7 +5,7 @@ import ctp.thostmduserapi.*;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
-import org.qts.common.disruptor.FastEventService;
+import org.qts.common.disruptor.FastQueue;
 import org.qts.common.disruptor.event.FastEvent;
 import org.qts.common.entity.MdInfo;
 import org.qts.common.entity.acct.AcctInfo;
@@ -23,24 +23,25 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
     static {
         try {
             System.loadLibrary("thostmduserapi_wrap");
-            log.info("加载库文件成功!");
         } catch (Exception e) {
             log.error("加载库失败!", e);
         }
     }
+    private AcctInfo acctInfo ;
     private boolean status = false;
     private String tradingDay;
     private String mdName;
     private MdInfo mdInfo;
-    protected FastEventService fastEventService;
+    protected FastQueue fastQueue;
 
     private CThostFtdcMdApi mdApi = null;
     private HashSet<String> subscribedSymbols = new HashSet<>();
     private HashMap<String,Integer> preTickVolumeMap = new HashMap<>();
 
 
-    public CtpMdGateway(FastEventService fastEventEngineService, AcctInfo acctInfo) {
-        this.fastEventService = fastEventEngineService;
+    public CtpMdGateway( AcctInfo acctInfo) {
+        this.acctInfo = acctInfo;
+        this.fastQueue = acctInfo.getFastQueue();
         this.mdInfo = new MdInfo(acctInfo.getAcctConf());
         this.mdName=mdInfo.getId();
         log.info("行情接口"+this.mdInfo.getId() + "开始初始化");
@@ -293,7 +294,7 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
             log.info("tick:{}",tickData);
             //todo 对象池
             tickData.setTimeStampRecv(System.nanoTime());
-            fastEventService.emitEvent(FastEvent.EVENT_TICK,tickData);
+            fastQueue.emitEvent(FastEvent.EVENT_TICK,tickData);
 
         } else {
             log.warn("{}OnRtnDepthMarketData! 收到行情信息为空", mdName);

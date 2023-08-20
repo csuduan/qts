@@ -1,6 +1,5 @@
 server:
-  port: 8083
-  name: dev
+  port: 8084
   compression:
     enabled: true
     mime-types: application/javascript,text/css,application/json,application/xml,text/html,text/xml,text/plain
@@ -20,12 +19,9 @@ spring:
       matching-strategy: ant_path_matcher
   application:
     name: mts
-  data:
-    mongodb:
-      uri: mongodb://127.0.0.1:27017/mts
   datasource:
     driver-class-name: org.sqlite.JDBC
-    url: jdbc:sqlite:/opt/dev/mts/mts.db
+    url: jdbc:sqlite:/opt/dev/qts/qts.db
 
 mybatis:
   mapper-locations: classpath:mapping/*.xml

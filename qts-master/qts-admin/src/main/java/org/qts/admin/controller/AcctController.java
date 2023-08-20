@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.qts.admin.manager.AcctManager;
 import org.qts.common.entity.Response;
 import org.qts.common.entity.acct.AcctDetail;
+import org.qts.common.entity.acct.AcctInst;
+import org.qts.common.entity.config.AcctConf;
 import org.qts.common.entity.trade.AcctOpReq;
 import org.qts.common.entity.Page;
 import org.qts.common.entity.acct.AcctInfo;
@@ -21,32 +23,34 @@ import java.util.List;
 @Slf4j
 public class AcctController {
     @Autowired
-    private AcctManager agentService;
+    private AcctManager acctService;
 
-    @ApiOperation(value = "获取账户列表")
-    @GetMapping(value = "/list")
-    public Response<Page<AcctInfo>> getAcctList(){
-        Response<Page<AcctInfo>> response=new Response<>();
-        List<AcctInfo> acctInfos=agentService.getAcctInfos();
-        Page<AcctInfo> res=new Page<>();
-        res.setList(acctInfos);
-        res.setTotal(acctInfos.size());
-        response.setData(res);
+    @ApiOperation(value = "账户配置列表")
+    @GetMapping(value = "/conf/list")
+    public Response<List<AcctConf>> getAcctConfList(){
+        Response<List<AcctConf>> response=new Response<>();
+        response.setData(acctService.getAcctConfs());
         return response;
     }
 
-    @ApiOperation(value = "获取账户明细")
-    @GetMapping(value = "/detail")
-    public Response<AcctDetail> getAcctDetail(String acctId){
-        Response<AcctDetail> response=new Response<>();
+    @ApiOperation(value = "账户实例列表")
+    @GetMapping(value = "/inst/list")
+    public Response<List<AcctInst>> getAcctDetail(){
+        Response<List<AcctInst>> response=new Response<>();
         return response;
     }
 
-    @ApiOperation(value = "账户操作")
-    @PostMapping(value = "/operate")
-    public Response<Boolean> operateAcct(@RequestBody AcctOpReq req){
+    @ApiOperation(value = "启动账户实例")
+    @GetMapping(value = "/inst/start")
+    public Response<Boolean> startInst(String acctId){
         Response<Boolean> response=new Response<>();
-        String data= JSON.toJSONString(req.getData());
+        //response.setData(agentService.acctOperate(req.getAcctId(),req.getType(),data));
+        return response;
+    }
+    @ApiOperation(value = "停止账户实例")
+    @GetMapping(value = "/inst/stop")
+    public Response<Boolean> stopInst(String acctId){
+        Response<Boolean> response=new Response<>();
         //response.setData(agentService.acctOperate(req.getAcctId(),req.getType(),data));
         return response;
     }
