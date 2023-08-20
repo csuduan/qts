@@ -48,6 +48,22 @@
            <systemPath>${project.basedir}/../lib/ctp/thostmduserapi.jar</systemPath>
        </dependency>
 
+       <dependency>
+           <groupId>tora</groupId>
+           <artifactId>tora-md</artifactId>
+           <version>1.0</version>
+           <scope>system</scope>
+           <systemPath>${project.basedir}/../lib/tora/javaxmdapi.jar</systemPath>
+       </dependency>
+
+       <dependency>
+           <groupId>tora</groupId>
+           <artifactId>tora-td</artifactId>
+           <version>1.0</version>
+           <scope>system</scope>
+           <systemPath>${project.basedir}/../lib/tora/javatraderapi.jar</systemPath>
+       </dependency>
+
    </dependencies>
 
     <build>
