@@ -26,15 +26,15 @@ public class TcpServer {
     private boolean started=false;
     private ServerHandler serverHandler;
     private int port;
-    private ServerListener listener;
+    private MsgHandler msgHandler;
 
-    public void start(int port, ServerListener listener){
+    public void start(int port, MsgHandler msgHandler){
         if(started==true){
             log.error("already stated!!!");
             return;
         }
         this.port=port;
-        this.listener=listener;
+        this.msgHandler =msgHandler;
         Thread thread=new Thread(()->this.run());
         thread.start();
     }
@@ -43,7 +43,7 @@ public class TcpServer {
             log.error("already stated!!!");
             return;
         }
-        serverHandler=new ServerHandler(this.listener);
+        serverHandler=new ServerHandler(this.msgHandler);
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
@@ -70,13 +70,13 @@ public class TcpServer {
                     });
 
             this.started=true;
-            log.info("启动TcpServer,port:{}",port);
+            log.info("start tcpServer,port:{}",port);
             // 绑定端口，开始接受链接
             ChannelFuture cf = sbs.bind(port).sync();
             cf.channel().closeFuture().sync();
-            log.info("关闭TcpServer,port:{}",port);
+            log.info("close TcpServer,port:{}",port);
         } catch (Exception ex){
-            log.error("启动TcpServer异常,port:{}",port,ex);
+            log.error("start tcpServer error,port:{}",port,ex);
         }
         finally{
             bossGroup.shutdownGracefully();
@@ -84,8 +84,8 @@ public class TcpServer {
         }
     }
 
-    public void send(String acctId,Message message){
-        String msg= JSON.toJSONString(message);
-        serverHandler.getChannel(acctId).writeAndFlush(msg);
+    //服务端推送
+    public void push(Message message){
+        serverHandler.push(message);
     }
 }

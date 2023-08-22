@@ -51,10 +51,8 @@ onMounted(() => {
 
 <template>
   <div class="main">
-
-
     <el-card>
-      <el-select v-model="username"  @change="onChange">
+      <el-select v-model="username"  @change="onChange" class="acct-select">
         <el-option
             v-for="item in options"
             :key="item.value"
@@ -63,17 +61,15 @@ onMounted(() => {
         />
       </el-select>
 
-      <div class="custom-tabs">
-        <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-          <el-tab-pane label="交易" name="first">
-            <Trade></Trade>
-          </el-tab-pane>
-          <el-tab-pane label="换仓" name="second">Config</el-tab-pane>
-          <el-tab-pane label="策略" name="third">Role</el-tab-pane>
-          <el-tab-pane label="管理" name="third">Role</el-tab-pane>
-          <el-tab-pane label="日志" name="fourth">Task</el-tab-pane>
-        </el-tabs>
-      </div>
+      <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
+        <el-tab-pane label="交易" name="first">
+          <Trade></Trade>
+        </el-tab-pane>
+        <el-tab-pane label="换仓" name="second">Config</el-tab-pane>
+        <el-tab-pane label="策略" name="third">Role</el-tab-pane>
+        <el-tab-pane label="管理" name="third">Role</el-tab-pane>
+        <el-tab-pane label="日志" name="fourth">Task</el-tab-pane>
+      </el-tabs>
 
 
 
@@ -91,19 +87,17 @@ onMounted(() => {
   font-weight: 600;
 }
 
+.demo-tabs{
+  margin-top: -20px;
+  z-index: -30;
+}
+
+.acct-select{
+}
 
 </style>
-
-<style>
-.tab-right-button {
-  position: absolute;
-  top: 40px;
-  right: 40px;
-  padding: 5px 10px;
-
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  z-index: 2;
+<style lang="scss">
+.demo-tabs  .el-tabs__nav {
+  float: right;
 }
 </style>

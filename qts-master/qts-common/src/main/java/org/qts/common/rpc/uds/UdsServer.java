@@ -17,7 +17,7 @@ import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.qts.common.rpc.tcp.server.ServerHandler;
-import org.qts.common.rpc.tcp.server.ServerListener;
+import org.qts.common.rpc.tcp.server.MsgHandler;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
@@ -32,7 +32,7 @@ public class UdsServer {
     private boolean started;
     private ServerHandler serverHandler;
 
-    public void start(String uname, ServerListener customHandler) {
+    public void start(String uname, MsgHandler customHandler) {
         if(started==true){
             log.error("already stated!!!");
             return;

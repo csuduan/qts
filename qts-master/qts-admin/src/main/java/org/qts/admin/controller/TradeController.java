@@ -22,9 +22,9 @@ public class TradeController {
 
     @ApiOperation(value = "交易操作")
     @PostMapping(value = "/operate")
-    public Response<Boolean> engineOperate(@RequestParam String acctId, @RequestParam Enums.ACCT_CMD cmd, @RequestBody Map<String,Object> data){
+    public Response<Boolean> engineOperate(@RequestParam String acctId,  @RequestBody Message message){
         Response<Boolean> response=new Response<>();
-        Message message=new Message();
+
 //        message.setType(cmd);
 //        message.setActId(acctId);
 //        message.setJson(JSON.toJSONString(data));

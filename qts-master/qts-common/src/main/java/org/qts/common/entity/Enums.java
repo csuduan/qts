@@ -5,10 +5,9 @@ import java.util.HashSet;
 public interface Enums {
     //账户状态
     enum ACCT_STATUS{
-        UNKNOW, //未知
+        UNSTARTED, //未启动
         STARTING,//启动中
         CONNING,//连接中
-        INITING,//初始化中
         READY//就绪
     }
     //接口状态

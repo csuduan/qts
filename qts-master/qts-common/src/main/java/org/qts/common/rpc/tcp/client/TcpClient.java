@@ -1,4 +1,4 @@
-package org.qts.common.rpc.tcp;
+package org.qts.common.rpc.tcp.client;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -13,8 +13,6 @@ import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import org.qts.common.entity.Message;
 import org.qts.common.rpc.future.SyncWrite;
-import org.qts.common.rpc.handler.ClientHandler;
-import org.qts.common.rpc.listener.ClientListener;
 
 import java.net.InetSocketAddress;
 
@@ -26,11 +24,11 @@ public class TcpClient {
     private ClientHandler clientHandler;
     private String name;
     private String address;
-    private ClientListener customHandler;
+    private MsgHandler customHandler;
     private SyncWrite writer = new SyncWrite();
 
 
-    public TcpClient(String name, String address, ClientListener customHandler){
+    public TcpClient(String name, String address, MsgHandler customHandler){
         this.name=name;
         this.address=address;
         this.customHandler=customHandler;
@@ -54,7 +52,7 @@ public class TcpClient {
         thread.start();
     }
 
-    public void close(){
+    public void stop(){
         if(this.enable){
             this.enable=false;
             group.shutdownGracefully();
@@ -111,8 +109,6 @@ public class TcpClient {
             log.info("client[{}] disconnected",name);
         }catch (Exception ex){
             log.error("client[{}] error:{}",name,ex.getMessage());
-        }finally {
-
         }
     }
     public boolean isConnected(){

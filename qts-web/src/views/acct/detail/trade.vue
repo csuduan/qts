@@ -70,7 +70,7 @@
           <el-table-column label="保证金" prop="time" />
         </el-table>
         <ElDivider />
-        <el-tabs v-model="activeName" class="demo-tabs">
+        <el-tabs v-model="activeName" class="trade-tabs">
           <el-tab-pane label="挂单" name="first">
             <el-table
               :data="tickDatas"
@@ -141,4 +141,8 @@ function onSubmit() {
 }
 </script>
 
-<style scoped></style>
+<style lang="scss" >
+.trade-tabs .el-tabs__nav {
+  float: left;
+}
+</style>

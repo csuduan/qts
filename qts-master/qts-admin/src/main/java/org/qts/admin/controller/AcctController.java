@@ -5,6 +5,7 @@ import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.qts.admin.entity.AcctInstDesc;
 import org.qts.admin.manager.AcctManager;
+import org.qts.common.entity.Message;
 import org.qts.common.entity.Response;
 import org.qts.common.entity.config.AcctConf;
 import org.qts.common.entity.acct.AcctInfo;
@@ -59,4 +60,14 @@ public class AcctController {
         response.setData(acctService.getAcctDetail(acctId));
         return response;
     }
+
+    @ApiOperation(value = "发送通用命令")
+    @PostMapping(value = "/inst/common-cmd")
+    public Response<Message> sendCmd(@RequestParam String acctId,  @RequestBody Message req){
+        Response<Message> response=new Response<>();
+        response.setData(acctService.request(acctId,req));
+        return response;
+    }
+
+
 }

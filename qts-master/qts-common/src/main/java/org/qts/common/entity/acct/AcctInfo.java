@@ -73,7 +73,6 @@ public class AcctInfo {
         this.id=conf.getId();
         this.name=conf.getName();
         this.group=conf.getGroup();
-        String waitStrategy= SpringUtils.getContext().getEnvironment().getProperty("fastQueue.WaitStrategy");
-        this.fastQueue = new FastQueue(waitStrategy);
+
     }
 }

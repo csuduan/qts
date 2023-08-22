@@ -14,8 +14,8 @@ import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import org.qts.common.entity.Message;
 import org.qts.common.rpc.future.SyncWrite;
-import org.qts.common.rpc.handler.ClientHandler;
-import org.qts.common.rpc.listener.ClientListener;
+import org.qts.common.rpc.tcp.client.ClientHandler;
+import org.qts.common.rpc.tcp.client.MsgHandler;
 
 import java.net.SocketAddress;
 import java.nio.file.Files;
@@ -28,11 +28,11 @@ public class UdsClient {
     private Channel channel;
     private ClientHandler clientHandler;
     private String name;
-    private ClientListener customHandler;
+    private MsgHandler customHandler;
     private SyncWrite writer = new SyncWrite();
 
 
-    public UdsClient(String name, ClientListener customHandler){
+    public UdsClient(String name, MsgHandler customHandler){
         this.name=name;
         this.customHandler=customHandler;
         log.info("create client[{}] ",name);

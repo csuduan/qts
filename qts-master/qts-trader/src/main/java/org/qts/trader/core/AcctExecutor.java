@@ -1,13 +1,17 @@
 package org.qts.trader.core;
 
 import com.alibaba.fastjson.JSON;
+import com.lmax.disruptor.EventHandler;
 import org.qts.common.dao.AcctMapper;
+import org.qts.common.disruptor.FastQueue;
 import org.qts.common.disruptor.event.FastEvent;
-import org.qts.common.disruptor.event.FastEventHandlerAbstract;
 import org.qts.common.entity.*;
 import org.qts.common.entity.acct.AcctInfo;
 import org.qts.common.entity.config.AcctConf;
 import org.qts.common.entity.trade.*;
+import org.qts.common.rpc.tcp.server.MsgHandler;
+import org.qts.common.rpc.tcp.server.TcpServer;
+import org.qts.common.utils.SpringUtils;
 import org.qts.trader.gateway.MdGateway;
 import org.qts.trader.gateway.TdGateway;
 import org.qts.common.utils.BarGenerator;
@@ -25,11 +29,15 @@ import java.util.*;
  */
 @Slf4j
 @Component
-public class AcctExecutor extends FastEventHandlerAbstract {
+public class AcctExecutor   implements EventHandler<FastEvent>, MsgHandler {
     @Value("${acctId}")
     private String acctId;
     @Autowired
     private AcctMapper acctMapper;
+
+    private TcpServer tcpServer;
+
+    private FastQueue fastQueue;
 
     private AcctInfo acctInfo;
     private MdGateway mdGateway;
@@ -43,7 +51,7 @@ public class AcctExecutor extends FastEventHandlerAbstract {
     //合约信息(合约代码-合约信息)
     private Map<String, Contract> contractMap = new HashMap<>();
     //报单列表(orderRef-order)
-    private Map<String, Order> workingOrderMap = new HashMap<>();
+    private Map<String, Order> pendingOrderMap = new HashMap<>();
 
     private Map<String, BarGenerator> barGeneratorMap=new HashMap<>();
 
@@ -53,20 +61,23 @@ public class AcctExecutor extends FastEventHandlerAbstract {
         AcctConf acctConf=acctMapper.queryAcctConf(acctId);
         log.info("账户配置:{}",acctConf);
         this.acctInfo =new AcctInfo(acctConf);
-        this.acctInfo.getFastQueue().addHandler(this);
-        subscribeEvent(FastEvent.EVENT_TICK);
-        subscribeEvent(FastEvent.EVENT_TRADE);
-        subscribeEvent(FastEvent.EVENT_ORDER);
-        subscribeEvent(FastEvent.EVENT_POSITION);
-        subscribeEvent(FastEvent.EVENT_ACCT);
-        subscribeEvent(FastEvent.EVENT_CONTRACT);
-        subscribeEvent(FastEvent.EVENT_ERROR);
-        subscribeEvent(FastEvent.EVENT_GATEWAY);
+
+
+        String waitStrategy= SpringUtils.getContext().getEnvironment().getProperty("fastQueue.WaitStrategy");
+        this.fastQueue = new FastQueue(waitStrategy,this);
+        this.acctInfo.setFastQueue(fastQueue);
 
         this.tdGateway= GatwayFactory.createTdGateway(acctInfo);
         this.mdGateway= GatwayFactory.createMdGateway(acctInfo);
 
         this.strategyEngine =new StrategyEngine();
+
+        //启动ipcServer
+        String ipcAddress =this.acctInfo.getAcctConf().getIpcAddress();
+        this.tcpServer.start(Integer.parseInt(ipcAddress.split(":")[1]),this);
+    }
+
+    public void start(){
 
     }
 
@@ -74,6 +85,7 @@ public class AcctExecutor extends FastEventHandlerAbstract {
         try {
             this.tdGateway.close();
             this.mdGateway.close();
+
         }catch (Exception ex){
             log.error("acctExecutor close...");
         }
@@ -105,8 +117,8 @@ public class AcctExecutor extends FastEventHandlerAbstract {
      * @param orderRef
      */
     public void cancelOrder(String orderRef){
-        if (workingOrderMap.containsKey(orderRef)) {
-            Order order=workingOrderMap.get(orderRef);
+        if (pendingOrderMap.containsKey(orderRef)) {
+            Order order= pendingOrderMap.get(orderRef);
             //todo
             CancelOrderReq cancelOrderReq=new CancelOrderReq();
             cancelOrderReq.setOrderID(orderRef);
@@ -144,15 +156,15 @@ public class AcctExecutor extends FastEventHandlerAbstract {
 
     }
     public void onOrder(Order order) throws  Exception{
-        if(!this.workingOrderMap.containsKey(order.getOrderRef()))
+        if(!this.pendingOrderMap.containsKey(order.getOrderRef()))
             return;//过滤非本地报单
 
         if (order.isFinished()) {
-            if (this.workingOrderMap.containsKey(order.getOrderRef())) {
-                this.workingOrderMap.remove(order.getOrderRef());
+            if (this.pendingOrderMap.containsKey(order.getOrderRef())) {
+                this.pendingOrderMap.remove(order.getOrderRef());
             }
         } else {
-            this.workingOrderMap.put(order.getOrderRef(), order);
+            this.pendingOrderMap.put(order.getOrderRef(), order);
         }
         this.strategyEngine.onOrder(order);
     }
@@ -170,9 +182,6 @@ public class AcctExecutor extends FastEventHandlerAbstract {
 
     @Override
     public void onEvent(final FastEvent fastEvent, final long sequence, final boolean endOfBatch) throws Exception {
-        if (!subscribedEventSet.contains(fastEvent.getType())) {
-            return;
-        }
         switch (fastEvent.getType()){
             case FastEvent.EVENT_TICK ->{
                 Tick tick = fastEvent.getData(Tick.class);
@@ -230,4 +239,9 @@ public class AcctExecutor extends FastEventHandlerAbstract {
     }
 
 
+    @Override
+    public Message onRequest(Message req) {
+        Message rsp = req.buildResp(0,null);
+        return rsp;
+    }
 }
