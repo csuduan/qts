@@ -1,46 +1,48 @@
 import { defineStore } from "pinia";
-import { store } from "/@/store";
-import { isUrl } from "/@/utils/is";
-import { isEqual } from "lodash-unified";
-import { storageLocal } from "/@/utils/storage";
+import { store } from "@/store";
+import { routerArrays } from "@/layout/types";
 import { multiType, positionType } from "./types";
+import { responsiveStorageNameSpace } from "@/config";
+import { isEqual, isBoolean, isUrl, storageLocal } from "@pureadmin/utils";
 
 export const useMultiTagsStore = defineStore({
   id: "pure-multiTags",
   state: () => ({
     // 存储标签页信息（路由信息）
-    multiTags: storageLocal.getItem("responsive-configure").multiTagsCache
-      ? storageLocal.getItem("responsive-tags")
-      : [
-          {
-            path: "/welcome",
-            parentPath: "/",
-            meta: {
-              title: "menus.hshome",
-              icon: "home-filled",
-              i18n: true
-            }
-          }
-        ],
-    multiTagsCache: storageLocal.getItem("responsive-configure").multiTagsCache
+    multiTags: storageLocal().getItem<StorageConfigs>(
+      `${responsiveStorageNameSpace()}configure`
+    )?.multiTagsCache
+      ? storageLocal().getItem<StorageConfigs>(
+          `${responsiveStorageNameSpace()}tags`
+        )
+      : [...routerArrays],
+    multiTagsCache: storageLocal().getItem<StorageConfigs>(
+      `${responsiveStorageNameSpace()}configure`
+    )?.multiTagsCache
   }),
   getters: {
-    getMultiTagsCache() {
-      return this.multiTagsCache;
+    getMultiTagsCache(state) {
+      return state.multiTagsCache;
     }
   },
   actions: {
     multiTagsCacheChange(multiTagsCache: boolean) {
       this.multiTagsCache = multiTagsCache;
       if (multiTagsCache) {
-        storageLocal.setItem("responsive-tags", this.multiTags);
+        storageLocal().setItem(
+          `${responsiveStorageNameSpace()}tags`,
+          this.multiTags
+        );
       } else {
-        storageLocal.removeItem("responsive-tags");
+        storageLocal().removeItem(`${responsiveStorageNameSpace()}tags`);
       }
     },
     tagsCache(multiTags) {
       this.getMultiTagsCache &&
-        storageLocal.setItem("responsive-tags", multiTags);
+        storageLocal().setItem(
+          `${responsiveStorageNameSpace()}tags`,
+          multiTags
+        );
     },
     handleTags<T>(
       mode: string,
@@ -55,8 +57,16 @@ export const useMultiTagsStore = defineStore({
         case "push":
           {
             const tagVal = value as multiType;
+            // 不添加到标签页
+            if (tagVal?.meta?.hiddenTag) return;
+            // 如果是外链无需添加信息到标签页
             if (isUrl(tagVal?.name)) return;
-            const tagPath = tagVal?.path;
+            // 如果title为空拒绝添加空信息到标签页
+            if (tagVal?.meta?.title.length === 0) return;
+            // showLink:false 不添加到标签页
+            if (isBoolean(tagVal?.meta?.showLink) && !tagVal?.meta?.showLink)
+              return;
+            const tagPath = tagVal.path;
             // 判断tag是否已存在
             const tagHasExits = this.multiTags.some(tag => {
               return tag.path === tagPath;
@@ -64,20 +74,24 @@ export const useMultiTagsStore = defineStore({
 
             // 判断tag中的query键值是否相等
             const tagQueryHasExits = this.multiTags.some(tag => {
-              return isEqual(tag.query, tagVal?.query);
+              return isEqual(tag?.query, tagVal?.query);
             });
 
-            if (tagHasExits && tagQueryHasExits) return;
+            // 判断tag中的params键值是否相等
+            const tagParamsHasExits = this.multiTags.some(tag => {
+              return isEqual(tag?.params, tagVal?.params);
+            });
 
+            if (tagHasExits && tagQueryHasExits && tagParamsHasExits) return;
+
+            // 动态路由可打开的最大数量
             const dynamicLevel = tagVal?.meta?.dynamicLevel ?? -1;
             if (dynamicLevel > 0) {
-              // dynamicLevel动态路由可打开的数量
-              // 获取到已经打开的动态路由数, 判断是否大于dynamicLevel
               if (
                 this.multiTags.filter(e => e?.path === tagPath).length >=
                 dynamicLevel
               ) {
-                // 关闭第一个
+                // 如果当前已打开的动态路由数大于dynamicLevel，替换第一个动态路由标签
                 const index = this.multiTags.findIndex(
                   item => item?.path === tagPath
                 );

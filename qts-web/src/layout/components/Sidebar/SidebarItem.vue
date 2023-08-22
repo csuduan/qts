@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import path from "path";
-import { useNav } from "../../hooks/nav";
-import { childrenType } from "../../types";
-import { transformI18n } from "/@/plugins/i18n";
-import { useAppStoreHook } from "/@/store/modules/app";
-import { useRenderIcon } from "/@/components/ReIcon/src/hooks";
-import { ref, PropType, nextTick, computed, CSSProperties } from "vue";
+import { getConfig } from "@/config";
+import { menuType } from "../../types";
+import extraIcon from "./extraIcon.vue";
+import { useNav } from "@/layout/hooks/useNav";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { ref, toRaw, PropType, nextTick, computed, CSSProperties } from "vue";
 
-const { pureApp } = useNav();
-const menuMode = ["vertical", "mix"].includes(pureApp.layout);
+import ArrowUp from "@iconify-icons/ep/arrow-up-bold";
+import EpArrowDown from "@iconify-icons/ep/arrow-down-bold";
+import ArrowLeft from "@iconify-icons/ep/arrow-left-bold";
+import ArrowRight from "@iconify-icons/ep/arrow-right-bold";
+
+const { layout, isCollapse, tooltipEffect, getDivStyle } = useNav();
 
 const props = defineProps({
   item: {
-    type: Object as PropType<childrenType>
+    type: Object as PropType<menuType>
   },
   isNest: {
     type: Boolean,
@@ -24,17 +28,11 @@ const props = defineProps({
   }
 });
 
-const getExtraIconStyle = computed((): CSSProperties => {
-  if (useAppStoreHook().getSidebarStatus) {
-    return {
-      position: "absolute",
-      right: "10px"
-    };
-  } else {
-    return {
-      position: "static"
-    };
-  }
+const getSpanStyle = computed((): CSSProperties => {
+  return {
+    width: "100%",
+    textAlign: "center"
+  };
 });
 
 const getNoDropdownStyle = computed((): CSSProperties => {
@@ -44,42 +42,76 @@ const getNoDropdownStyle = computed((): CSSProperties => {
   };
 });
 
-const getDivStyle = computed((): CSSProperties => {
+const getMenuTextStyle = computed(() => {
   return {
-    width: pureApp.sidebar.opened ? "" : "100%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    overflow: "hidden"
-  };
-});
-
-const getMenuTextStyle = computed((): CSSProperties => {
-  return {
-    width: pureApp.sidebar.opened ? "125px" : "",
     overflow: "hidden",
     textOverflow: "ellipsis",
     outline: "none"
   };
 });
 
+const getsubMenuIconStyle = computed((): CSSProperties => {
+  return {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    margin:
+      layout.value === "horizontal"
+        ? "0 5px 0 0"
+        : isCollapse.value
+        ? "0 auto"
+        : "0 5px 0 0"
+  };
+});
+
 const getSubTextStyle = computed((): CSSProperties => {
-  return {
-    width: pureApp.sidebar.opened ? "125px" : "",
-    display: "inline-block",
-    overflow: "hidden",
-    textOverflow: "ellipsis"
+  if (!isCollapse.value) {
+    return {
+      width: "210px",
+      display: "inline-block",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    };
+  } else {
+    return {
+      width: ""
+    };
+  }
+});
+
+const getSubMenuDivStyle = computed((): any => {
+  return item => {
+    return !isCollapse.value
+      ? {
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          overflow: "hidden"
+        }
+      : {
+          width: "100%",
+          textAlign:
+            item?.parentId === null
+              ? "center"
+              : layout.value === "mix" && item?.pathList?.length === 2
+              ? "center"
+              : ""
+        };
   };
 });
 
-const getSpanStyle = computed((): CSSProperties => {
+const expandCloseIcon = computed(() => {
+  if (!getConfig()?.MenuArrowIconNoTransition) return "";
   return {
-    overflow: "hidden",
-    textOverflow: "ellipsis"
+    "expand-close-icon": useRenderIcon(EpArrowDown),
+    "expand-open-icon": useRenderIcon(ArrowUp),
+    "collapse-close-icon": useRenderIcon(ArrowRight),
+    "collapse-open-icon": useRenderIcon(ArrowLeft)
   };
 });
 
-const onlyOneChild: childrenType = ref(null);
+const onlyOneChild: menuType = ref(null);
 // 存放菜单是否存在showTooltip属性标识
 const hoverMenuMap = new WeakMap();
 // 存储菜单文本dom元素
@@ -102,10 +134,21 @@ function hoverMenu(key) {
   });
 }
 
-function hasOneShowingChild(
-  children: childrenType[] = [],
-  parent: childrenType
-) {
+// 左侧菜单折叠后，当菜单没有图标时只显示第一个文字并加上省略号
+function overflowSlice(text, item?: any) {
+  const newText =
+    (text?.length > 1 ? text.toString().slice(0, 1) : text) + "...";
+  if (item && !(isCollapse.value && item?.parentId === null)) {
+    return layout.value === "mix" &&
+      item?.pathList?.length === 2 &&
+      isCollapse.value
+      ? newText
+      : text;
+  }
+  return newText;
+}
+
+function hasOneShowingChild(children: menuType[] = [], parent: menuType) {
   const showingChildren = children.filter((item: any) => {
     onlyOneChild.value = item;
     return true;
@@ -131,126 +174,135 @@ function resolvePath(routePath) {
   if (httpReg.test(routePath) || httpReg.test(props.basePath)) {
     return routePath || props.basePath;
   } else {
-    return path.resolve(props.basePath, routePath);
+    // 使用path.posix.resolve替代path.resolve 避免windows环境下使用electron出现盘符问题
+    return path.posix.resolve(props.basePath, routePath);
   }
 }
 </script>
 
 <template>
-  <template
+  <el-menu-item
     v-if="
       hasOneShowingChild(props.item.children, props.item) &&
       (!onlyOneChild.children || onlyOneChild.noShowingChildren)
     "
+    :index="resolvePath(onlyOneChild.path)"
+    :class="{ 'submenu-title-noDropdown': !isNest }"
+    :style="getNoDropdownStyle"
   >
-    <el-menu-item
-      :index="resolvePath(onlyOneChild.path)"
-      :class="{ 'submenu-title-noDropdown': !isNest }"
-      :style="getNoDropdownStyle"
+    <div
+      v-if="toRaw(props.item.meta.icon)"
+      class="sub-menu-icon"
+      :style="getsubMenuIconStyle"
     >
-      <div class="sub-menu-icon" v-show="props.item.meta.icon">
-        <component
-          :is="
-            useRenderIcon(
-              onlyOneChild.meta.icon ||
-                (props.item.meta && props.item.meta.icon)
-            )
-          "
-        />
-      </div>
-      <div
-        v-if="
-          !pureApp.sidebar.opened &&
-          pureApp.layout === 'mix' &&
-          props.item?.pathList?.length === 2
+      <component
+        :is="
+          useRenderIcon(
+            toRaw(onlyOneChild.meta.icon) ||
+              (props.item.meta && toRaw(props.item.meta.icon))
+          )
         "
-        :style="getDivStyle"
-      >
-        <span :style="getMenuTextStyle">
-          {{ transformI18n(onlyOneChild.meta.title, onlyOneChild.meta.i18n) }}
+      />
+    </div>
+    <span
+      v-if="
+        !props.item?.meta.icon &&
+        isCollapse &&
+        layout === 'vertical' &&
+        props.item?.pathList?.length === 1
+      "
+      :style="getSpanStyle"
+    >
+      {{ overflowSlice(onlyOneChild.meta.title) }}
+    </span>
+    <span
+      v-if="
+        !onlyOneChild.meta.icon &&
+        isCollapse &&
+        layout === 'mix' &&
+        props.item?.pathList?.length === 2
+      "
+      :style="getSpanStyle"
+    >
+      {{ overflowSlice(onlyOneChild.meta.title) }}
+    </span>
+    <template #title>
+      <div :style="getDivStyle">
+        <span v-if="layout === 'horizontal'">
+          {{ onlyOneChild.meta.title }}
         </span>
-      </div>
-      <template #title>
-        <div :style="getDivStyle">
-          <span v-if="!menuMode">{{
-            transformI18n(onlyOneChild.meta.title, onlyOneChild.meta.i18n)
-          }}</span>
-          <el-tooltip
-            v-else
-            placement="top"
-            :offset="-10"
-            :disabled="!onlyOneChild.showTooltip"
+        <el-tooltip
+          v-else
+          placement="top"
+          :effect="tooltipEffect"
+          :offset="-10"
+          :disabled="!onlyOneChild.showTooltip"
+        >
+          <template #content>
+            {{ onlyOneChild.meta.title }}
+          </template>
+          <span
+            ref="menuTextRef"
+            :style="getMenuTextStyle"
+            @mouseover="hoverMenu(onlyOneChild)"
           >
-            <template #content>
-              {{
-                transformI18n(onlyOneChild.meta.title, onlyOneChild.meta.i18n)
-              }}
-            </template>
-            <span
-              ref="menuTextRef"
-              :style="getMenuTextStyle"
-              @mouseover="hoverMenu(onlyOneChild)"
-            >
-              {{
-                transformI18n(onlyOneChild.meta.title, onlyOneChild.meta.i18n)
-              }}
-            </span>
-          </el-tooltip>
-          <FontIcon
-            v-if="onlyOneChild.meta.extraIcon"
-            width="30px"
-            height="30px"
-            :style="getExtraIconStyle"
-            :icon="onlyOneChild.meta.extraIcon.name"
-            :svg="onlyOneChild.meta.extraIcon.svg ? true : false"
-          />
-        </div>
-      </template>
-    </el-menu-item>
-  </template>
+            {{ onlyOneChild.meta.title }}
+          </span>
+        </el-tooltip>
+        <extraIcon :extraIcon="onlyOneChild.meta.extraIcon" />
+      </div>
+    </template>
+  </el-menu-item>
 
   <el-sub-menu
     v-else
     ref="subMenu"
+    v-bind="expandCloseIcon"
     :index="resolvePath(props.item.path)"
-    popper-append-to-body
   >
     <template #title>
-      <div v-show="props.item.meta.icon" class="sub-menu-icon">
+      <div
+        v-if="toRaw(props.item.meta.icon)"
+        :style="getsubMenuIconStyle"
+        class="sub-menu-icon"
+      >
         <component
-          :is="useRenderIcon(props.item.meta && props.item.meta.icon)"
+          :is="useRenderIcon(props.item.meta && toRaw(props.item.meta.icon))"
         />
       </div>
-      <span v-if="!menuMode">{{
-        transformI18n(props.item.meta.title, props.item.meta.i18n)
-      }}</span>
-      <el-tooltip
-        v-else
-        placement="top"
-        :offset="-10"
-        :disabled="!pureApp.sidebar.opened || !props.item.showTooltip"
+      <span v-if="layout === 'horizontal'">
+        {{ props.item.meta.title }}
+      </span>
+      <div
+        :style="getSubMenuDivStyle(props.item)"
+        v-if="
+          !(
+            isCollapse &&
+            toRaw(props.item.meta.icon) &&
+            props.item.parentId === null
+          )
+        "
       >
-        <template #content>
-          {{ transformI18n(props.item.meta.title, props.item.meta.i18n) }}
-        </template>
-        <div
-          ref="menuTextRef"
-          :style="getSubTextStyle"
-          @mouseover="hoverMenu(props.item)"
+        <el-tooltip
+          v-if="layout !== 'horizontal'"
+          placement="top"
+          :effect="tooltipEffect"
+          :offset="-10"
+          :disabled="!props.item.showTooltip"
         >
-          <span :style="getSpanStyle">
-            {{ transformI18n(props.item.meta.title, props.item.meta.i18n) }}
+          <template #content>
+            {{ props.item.meta.title }}
+          </template>
+          <span
+            ref="menuTextRef"
+            :style="getSubTextStyle"
+            @mouseover="hoverMenu(props.item)"
+          >
+            {{ overflowSlice(props.item.meta.title, props.item) }}
           </span>
-        </div>
-      </el-tooltip>
-      <FontIcon
-        v-if="props.item.meta.extraIcon"
-        width="30px"
-        height="30px"
-        style="position: absolute; right: 10px"
-        :icon="props.item.meta.extraIcon.name"
-        :svg="props.item.meta.extraIcon.svg ? true : false"
-      />
+        </el-tooltip>
+        <extraIcon v-if="!isCollapse" :extraIcon="props.item.meta.extraIcon" />
+      </div>
     </template>
     <sidebar-item
       v-for="child in props.item.children"

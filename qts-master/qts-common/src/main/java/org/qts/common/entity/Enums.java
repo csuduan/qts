@@ -128,6 +128,7 @@ public interface Enums {
         ON_CONTRACT,
         ON_BAR,
         ON_ACCT,
+        ON_ACCTDETAIL,
         ON_SERVER,
     }
 

@@ -1,13 +1,20 @@
 <script setup lang="ts">
-import noAccess from "/@/assets/status/403.svg?component";
+import { useRouter } from "vue-router";
+import noAccess from "@/assets/status/403.svg?component";
+
+defineOptions({
+  name: "403"
+});
+
+const router = useRouter();
 </script>
 
 <template>
-  <div class="flex justify-center items-center h-screen-sm">
+  <div class="flex justify-center items-center h-[640px]">
     <noAccess />
     <div class="ml-12">
       <p
-        class="font-medium text-4xl mb-4"
+        class="font-medium text-4xl mb-4 dark:text-white"
         v-motion
         :initial="{
           opacity: 0,
@@ -42,7 +49,7 @@ import noAccess from "/@/assets/status/403.svg?component";
       </p>
       <el-button
         type="primary"
-        @click="$router.push('/')"
+        @click="router.push('/')"
         v-motion
         :initial="{
           opacity: 0,
@@ -55,8 +62,9 @@ import noAccess from "/@/assets/status/403.svg?component";
             delay: 500
           }
         }"
-        >返回首页</el-button
       >
+        返回首页
+      </el-button>
     </div>
   </div>
 </template>

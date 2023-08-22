@@ -13,6 +13,6 @@ public class AcctConf {
     private String tdType;
     private String mdType;
     private String mdAddress;
-    private String enable;
+    private Boolean enable;
     private String subList;
 }

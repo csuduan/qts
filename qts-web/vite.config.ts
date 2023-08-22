@@ -1,21 +1,22 @@
 import dayjs from "dayjs";
 import { resolve } from "path";
 import pkg from "./package.json";
-import { warpperEnv, regExps } from "./build";
+import { warpperEnv } from "./build";
 import { getPluginsList } from "./build/plugins";
+import { include, exclude } from "./build/optimize";
 import { UserConfigExport, ConfigEnv, loadEnv } from "vite";
 
-// 当前执行node命令时文件夹的地址（工作目录）
+/** 当前执行node命令时文件夹的地址（工作目录） */
 const root: string = process.cwd();
 
-// 路径查找
+/** 路径查找 */
 const pathResolve = (dir: string): string => {
   return resolve(__dirname, ".", dir);
 };
 
-// 设置别名
+/** 设置别名 */
 const alias: Record<string, string> = {
-  "/@": pathResolve("src"),
+  "@": pathResolve("src"),
   "@build": pathResolve("build")
 };
 
@@ -26,13 +27,8 @@ const __APP_INFO__ = {
 };
 
 export default ({ command, mode }: ConfigEnv): UserConfigExport => {
-  const {
-    VITE_PORT,
-    VITE_LEGACY,
-    VITE_PUBLIC_PATH,
-    VITE_PROXY_DOMAIN,
-    VITE_PROXY_DOMAIN_REAL
-  } = warpperEnv(loadEnv(mode, root));
+  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH,VITE_PROXY_DOMAIN_REAL } =
+    warpperEnv(loadEnv(mode, root));
   return {
     base: VITE_PUBLIC_PATH,
     root,
@@ -46,29 +42,38 @@ export default ({ command, mode }: ConfigEnv): UserConfigExport => {
       // 端口号
       port: VITE_PORT,
       host: "0.0.0.0",
-      // 本地跨域代理
-      proxy:
-        VITE_PROXY_DOMAIN_REAL.length > 0
-          ? {
-              [VITE_PROXY_DOMAIN]: {
-                target: VITE_PROXY_DOMAIN_REAL,
-                // ws: true,
-                changeOrigin: true,
-                rewrite: (path: string) => regExps(path, VITE_PROXY_DOMAIN)
-              }
+      // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
+      proxy: {
+        "^/api/.*": VITE_PROXY_DOMAIN_REAL.length > 0 ? {
+              target: VITE_PROXY_DOMAIN_REAL,
+              changeOrigin: true,
+              rewrite: path => path.replace(/^\/api/, "")
+
             }
-          : null
+            : null
+      }
     },
-    plugins: getPluginsList(command, VITE_LEGACY),
+    plugins: getPluginsList(command, VITE_CDN, VITE_COMPRESSION),
+    // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
     optimizeDeps: {
-      include: ["pinia", "vue-i18n", "lodash-es", "@vueuse/core"],
-      exclude: ["@pureadmin/theme/dist/browser-utils"]
+      include,
+      exclude
     },
     build: {
       sourcemap: false,
-      brotliSize: false,
       // 消除打包大小超过500kb警告
-      chunkSizeWarningLimit: 4000
+      chunkSizeWarningLimit: 4000,
+      rollupOptions: {
+        input: {
+          index: pathResolve("index.html")
+        },
+        // 静态资源分类打包
+        output: {
+          chunkFileNames: "static/js/[name]-[hash].js",
+          entryFileNames: "static/js/[name]-[hash].js",
+          assetFileNames: "static/[ext]/[name]-[hash].[ext]"
+        }
+      }
     },
     define: {
       __INTLIFY_PROD_DEVTOOLS__: false,

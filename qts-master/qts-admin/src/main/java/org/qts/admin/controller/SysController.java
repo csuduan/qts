@@ -25,10 +25,6 @@ public class SysController {
 
     @Autowired
     private SysService sysService;
-    @Autowired
-    private AcctManager agentService;
-    @Autowired
-    private WebSocketService webSocketService;
 
     @PostMapping(path = "/user/login")
     public Response<String> login(String user, String pwd){

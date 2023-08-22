@@ -23,9 +23,6 @@ public class TradeService  {
     @PostConstruct
     public void init(){
     }
-    public List<AcctInfo> getAcctInfos(){
-        return acctManager.getAcctInfos();
-    }
 
 
     public Message request(String acctId, Enums.MSG_TYPE type, Object data){

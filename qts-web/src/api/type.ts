@@ -1,5 +1,5 @@
 export interface ResponseType extends Promise<any> {
-  data?: object;
-  code?: number;
-  msg?: string;
+    data?: object;
+    code?: number;
+    msg?: string;
 }

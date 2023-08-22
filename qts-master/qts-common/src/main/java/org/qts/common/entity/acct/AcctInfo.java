@@ -44,16 +44,6 @@ public class AcctInfo {
     private Double marginRate;//保证金占比
     private Double commission;
 
-    //持仓列表
-    private Map<String, Position> positions =new HashMap<>();
-    //挂单列表
-    private Map<String, Order> pendingOrders = new HashMap<>();
-    //成交列表
-    private List<Trade> tradeList = new ArrayList<>();
-    //报单列表
-    private List<Order> orderList = new ArrayList<>();
-
-
     /**
      * 账户实例相关
      */
@@ -69,7 +59,14 @@ public class AcctInfo {
     private LocalDate updateTimestamp;//更新时间
 
 
-
+    //持仓列表
+    private Map<String, Position> positions =new HashMap<>();
+    //挂单列表
+    private Map<String, Order> pendingOrders = new HashMap<>();
+    //成交列表
+    private List<Trade> tradeList = new ArrayList<>();
+    //报单列表
+    private List<Order> orderList = new ArrayList<>();
 
     public AcctInfo(AcctConf conf){
         this.acctConf=conf;

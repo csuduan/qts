@@ -1,9 +1,8 @@
 import { App } from "vue";
 import axios from "axios";
-import { loadEnv } from "@build/index";
 
 let config: object = {};
-const { VITE_PUBLIC_PATH } = loadEnv();
+const { VITE_PUBLIC_PATH } = import.meta.env;
 
 const setConfig = (cfg?: unknown) => {
   config = Object.assign(config, cfg);
@@ -27,11 +26,10 @@ const getConfig = (key?: string): ServerConfigs => {
   return config;
 };
 
-// 获取项目动态全局配置
+/** 获取项目动态全局配置 */
 export const getServerConfig = async (app: App): Promise<undefined> => {
   app.config.globalProperties.$config = getConfig();
   return axios({
-    baseURL: "",
     method: "get",
     url: `${VITE_PUBLIC_PATH}serverConfig.json`
   })
@@ -44,8 +42,6 @@ export const getServerConfig = async (app: App): Promise<undefined> => {
         // 设置全局配置
         setConfig($config);
       }
-      // 设置全局baseURL
-      app.config.globalProperties.$baseUrl = $config.baseURL;
       return $config;
     })
     .catch(() => {
@@ -53,4 +49,7 @@ export const getServerConfig = async (app: App): Promise<undefined> => {
     });
 };
 
-export { getConfig, setConfig };
+/** 本地响应式存储的命名空间 */
+const responsiveStorageNameSpace = () => getConfig().ResponsiveStorageNameSpace;
+
+export { getConfig, setConfig, responsiveStorageNameSpace };

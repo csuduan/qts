@@ -1,24 +1,25 @@
 <script setup lang="ts">
-import { getCurrentInstance } from "vue";
+import { getTopMenu } from "@/router/utils";
+import { useNav } from "@/layout/hooks/useNav";
+
 const props = defineProps({
   collapse: Boolean
 });
 
-const title =
-  getCurrentInstance().appContext.config.globalProperties.$config?.Title;
+const { title } = useNav();
 </script>
 
 <template>
-  <div class="sidebar-logo-container" :class="{ collapse: props.collapse }">
+  <div class="sidebar-logo-container" :class="{ collapses: props.collapse }">
     <transition name="sidebarLogoFade">
       <router-link
         v-if="props.collapse"
         key="props.collapse"
         :title="title"
         class="sidebar-logo-link"
-        to="/"
+        :to="getTopMenu()?.path ?? '/'"
       >
-        <FontIcon icon="team-iconlogo" svg style="width: 35px; height: 35px" />
+        <img src="/logo.svg" alt="logo" />
         <span class="sidebar-title">{{ title }}</span>
       </router-link>
       <router-link
@@ -26,9 +27,9 @@ const title =
         key="expand"
         :title="title"
         class="sidebar-logo-link"
-        to="/"
+        :to="getTopMenu()?.path ?? '/'"
       >
-        <FontIcon icon="team-iconlogo" svg style="width: 35px; height: 35px" />
+        <img src="/logo.svg" alt="logo" />
         <span class="sidebar-title">{{ title }}</span>
       </router-link>
     </transition>
@@ -40,28 +41,30 @@ const title =
   position: relative;
   width: 100%;
   height: 48px;
-  text-align: center;
   overflow: hidden;
 
   .sidebar-logo-link {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
     height: 100%;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    margin-top: 5px;
+
+    img {
+      display: inline-block;
+      height: 32px;
+    }
 
     .sidebar-title {
-      color: #1890ff;
+      display: inline-block;
+      height: 32px;
+      margin: 2px 0 0 12px;
+      overflow: hidden;
+      font-size: 18px;
       font-weight: 600;
-      font-size: 20px;
-      margin-top: 10px;
-      font-family: Avenir, Helvetica Neue, Arial, Helvetica, sans-serif;
-    }
-  }
-
-  .collapse {
-    .sidebar-logo {
-      margin-right: 0;
+      line-height: 32px;
+      color: $subMenuActiveText;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 }

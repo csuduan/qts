@@ -2,18 +2,15 @@ package org.qts.trader.core;
 
 import com.alibaba.fastjson.JSON;
 import org.qts.common.dao.AcctMapper;
-import org.qts.common.disruptor.FastQueue;
 import org.qts.common.disruptor.event.FastEvent;
 import org.qts.common.disruptor.event.FastEventHandlerAbstract;
 import org.qts.common.entity.*;
-import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.acct.AcctInfo;
 import org.qts.common.entity.config.AcctConf;
 import org.qts.common.entity.trade.*;
 import org.qts.trader.gateway.MdGateway;
 import org.qts.trader.gateway.TdGateway;
 import org.qts.common.utils.BarGenerator;
-import org.qts.common.utils.SpringUtils;
 import org.qts.trader.gateway.GatwayFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

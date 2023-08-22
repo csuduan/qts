@@ -1,15 +1,13 @@
-import { $t } from "/@/plugins/i18n";
-const Layout = () => import("/@/layout/index.vue");
+const Layout = () => import("@/layout/index.vue");
 
-const remainingRouter = [
+export default [
   {
     path: "/login",
-    name: "login",
-    component: () => import("/@/views/login.vue"),
+    name: "Login",
+    component: () => import("@/views/login/index.vue"),
     meta: {
-      title: $t("menus.hslogin"),
+      title: "登录",
       showLink: false,
-      i18n: true,
       rank: 101
     }
   },
@@ -17,20 +15,16 @@ const remainingRouter = [
     path: "/redirect",
     component: Layout,
     meta: {
-      icon: "home-filled",
-      title: $t("menus.hshome"),
-      i18n: true,
+      title: "加载中...",
       showLink: false,
-      rank: 104
+      rank: 102
     },
     children: [
       {
         path: "/redirect/:path(.*)",
-        name: "redirect",
-        component: () => import("/@/layout/redirect.vue")
+        name: "Redirect",
+        component: () => import("@/layout/redirect.vue")
       }
     ]
   }
-];
-
-export default remainingRouter;
+] as Array<RouteConfigsTable>;

@@ -1,28 +1,25 @@
-import { $t } from "/@/plugins/i18n";
-const Layout = () => import("/@/layout/index.vue");
+const { VITE_HIDE_HOME } = import.meta.env;
+const Layout = () => import("@/layout/index.vue");
 
-const homeRouter = {
+export default {
   path: "/",
-  name: "home",
+  name: "Home",
   component: Layout,
   redirect: "/welcome",
   meta: {
-    icon: "home-filled",
-    title: $t("menus.hshome"),
-    i18n: true,
+    icon: "homeFilled",
+    title: "首页",
     rank: 0
   },
   children: [
     {
       path: "/welcome",
-      name: "welcome",
-      component: () => import("/@/views/welcome.vue"),
+      name: "Welcome",
+      component: () => import("@/views/welcome/index.vue"),
       meta: {
-        title: $t("menus.hshome"),
-        i18n: true
+        title: "首页",
+        showLink: VITE_HIDE_HOME === "true" ? false : true
       }
     }
   ]
-};
-
-export default homeRouter;
+} as RouteConfigsTable;

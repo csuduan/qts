@@ -1,16 +1,12 @@
 package org.qts.admin.controller;
 
-import com.alibaba.fastjson.JSON;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
+import org.qts.admin.entity.AcctInstDesc;
 import org.qts.admin.manager.AcctManager;
 import org.qts.common.entity.Response;
-import org.qts.common.entity.acct.AcctDetail;
-import org.qts.common.entity.acct.AcctInst;
 import org.qts.common.entity.config.AcctConf;
-import org.qts.common.entity.trade.AcctOpReq;
-import org.qts.common.entity.Page;
 import org.qts.common.entity.acct.AcctInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -35,8 +31,9 @@ public class AcctController {
 
     @ApiOperation(value = "账户实例列表")
     @GetMapping(value = "/inst/list")
-    public Response<List<AcctInst>> getAcctDetail(){
-        Response<List<AcctInst>> response=new Response<>();
+    public Response<List<AcctInstDesc>> getAcctInstList(){
+        Response<List<AcctInstDesc>> response=new Response<>();
+        response.setData(acctService.getAcctInstDescs());
         return response;
     }
 
@@ -52,6 +49,14 @@ public class AcctController {
     public Response<Boolean> stopInst(String acctId){
         Response<Boolean> response=new Response<>();
         //response.setData(agentService.acctOperate(req.getAcctId(),req.getType(),data));
+        return response;
+    }
+
+    @ApiOperation(value = "账户详情")
+    @GetMapping(value = "/inst/detail")
+    public Response<AcctInfo> getAcctDetail(String acctId){
+        Response<AcctInfo> response=new Response<>();
+        response.setData(acctService.getAcctDetail(acctId));
         return response;
     }
 }

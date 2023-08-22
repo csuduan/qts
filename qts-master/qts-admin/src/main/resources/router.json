@@ -81,6 +81,13 @@
         "meta": {
           "title": "账户交易"
         }
+      },
+      {
+        "path": "/acct/config/index",
+        "name": "trade",
+        "meta": {
+          "title": "账户配置"
+        }
       }
     ]
   }

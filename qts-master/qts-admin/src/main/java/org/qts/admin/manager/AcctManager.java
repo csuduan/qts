@@ -1,13 +1,14 @@
 package org.qts.admin.manager;
 
 import lombok.extern.slf4j.Slf4j;
-import org.qts.admin.core.AcctInstance;
+import org.qts.admin.core.AcctInst;
+import org.qts.admin.entity.AcctInstDesc;
 import org.qts.common.dao.AcctMapper;
 import org.qts.admin.exception.BizException;
 import org.qts.admin.service.WebSocketService;
+import org.qts.common.entity.Constant;
 import org.qts.common.entity.Enums;
 import org.qts.common.entity.Message;
-import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.acct.AcctInfo;
 import org.qts.common.entity.config.AcctConf;
 import org.qts.common.entity.event.MessageEvent;
@@ -18,9 +19,12 @@ import org.qts.common.utils.SequenceUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +43,7 @@ public class AcctManager implements ServerListener {
 
 
     private Map<String, AcctConf> acctConfMap=new HashMap<>();
-    private Map<String, AcctInstance> acctInstanceMap=new HashMap<>();
+    private Map<String, AcctInst> acctInstanceMap=new HashMap<>();
     private TcpServer tcpServer;
 
     @Value("${tcpServer.port:8083}")
@@ -59,18 +63,28 @@ public class AcctManager implements ServerListener {
         var list =acctMapper.getAcctConf();
         for(AcctConf acctConf :list){
             acctConfMap.put(acctConf.getId(),acctConf);
-            this.startAcctInstance(acctConf);
+            //this.startAcctInstance(acctConf);
+            if(acctConf.getEnable()){
+                AcctInst acctInst=new AcctInst();
+                acctInst.setId(acctConf.getId());
+                acctInst.setGroup(acctInst.getGroup());
+                acctInst.setName(acctInst.getName());
+                acctInst.setStatus(Enums.ACCT_STATUS.INITING);
+                acctInst.setAcctInfo(new AcctInfo(acctConf));
+                acctInst.setUpdateTimes(LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
+                acctInstanceMap.put(acctInst.getId(), acctInst);
+            }
         }
     }
 
     public List<AcctConf> getAcctConfs(){
         return this.acctConfMap.values().stream().toList();
     }
-    public List<AcctInfo> getAcctInfos(){
-        return acctInstanceMap.values().stream().map(x->(AcctInfo)x.getAcctDetail()).toList();
+    public List<AcctInstDesc> getAcctInstDescs(){
+        return acctInstanceMap.values().stream().map(x->x.getAcctInstDesc()).toList();
     }
-    public AcctDetail getAcctDetail(String acctId){
-        return acctInstanceMap.get(acctId).getAcctDetail();
+    public AcctInfo getAcctDetail(String acctId){
+        return acctInstanceMap.get(acctId).getAcctInfo();
     }
 
     public boolean startAcctInstance(AcctConf acctConf){
@@ -79,7 +93,7 @@ public class AcctManager implements ServerListener {
         if(this.acctInstanceMap.containsKey(acctConf.getId()))
             return false;
 
-        AcctInstance acctInstance=new AcctInstance(acctConf);
+        AcctInst acctInstance=new AcctInst();
         this.acctInstanceMap.put(acctConf.getId(),acctInstance);
         //检查账户进程是否存在
         int pid=ProcessUtil.getProcess("qts-trader",acctConf.getId());
@@ -101,7 +115,7 @@ public class AcctManager implements ServerListener {
 
     public Message request(String acctId, Message req){
         if(!this.acctInstanceMap.containsKey(acctId)
-                || this.acctInstanceMap.get(acctId).getAcctStatus()!= Enums.ACCT_STATUS.READY )
+                || this.acctInstanceMap.get(acctId).getStatus()!= Enums.ACCT_STATUS.READY )
             throw  new BizException("账户未就绪");
 
         String requestId = SequenceUtil.getLocalSerialNo(16);
@@ -162,6 +176,15 @@ public class AcctManager implements ServerListener {
 //        //推送给admin
 //        SpringUtils.pushEvent(new MessageEvent(new org.qts.common.entity.Message.Message(Enums.MSG_TYPE.ON_ACCT,acctInst.getAcctInfo())));
 //
+    }
+
+    @Scheduled(fixedRate = 30000)
+    public void pushAcctInst(){
+        this.acctInstanceMap.forEach((id,inst)->{
+            inst.setUpdateTimes(LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss")));
+            Message message =new Message(Enums.MSG_TYPE.ON_ACCT, inst.getAcctInstDesc());
+            this.webSocketService.push(message);
+        });
     }
 
     public void sendMsg(String acctId,Message msg){

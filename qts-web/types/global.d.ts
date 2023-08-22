@@ -1,21 +1,20 @@
 import type {
-  ComponentRenderProxy,
   VNode,
-  ComponentPublicInstance,
   FunctionalComponent,
-  PropType as VuePropType
+  PropType as VuePropType,
+  ComponentPublicInstance
 } from "vue";
+import type { ECharts } from "echarts";
+import type { IconifyIcon } from "@iconify/vue";
+import type { TableColumns } from "@pureadmin/table";
 
-// GlobalComponents for Volar
-declare module "vue" {
-  export interface GlobalComponents {
-    IconifyIconOffline: typeof import("../src/components/ReIcon")["IconifyIconOffline"];
-    IconifyIconOnline: typeof import("../src/components/ReIcon")["IconifyIconOnline"];
-    FontIcon: typeof import("../src/components/ReIcon")["FontIcon"];
-  }
-}
-
+/**
+ * 全局类型声明，无需引入直接在 `.vue` 、`.ts` 、`.tsx` 文件使用即可获得类型提示
+ */
 declare global {
+  /**
+   * 平台的名称、版本、依赖、最后构建时间的类型提示
+   */
   const __APP_INFO__: {
     pkg: {
       name: string;
@@ -25,6 +24,10 @@ declare global {
     };
     lastBuildTime: string;
   };
+
+  /**
+   * Window 的类型提示
+   */
   interface Window {
     // Global vue app instance
     __APP__: App<Element>;
@@ -38,50 +41,42 @@ declare global {
     msRequestAnimationFrame: (callback: FrameRequestCallback) => number;
   }
 
-  // vue
-  type PropType<T> = VuePropType<T>;
+  /**
+   * 打包压缩格式的类型声明
+   */
+  type ViteCompression =
+    | "none"
+    | "gzip"
+    | "brotli"
+    | "both"
+    | "gzip-clear"
+    | "brotli-clear"
+    | "both-clear";
 
-  type Writable<T> = {
-    -readonly [P in keyof T]: T[P];
-  };
-
-  type Nullable<T> = T | null;
-  type NonNullable<T> = T extends null | undefined ? never : T;
-  type Recordable<T = any> = Record<string, T>;
-  type ReadonlyRecordable<T = any> = {
-    readonly [key: string]: T;
-  };
-  type Indexable<T = any> = {
-    [key: string]: T;
-  };
-  type DeepPartial<T> = {
-    [P in keyof T]?: DeepPartial<T[P]>;
-  };
-  type TimeoutHandle = ReturnType<typeof setTimeout>;
-  type IntervalHandle = ReturnType<typeof setInterval>;
-
-  interface ChangeEvent extends Event {
-    target: HTMLInputElement;
-  }
-
-  interface WheelEvent {
-    path?: EventTarget[];
-  }
-  interface ImportMetaEnv extends ViteEnv {
-    __: unknown;
-  }
-
-  declare interface ViteEnv {
+  /**
+   * 全局自定义环境变量的类型声明
+   * @see {@link https://yiming_chang.gitee.io/pure-admin-doc/pages/config/#%E5%85%B7%E4%BD%93%E9%85%8D%E7%BD%AE}
+   */
+  interface ViteEnv {
     VITE_PORT: number;
     VITE_PUBLIC_PATH: string;
-    VITE_PROXY_DOMAIN: string;
-    VITE_PROXY_DOMAIN_REAL: string;
     VITE_ROUTER_HISTORY: string;
-    VITE_LEGACY: boolean;
-    WS_PROXY: string;
+    VITE_CDN: boolean;
+    VITE_HIDE_HOME: string;
+    VITE_PROXY_DOMAIN_REAL: string;
+    VITE_COMPRESSION: ViteCompression;
   }
 
-  declare interface ServerConfigs {
+  /**
+   *  继承 `@pureadmin/table` 的 `TableColumns` ，方便全局直接调用
+   */
+  interface TableColumnList extends Array<TableColumns> {}
+
+  /**
+   * 对应 `public/serverConfig.json` 文件的类型声明
+   * @see {@link https://yiming_chang.gitee.io/pure-admin-doc/pages/config/#serverconfig-json}
+   */
+  interface ServerConfigs {
     Version?: string;
     Title?: string;
     FixedHeader?: boolean;
@@ -99,33 +94,68 @@ declare global {
     EpThemeColor?: string;
     ShowLogo?: boolean;
     ShowModel?: string;
-    MapConfigure?: {
-      amapKey?: string;
-      options: {
-        resizeEnable?: boolean;
-        center?: number[];
-        zoom?: number;
-      };
-    };
+    MenuArrowIconNoTransition?: boolean;
+    CachingAsyncRoutes?: boolean;
+    TooltipEffect?: Effect;
+    ResponsiveStorageNameSpace?: string;
   }
 
-  function parseInt(s: string | number, radix?: number): number;
+  /**
+   * 与 `ServerConfigs` 类型不同，这里是缓存到浏览器本地存储的类型声明
+   * @see {@link https://yiming_chang.gitee.io/pure-admin-doc/pages/config/#serverconfig-json}
+   */
+  interface StorageConfigs {
+    version?: string;
+    title?: string;
+    fixedHeader?: boolean;
+    hiddenSideBar?: boolean;
+    multiTagsCache?: boolean;
+    keepAlive?: boolean;
+    locale?: string;
+    layout?: string;
+    theme?: string;
+    darkMode?: boolean;
+    grey?: boolean;
+    weak?: boolean;
+    hideTabs?: boolean;
+    sidebarStatus?: boolean;
+    epThemeColor?: string;
+    showLogo?: boolean;
+    showModel?: string;
+    username?: string;
+  }
 
-  function parseFloat(string: string | number): number;
+  /**
+   * `responsive-storage` 本地响应式 `storage` 的类型声明
+   */
+  interface ResponsiveStorage {
+    locale: {
+      locale?: string;
+    };
+    layout: {
+      layout?: string;
+      theme?: string;
+      darkMode?: boolean;
+      sidebarStatus?: boolean;
+      epThemeColor?: string;
+    };
+    configure: {
+      grey?: boolean;
+      weak?: boolean;
+      hideTabs?: boolean;
+      showLogo?: boolean;
+      showModel?: string;
+      multiTagsCache?: boolean;
+    };
+    tags?: Array<any>;
+  }
 
-  namespace JSX {
-    // tslint:disable no-empty-interface
-    type Element = VNode;
-    // tslint:disable no-empty-interface
-    type ElementClass = ComponentRenderProxy;
-    interface ElementAttributesProperty {
-      $props: any;
-    }
-    interface IntrinsicElements {
-      [elem: string]: any;
-    }
-    interface IntrinsicAttributes {
-      [elem: string]: any;
-    }
+  /**
+   * 平台里所有组件实例都能访问到的全局属性对象的类型声明
+   */
+  interface GlobalPropertiesApi {
+    $echarts: ECharts;
+    $storage: ResponsiveStorage;
+    $config: ServerConfigs;
   }
 }

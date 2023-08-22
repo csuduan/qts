@@ -14,7 +14,6 @@ import org.qts.common.entity.Constant;
 import org.qts.common.entity.Contract;
 import org.qts.common.entity.Enums;
 import org.qts.common.entity.LoginInfo;
-import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.acct.AcctInfo;
 import org.qts.common.entity.trade.CancelOrderReq;
 import org.qts.common.entity.trade.Order;

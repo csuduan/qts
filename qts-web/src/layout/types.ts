@@ -1,29 +1,31 @@
-import { Component } from "vue";
-export const routerArrays: Array<RouteConfigs> = [
-  {
-    path: "/welcome",
-    parentPath: "/",
-    meta: {
-      title: "menus.hshome",
-      i18n: true,
-      icon: "home-filled"
-    }
-  }
-];
+import type { IconifyIcon } from "@iconify/vue";
+const { VITE_HIDE_HOME } = import.meta.env;
+
+export const routerArrays: Array<RouteConfigs> =
+  VITE_HIDE_HOME === "false"
+    ? [
+        {
+          path: "/welcome",
+          meta: {
+            title: "首页",
+            icon: "homeFilled"
+          }
+        }
+      ]
+    : [];
 
 export type routeMetaType = {
   title?: string;
-  i18n?: boolean;
-  icon?: string;
+  icon?: string | IconifyIcon;
   showLink?: boolean;
   savedPosition?: boolean;
-  authority?: Array<string>;
+  auths?: Array<string>;
 };
 
 export type RouteConfigs = {
   path?: string;
-  parentPath?: string;
   query?: object;
+  params?: object;
   meta?: routeMetaType;
   children?: RouteConfigs[];
   name?: string;
@@ -34,7 +36,7 @@ export type multiTagsType = {
 };
 
 export type tagsViewsType = {
-  icon: Component;
+  icon: string | IconifyIcon;
   text: string;
   divided: boolean;
   disabled: boolean;
@@ -45,7 +47,7 @@ export interface setType {
   sidebar: {
     opened: boolean;
     withoutAnimation: boolean;
-    isClickHamburger: boolean;
+    isClickCollapse: boolean;
   };
   device: string;
   fixedHeader: boolean;
@@ -58,24 +60,23 @@ export interface setType {
   hideTabs: boolean;
 }
 
-export type childrenType = {
+export type menuType = {
+  id?: number;
   path?: string;
   noShowingChildren?: boolean;
-  children?: childrenType[];
+  children?: menuType[];
   value: unknown;
   meta?: {
     icon?: string;
     title?: string;
-    i18n?: boolean;
+    rank?: number;
     showParent?: boolean;
-    extraIcon?: {
-      svg?: boolean;
-      name?: string;
-    };
+    extraIcon?: string;
   };
   showTooltip?: boolean;
   parentId?: number;
   pathList?: number[];
+  redirect?: string;
 };
 
 export type themeColorsType = {
