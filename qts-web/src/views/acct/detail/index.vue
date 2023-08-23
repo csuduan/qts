@@ -7,11 +7,24 @@ import type { TabsPaneContext } from 'element-plus'
 import { useAcctStoreHook } from "@/store/modules/acct";
 
 import Trade from "./trade.vue";
+import { isString, isEmpty } from "@pureadmin/utils";
+
 const route = useRoute();
 const index = route.query?.id ?? -1;
+import { useDetail } from "../hooks";
 
 
 const activeName = ref('first')
+
+const { initToDetail,toDetail } = useDetail();
+
+const acctId = route.query.id;
+if(! isEmpty(isEmpty(route.query))){
+  console.info("query"+route.query)
+  toDetail(route.query)
+}else{
+  console.error("query isEmpty")
+}
 
 
 const options = [

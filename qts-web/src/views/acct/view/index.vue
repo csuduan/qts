@@ -17,6 +17,8 @@ import Refresh from "@iconify-icons/ep/refresh";
 import Menu from "@iconify-icons/ep/menu";
 import Connect from "@iconify-icons/ep/connection";
 import AddFill from "@iconify-icons/ri/add-circle-line";
+import { useDetail } from "../hooks";
+
 
 
 
@@ -25,8 +27,10 @@ defineOptions({
 });
 
 
-const route = useRoute();
-const router = useRouter();
+//const route = useRoute();
+//const router = useRouter();
+const { toDetail } = useDetail();
+
 
 const form = reactive({
   name: "",
@@ -63,19 +67,21 @@ function connectAcct(row, status) {
 }
 
 function jumpDetail(row) {
-  useMultiTagsStoreHook().handleTags("push", {
-    path: `/acct/detail/index`,
-    parentPath: route.matched[0].path,
-    name: "acctDetail",
-    query: {id: String(row.id)},
-    meta: {
-      title: {zh: `账户-${row.id}`, en: `No.${row.id} - DetailInfo`},
-      showLink: false,
-      i18n: false,
-      dynamicLevel: 3
-    }
-  });
-  router.push({name: "acctDetail", query: {id: String(row.id)}});
+  var acctId=row.id;
+  var params={id: String(acctId)}
+   toDetail(params)
+
+  // useMultiTagsStoreHook().handleTags("push", {
+  //   path: `/acct/detail`,
+  //   parentPath: route.matched[0].path,
+  //   name: "acct-detail",
+  //   query: params,
+  //   meta: {
+  //     title: `账户-${params.id}`,
+  //     dynamicLevel: 3
+  //   }
+  // });
+  // router.push({name: "acct-detail", query: params});
 }
 
 function handleDelete(row) {

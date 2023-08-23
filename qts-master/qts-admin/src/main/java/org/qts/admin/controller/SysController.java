@@ -14,6 +14,7 @@ import org.qts.common.entity.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -55,7 +56,8 @@ public class SysController {
     public Response<List<Router>> getRouters(String name){
         Response<List<Router>> response=new Response<>();
         List<Router> routers = sysService.getSysRouters(name);
-        response.setData(routers);
+        //response.setData(routers);//路由暂时由前端配置
+        response.setData(new ArrayList<>());
         return response;
     }
 

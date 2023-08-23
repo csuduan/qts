@@ -16,6 +16,8 @@ import ArrowDown from "@iconify-icons/ri/arrow-down-s-line";
 import ArrowRightSLine from "@iconify-icons/ri/arrow-right-s-line";
 import ArrowLeftSLine from "@iconify-icons/ri/arrow-left-s-line";
 import CloseBold from "@iconify-icons/ep/close-bold";
+import RefreshRight from "@iconify-icons/ep/refresh-right";
+import Search from "@iconify-icons/ep/search";
 
 const {
   route,
@@ -324,6 +326,10 @@ function handleCommand(command: any) {
   onClickDrop(key, item);
 }
 
+function handleRefresh() {
+  onFresh()
+}
+
 /** 触发右键中菜单的点击事件 */
 function selectTag(key, item) {
   onClickDrop(key, item, currentSelect.value);
@@ -579,6 +585,12 @@ onBeforeUnmount(() => {
         </div>
       </ul>
     </transition>
+    <div
+        class="search-container w-[40px] h-[48px] flex-c cursor-pointer navbar-bg-hover"
+        @click="handleRefresh"
+    >
+      <IconifyIconOffline :icon="RefreshRight" />
+    </div>
     <!-- 右侧功能按钮 -->
     <el-dropdown
       trigger="click"

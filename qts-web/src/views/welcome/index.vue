@@ -5,5 +5,5 @@ defineOptions({
 </script>
 
 <template>
-  <h1>Pure-Admin-Thin（非国际化版本）</h1>
+  <h1>Quick Trading System (极速交易系统)</h1>
 </template>

@@ -8,7 +8,13 @@ import { addIcon } from "@iconify/vue/dist/offline";
 import HomeFilled from "@iconify-icons/ep/home-filled";
 import InformationLine from "@iconify-icons/ri/information-line";
 import Lollipop from "@iconify-icons/ep/lollipop";
+import Setting from "@iconify-icons/ep/setting";
+import Line from "@iconify-icons/ep/data-line";
+
 
 addIcon("homeFilled", HomeFilled);
 addIcon("informationLine", InformationLine);
 addIcon("lollipop", Lollipop);
+addIcon("setting", Setting);
+addIcon("chart-line",Line)
+
