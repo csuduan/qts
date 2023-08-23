@@ -9,6 +9,16 @@ import {useAcctStoreHook} from "@/store/modules/acct";
 import {MsgType} from "@/utils/enums";
 import {clone, delay} from "@pureadmin/utils";
 import type {PaginationProps, LoadingConfig, Align} from "@pureadmin/table";
+import More2Fill from "@iconify-icons/ri/more-2-fill";
+import Delete from "@iconify-icons/ep/delete";
+import EditPen from "@iconify-icons/ep/edit-pen";
+import Search from "@iconify-icons/ep/search";
+import Refresh from "@iconify-icons/ep/refresh";
+import Menu from "@iconify-icons/ep/menu";
+import Connect from "@iconify-icons/ep/connection";
+import AddFill from "@iconify-icons/ri/add-circle-line";
+
+
 
 defineOptions({
   name: "view"
@@ -147,7 +157,7 @@ onMounted(() => {
   fetchAcctInfos();
   // 创建一个每60秒触发一次的计时器
   const refreshInterval = setInterval(() => {
-    fetchAcctInfos(); // 定时获取数据并更新状态
+    //fetchAcctInfos(); // 定时获取数据并更新状态
   }, 60000); // 60秒
 
 
@@ -160,7 +170,7 @@ onMounted(() => {
       <el-button type="primary" @click="startAcct">启动账户</el-button>
       <el-button type="primary" @click="stopAcct">停止账户</el-button>
     </div>
-    <div>
+    <div class="acct-list">
       <el-table
           border
           table-layout="auto"
@@ -173,7 +183,6 @@ onMounted(() => {
             type="selection"
             align="center"
             width="55"
-            prop="enable"
         />
         <el-table-column label="分组" align="center" prop="group"/>
         <el-table-column label="账户编号" align="center" prop="id"/>
@@ -186,10 +195,10 @@ onMounted(() => {
         >
           <template #default="scope">
             <el-tag
-                :type="scope.row.status == 1 ? 'success' : 'danger'"
+                :type="scope.row.status == 'READY' ? 'success' : 'danger'"
                 disable-transitions
             >
-              {{ scope.row.statusMsg }}
+              {{ scope.row.status }}
             </el-tag>
           </template>
         </el-table-column>
@@ -241,7 +250,7 @@ onMounted(() => {
                 type="text"
                 :size="size"
                 @click="jumpDetail(scope.row)"
-                :icon="useRenderIcon('edits')"
+                :icon="useRenderIcon(Menu)"
             >
               详情
             </el-button>
@@ -252,7 +261,7 @@ onMounted(() => {
                   type="text"
                   :size="size"
                   @click="handleUpdate(scope.row)"
-                  :icon="useRenderIcon('more')"
+                  :icon="useRenderIcon(More2Fill)"
               />
               <template #dropdown>
                 <el-dropdown-menu>
@@ -262,7 +271,26 @@ onMounted(() => {
                         type="text"
                         @click="connectAcct(scope.row, false)"
                         :size="size"
-                        :icon="useRenderIcon('menu')"
+                    >
+                      启动
+                    </el-button>
+                  </el-dropdown-item>
+                  <el-dropdown-item>
+                    <el-button
+                        class="reset-margin !h-20px !text-gray-500"
+                        type="text"
+                        @click="connectAcct(scope.row, false)"
+                        :size="size"
+                    >
+                      停止
+                    </el-button>
+                  </el-dropdown-item>
+                  <el-dropdown-item>
+                    <el-button
+                        class="reset-margin !h-20px !text-gray-500"
+                        type="text"
+                        @click="connectAcct(scope.row, false)"
+                        :size="size"
                     >
                       断开
                     </el-button>
@@ -273,7 +301,6 @@ onMounted(() => {
                         type="text"
                         @click="connectAcct(scope.row, true)"
                         :size="size"
-                        :icon="useRenderIcon('database')"
                     >
                       连接
                     </el-button>
@@ -302,5 +329,9 @@ onMounted(() => {
 <style scoped lang="scss">
 :deep(.el-dropdown-menu__item i) {
   margin: 0;
+}
+
+.acct-list{
+  margin-top: 10px;
 }
 </style>

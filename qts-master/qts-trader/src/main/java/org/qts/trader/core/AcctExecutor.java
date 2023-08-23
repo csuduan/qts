@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.util.*;
+import java.util.concurrent.Executors;
 
 /**
  * 账户执行器
@@ -58,10 +59,13 @@ public class AcctExecutor   implements EventHandler<FastEvent>, MsgHandler {
 
     @PostConstruct
     public void init(){
+
+    }
+
+    public void start(){
         AcctConf acctConf=acctMapper.queryAcctConf(acctId);
         log.info("账户配置:{}",acctConf);
         this.acctInfo =new AcctInfo(acctConf);
-
 
         String waitStrategy= SpringUtils.getContext().getEnvironment().getProperty("fastQueue.WaitStrategy");
         this.fastQueue = new FastQueue(waitStrategy,this);
@@ -73,12 +77,9 @@ public class AcctExecutor   implements EventHandler<FastEvent>, MsgHandler {
         this.strategyEngine =new StrategyEngine();
 
         //启动ipcServer
-        String ipcAddress =this.acctInfo.getAcctConf().getIpcAddress();
-        this.tcpServer.start(Integer.parseInt(ipcAddress.split(":")[1]),this);
-    }
-
-    public void start(){
-
+        Integer port =this.acctInfo.getAcctConf().getPort();
+        this.tcpServer = new TcpServer(port,this);
+        this.tcpServer.start();
     }
 
     public void close(){
@@ -242,6 +243,33 @@ public class AcctExecutor   implements EventHandler<FastEvent>, MsgHandler {
     @Override
     public Message onRequest(Message req) {
         Message rsp = req.buildResp(0,null);
+        switch (req.getType()){
+            case EXIT -> {
+                new Thread(()->{
+                    try {
+                        log.error("will exit 5s later...");
+                        Thread.sleep(5000);
+                        this.close();
+                        System.exit(0);
+                    }catch (Exception ex){
+
+                    }
+                }).start();
+            }
+            case CONNECT -> {
+                this.connect();
+            }
+            case DISCONNECT -> {
+                this.discount();
+            }
+            case MD_SUBS -> {
+                List<String> contracts = req.getList(String.class);
+                contracts.forEach(x->this.subContract(x));
+            }
+            default -> {
+                log.warn("未处理的消息类型{}",req.getType());
+            }
+        }
         return rsp;
     }
 }

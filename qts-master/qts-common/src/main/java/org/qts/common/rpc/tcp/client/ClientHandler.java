@@ -50,9 +50,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         connected=false;
         log.info("{} Channel disconnected......", id);
-        threadPool.submit(()->{
-            eventListener.onStatus(id,false);
-        });
         //ctx.channel().writeAndFlush("ping");
         //ctx.writeAndFlush("hello world ,hello word");
     }

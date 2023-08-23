@@ -80,4 +80,11 @@ public class AcctManager {
         AcctInst inst = this.acctInstanceMap.get(acctId);
         return  inst.request(req);
     }
+
+    @Scheduled(fixedRate = 3000)
+    public void checkInstStatus(){
+        this.acctInstanceMap.values().forEach(inst->{
+            inst.chekcInstStatus();
+        });
+    }
 }

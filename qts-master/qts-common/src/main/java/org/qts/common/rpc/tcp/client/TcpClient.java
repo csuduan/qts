@@ -18,26 +18,31 @@ import java.net.InetSocketAddress;
 
 @Slf4j
 public class TcpClient {
-    private boolean enable=true;
-    private EventLoopGroup group = new NioEventLoopGroup();
+    private boolean started = false;
+    private  Bootstrap bootstrap;
     private Channel channel;
     private ClientHandler clientHandler;
     private String name;
-    private String address;
+    private String host="127.0.0.1";
+    private Integer port;
     private MsgHandler customHandler;
     private SyncWrite writer = new SyncWrite();
 
 
-    public TcpClient(String name, String address, MsgHandler customHandler){
+    public TcpClient(String name, Integer port, MsgHandler customHandler){
         this.name=name;
-        this.address=address;
+        this.port = port;
         this.customHandler=customHandler;
-        log.info("create client[{}]  {}",name,address);
+        log.info("create client[{}]  {}",name,host+":"+port);
     }
     public void start(){
+        if(this.started)
+            return;
+
         log.info("start client[{}]",name);
+        this.started = true;
         Thread thread=new Thread(()->{
-            while (enable){
+            while (started){
                 try {
                     if(!this.isConnected()){
                         this.connect();
@@ -53,9 +58,12 @@ public class TcpClient {
     }
 
     public void stop(){
-        if(this.enable){
-            this.enable=false;
-            group.shutdownGracefully();
+        if(this.started){
+            this.started=false;
+            if(bootstrap!=null){
+                bootstrap.group().shutdownGracefully();
+                bootstrap = null;
+            }
             log.info("close cliet[{}]",name);
         }
     }
@@ -71,7 +79,7 @@ public class TcpClient {
 
     @Synchronized
     public void connect() {
-        if(!enable){
+        if(!started){
             log.error("client[{}] 已关闭",name);
             return;
         }
@@ -81,14 +89,9 @@ public class TcpClient {
         }
 
         try {
-            String[] tmp=this.address.split(":");
-            String host=tmp[0];
-            int port=Integer.parseInt(tmp[1]);
-
-            Bootstrap bootstrap;
-            bootstrap = new Bootstrap();
-            clientHandler=new ClientHandler(name,customHandler);
-            bootstrap.group(group)
+            this.bootstrap = new Bootstrap();
+            this.clientHandler=new ClientHandler(name,customHandler);
+            bootstrap.group(new NioEventLoopGroup())
                     .channel(NioSocketChannel.class)
                     .option(ChannelOption.TCP_NODELAY,true)
                     .option(ChannelOption.SO_KEEPALIVE,true)
@@ -109,6 +112,7 @@ public class TcpClient {
             log.info("client[{}] disconnected",name);
         }catch (Exception ex){
             log.error("client[{}] error:{}",name,ex.getMessage());
+        }finally {
         }
     }
     public boolean isConnected(){

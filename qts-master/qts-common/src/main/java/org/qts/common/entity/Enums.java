@@ -100,11 +100,10 @@ public interface Enums {
     }
     enum MSG_TYPE {
         RETURN,
-        LOGIN,
         PING,
         EXIT,
-        RESTART,
         CONNECT,
+        DISCONNECT,
 
         MD_SUBS,
         PAUSE_OPEN,

@@ -15,5 +15,5 @@ public class AcctConf {
     private String mdAddress;
     private Boolean enable;
     private String subList;
-    private String ipcAddress;
+    private Integer port;
 }

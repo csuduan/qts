@@ -144,10 +144,6 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 		return null;
 	}
 
-	@Override
-	public AcctDetail getAcct() {
-		return null;
-	}
 
 	@Override
 	public void qryContract() {

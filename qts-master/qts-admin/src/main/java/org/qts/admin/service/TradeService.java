@@ -5,6 +5,7 @@ import org.qts.admin.manager.AcctManager;
 import org.qts.common.entity.Enums;
 import org.qts.common.entity.Message;
 import org.qts.common.entity.acct.AcctInfo;
+import org.qts.common.utils.ProcessUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,9 +25,9 @@ public class TradeService  {
     public void init(){
     }
 
+    //缓存
+    public void switchPos(){
 
-    public Message request(String acctId, Enums.MSG_TYPE type, Object data){
-        return acctManager.request(acctId,new Message(type,data));
     }
 
 }

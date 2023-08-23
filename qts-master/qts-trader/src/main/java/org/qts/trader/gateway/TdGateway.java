@@ -41,7 +41,6 @@ public interface TdGateway {
 
 	LoginInfo getLoginInfo();
 	Contract getContract(String symbol);
-	AcctInfo getAcct();
 	void qryContract();
 
 }

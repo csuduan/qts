@@ -19,8 +19,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 @Slf4j
-@Component
-@Lazy
 public class TcpServer {
 
     private boolean started=false;
@@ -28,15 +26,20 @@ public class TcpServer {
     private int port;
     private MsgHandler msgHandler;
 
-    public void start(int port, MsgHandler msgHandler){
+    public TcpServer(int port, MsgHandler msgHandler){
+        this.port=port;
+        this.msgHandler =msgHandler;
+    }
+
+    public void start(){
         if(started==true){
             log.error("already stated!!!");
             return;
         }
-        this.port=port;
-        this.msgHandler =msgHandler;
-        Thread thread=new Thread(()->this.run());
-        thread.start();
+
+//        Thread thread=new Thread(()->this.run());
+//        thread.start();
+        this.run();
     }
     private void run() {
         if(started==true){

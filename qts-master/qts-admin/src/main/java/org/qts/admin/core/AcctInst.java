@@ -19,6 +19,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Data
@@ -45,17 +46,16 @@ public class AcctInst implements MsgHandler {
     }
 
     public Boolean init(){
-        this.tcpClient = new TcpClient(this.id,this.acctInfo.getAcctConf().getIpcAddress(),this);
+        this.tcpClient = new TcpClient(this.id,this.acctInfo.getAcctConf().getPort(),this);
         this.chekcInstStatus();
         return true;
     }
 
-    @Scheduled(fixedRate = 3000)
     public void chekcInstStatus(){
         //检查账户进程是否启动
-        int pid= ProcessUtil.getProcess("qts-trader",this.getId());
+        int pid= ProcessUtil.getProcess("qts-trader","acctId="+this.getId());
         if(pid<=0){
-            if(this.pid>=0)
+            if(this.pid>0)
                 log.info("账户[{}]已停止,pid:{}",this.getId(),this.pid);
             this.setStatus(Enums.ACCT_STATUS.UNSTARTED);
             this.getTcpClient().stop();
@@ -70,7 +70,7 @@ public class AcctInst implements MsgHandler {
         this.tcpClient.start();
         if(this.tcpClient.isConnected())
             this.setStatus(Enums.ACCT_STATUS.READY);
-       this.updateTimes = LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
+       this.updateTimes = LocalTime.now().format(DateTimeFormatter.ofPattern("hhmmss"));
 
        //广播状态
         SpringUtils.pushEvent(new MessageEvent(new Message(Enums.MSG_TYPE.ON_ACCT,this.getAcctInstDesc())));

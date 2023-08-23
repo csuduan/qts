@@ -35,18 +35,22 @@ public class ProcessUtil {
             return false;
         }
     }
-    public static int getProcess(String name,String param){
+    public static int getProcess(String processName,String key){
         try {
-            Process process = Runtime.getRuntime().exec("ps -ef |grep "+ name);
+            String cmd = "ps -ef |grep "+processName;
+            ProcessBuilder processBuilder = new ProcessBuilder("sh", "-c", cmd);
+            //Process process = Runtime.getRuntime().exec(cmd);
+            Process process = processBuilder.start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.contains(param)) {
-                    String pid=line.split(" ")[1];
+                if(line.contains(key)){
+                    String pid=line.split("\\s+")[1];
                     return Integer.valueOf(pid);
                 }
             }
         }catch (Exception ex){
+            log.error("getProcess error",ex);
         }
         return 0;
     }

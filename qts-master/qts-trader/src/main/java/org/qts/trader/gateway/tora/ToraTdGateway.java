@@ -47,10 +47,6 @@ public class ToraTdGateway implements TdGateway {
         return null;
     }
 
-    @Override
-    public AcctInfo getAcct() {
-        return null;
-    }
 
     @Override
     public void qryContract() {

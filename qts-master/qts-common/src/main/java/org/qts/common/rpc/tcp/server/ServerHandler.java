@@ -70,9 +70,16 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 //            String resMsg= JSON.toJSONString(response);
 //            ctx.channel().writeAndFlush(resMsg);
 //        }
+
         if(request.getType()!= Enums.MSG_TYPE.PING){
             //通用处理
             Message response=msgHandler.onRequest(request);
+            String resMsg= JSON.toJSONString(response);
+            ctx.channel().writeAndFlush(resMsg);
+            log.info("send msg: {}", resMsg);
+
+        }else{
+            Message response=request.buildResp(0,null);
             String resMsg= JSON.toJSONString(response);
             ctx.channel().writeAndFlush(resMsg);
             log.info("send msg: {}", resMsg);

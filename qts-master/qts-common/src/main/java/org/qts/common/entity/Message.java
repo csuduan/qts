@@ -16,6 +16,10 @@ public  class Message {
 
     public Message(){
     }
+
+    public Message(MSG_TYPE type){
+        this.type=type;
+    }
     public Message(MSG_TYPE type,Object data){
         this.type=type;
         if(data!=null){

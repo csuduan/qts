@@ -5,6 +5,7 @@ import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.qts.admin.entity.AcctInstDesc;
 import org.qts.admin.manager.AcctManager;
+import org.qts.common.entity.Enums;
 import org.qts.common.entity.Message;
 import org.qts.common.entity.Response;
 import org.qts.common.entity.config.AcctConf;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Api(tags = "账户管理")
 @RestController
@@ -63,8 +65,9 @@ public class AcctController {
 
     @ApiOperation(value = "发送通用命令")
     @PostMapping(value = "/inst/common-cmd")
-    public Response<Message> sendCmd(@RequestParam String acctId,  @RequestBody Message req){
+    public Response<Message> sendCmd(@RequestParam String acctId, @RequestParam Enums.MSG_TYPE type, @RequestBody Map datas){
         Response<Message> response=new Response<>();
+        Message req = new Message(type,datas);
         response.setData(acctService.request(acctId,req));
         return response;
     }
