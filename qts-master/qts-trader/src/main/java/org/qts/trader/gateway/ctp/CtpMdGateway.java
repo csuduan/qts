@@ -8,7 +8,7 @@ import org.apache.commons.io.FileUtils;
 import org.qts.common.disruptor.FastQueue;
 import org.qts.common.disruptor.event.FastEvent;
 import org.qts.common.entity.MdInfo;
-import org.qts.common.entity.acct.AcctInfo;
+import org.qts.trader.core.AcctInst;
 import org.qts.common.entity.trade.Tick;
 import org.qts.trader.gateway.MdGateway;
 
@@ -17,9 +17,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
-public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
+public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
     static {
         try {
             System.loadLibrary("thostmduserapi_wrap");
@@ -27,8 +28,10 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
             log.error("加载库失败!", e);
         }
     }
-    private AcctInfo acctInfo ;
-    private boolean status = false;
+
+    private AcctInst acctInst;
+    private boolean isRunning = false;
+    private boolean isConnected = false;
     private String tradingDay;
     private String mdName;
     private MdInfo mdInfo;
@@ -36,77 +39,101 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
 
     private CThostFtdcMdApi mdApi = null;
     private HashSet<String> subscribedSymbols = new HashSet<>();
-    private HashMap<String,Integer> preTickVolumeMap = new HashMap<>();
+    private HashMap<String, Integer> preTickVolumeMap = new HashMap<>();
+    private ScheduledExecutorService scheduler;
 
 
-    public CtpMdGateway( AcctInfo acctInfo) {
-        this.acctInfo = acctInfo;
-        this.fastQueue = acctInfo.getFastQueue();
-        this.mdInfo = new MdInfo(acctInfo.getAcctConf());
-        this.mdName=mdInfo.getId();
-        log.info("行情接口"+this.mdInfo.getId() + "开始初始化");
+    public CtpMdGateway(AcctInst acctInst) {
+        this.acctInst = acctInst;
+        this.scheduler = acctInst.getScheduler();
+        this.fastQueue = acctInst.getFastQueue();
+        this.mdInfo = new MdInfo(acctInst.getConf());
+        this.mdName = mdInfo.getId();
+        log.info("md init ...");
         this.connect();
     }
 
 
-
-    public CThostFtdcMdApi getMdApi(){
+    public CThostFtdcMdApi getMdApi() {
         return this.mdApi;
     }
 
-    private void setStatus(boolean status){
-        this.status = status;
+    private void setConnected(boolean connected) {
+        this.isConnected = connected;
     }
+
     @Override
-    @Synchronized
-    public void connect() {
-        if (this.status) {
+    public synchronized void connect() {
+        if (this.isRunning) {
             return;
         }
-        new Thread(()->{
-            log.warn("行情接口实例初始化");
+
+        scheduler.submit(() -> {
+            try {
+                log.info("td start connect...");
+                this.connectAsync();
+                //10s后若连接失败，则自动关闭
+                Thread.sleep(10000);
+                if (!this.isConnected) {
+                    log.error("md connect timeout ...");
+                    this.close();
+                }
+            } catch (Exception ex) {
+                log.error("md connect error", ex);
+            }
+        });
+
+
+    }
+
+    private void connectAsync() {
+        Thread thread = new Thread(() -> {
+            isRunning = true;
+            log.warn("md thread start ...");
             String envTmpDir = System.getProperty("java.io.tmpdir");
             String tempFilePath = envTmpDir + File.separator + "qts" + File.separator + "md_"
                     + this.mdInfo.getId();
-            File tempFile = new File(tempFilePath);
+            File tempFile = new File("./data/md/" + this.mdInfo.getId());
             if (!tempFile.getParentFile().exists()) {
                 try {
                     FileUtils.forceMkdir(tempFile);
-                    log.info("{} 创建临时文件夹" , mdName, tempFile.getParentFile().getAbsolutePath());
                 } catch (IOException e) {
-                    log.error("{} 创建临时文件夹失败", mdName, tempFile.getParentFile().getAbsolutePath());
+                    log.error("td create tmpFile error{}", tempFile.getParentFile().getAbsolutePath(), e);
                 }
             }
-            log.info("{} 使用临时文件夹", mdName, tempFile.getParentFile().getAbsolutePath());
-
+            log.info("md tmpFile:{}", tempFile.getParentFile().getAbsolutePath());
 
             mdApi = CThostFtdcMdApi.CreateFtdcMdApi(tempFile.getAbsolutePath());
             mdApi.RegisterSpi(this);
             mdApi.RegisterFront(mdInfo.getMdAddress());
             mdApi.Init();
-        }).run();
+            mdApi.Join();
+            log.info("md thread exit...");
 
+        });
+        thread.setName("md");
+        thread.start();
     }
 
     @Override
-    @Synchronized
     public void close() {
-        //仅释放接口
-        if (mdApi != null) {
-            try {
-                log.info("行情接口释放启动！");
-                mdApi.RegisterSpi(null);
-                mdApi.Release();
-                Thread.sleep(500);
-            } catch (Exception e) {
-                log.error("行情接口释放发生异常！", e);
+        if (!this.isRunning)
+            return;
+        new Thread(() -> {
+            if (mdApi != null) {
+                try {
+                    mdApi.RegisterSpi(null);
+                    this.mdApi.Release();
+                } catch (Exception e) {
+                    log.error("md release error！", e);
+                }
+                mdApi = null;
+                this.setConnected(false);
+                log.warn("md released");
             }
-            mdApi = null;
-            status = false;
-            log.warn("{} 行情接口实例关闭并释放", mdName);
-        }
+            isRunning = false;
+        }).start();
     }
-
 
 
     @Override
@@ -123,10 +150,8 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
 
     @Override
     public boolean isConnected() {
-        return this.status;
+        return this.isRunning && this.isConnected;
     }
-
-
 
 
     @Override
@@ -147,8 +172,8 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
 
     // 前置机断开回报
     public void OnFrontDisconnected(int nReason) {
-        log.info( "行情接口前置机已断开,Reason:" + nReason);
-        this.setStatus(false);
+        log.info("行情接口前置机已断开,Reason:" + nReason);
+        this.setConnected(false);
     }
 
     // 登录回报
@@ -159,7 +184,7 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
                     pRspUserLogin.getTradingDay(), pRspUserLogin.getSessionID(), pRspUserLogin.getBrokerID(),
                     pRspUserLogin.getUserID());
             // 修改登录状态为true
-            this.setStatus(true);
+            this.setConnected(true);
             this.tradingDay = pRspUserLogin.getTradingDay();
             log.info("{}行情接口获取到的交易日为{}", mdName, tradingDay);
             // 重新订阅之前的合约
@@ -191,7 +216,7 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
                     pUserLogout.getUserID());
 
         }
-        this.status = false;
+        this.isConnected = false;
     }
 
     // 错误回报
@@ -204,7 +229,7 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
     public void OnRspSubMarketData(CThostFtdcSpecificInstrumentField pSpecificInstrument,
                                    CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         if (pRspInfo.getErrorID() == 0) {
-            log.info("{} OnRspSubMarketData! 订阅合约成功:{}", mdName,pSpecificInstrument.getInstrumentID());
+            log.info("{} OnRspSubMarketData! 订阅合约成功:{}", mdName, pSpecificInstrument.getInstrumentID());
         } else {
             log.error("{} OnRspSubMarketData! 订阅合约失败,ErrorID:{} ErrorMsg:{}", mdName, pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
         }
@@ -214,7 +239,7 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
     public void OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField pSpecificInstrument,
                                      CThostFtdcRspInfoField pRspInfo, int nRequestID, boolean bIsLast) {
         if (pRspInfo.getErrorID() == 0) {
-            log.info("{} OnRspSubMarketData! 退订合约成功:{}", mdName,pSpecificInstrument.getInstrumentID());
+            log.info("{} OnRspSubMarketData! 退订合约成功:{}", mdName, pSpecificInstrument.getInstrumentID());
         } else {
             log.error("{} OnRspSubMarketData! 退订合约失败,ErrorID:{} ErrorMsg:{}", mdName, pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
         }
@@ -222,6 +247,7 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
 
     /**
      * 合约行情推送
+     *
      * @param pDepthMarketData
      */
     public void OnRtnDepthMarketData(CThostFtdcDepthMarketDataField pDepthMarketData) {
@@ -238,11 +264,11 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
             // TODO 大商所时间修正
             Long updateTime = Long.valueOf(pDepthMarketData.getUpdateTime().replaceAll(":", ""));
             Long updateMillisec = (long) pDepthMarketData.getUpdateMillisec();
-            double datetIime=updateTime+updateMillisec/1000.0;
+            double datetIime = updateTime + updateMillisec / 1000.0;
             //LocalDateTime.parse(pDepthMarketData.getActionDay())
 
 
-            Tick tickData=new Tick();
+            Tick tickData = new Tick();
 
             tickData.setSymbol(symbol);
             tickData.setExchange(pDepthMarketData.getExchangeID());
@@ -254,15 +280,15 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
             tickData.setVolume(pDepthMarketData.getVolume());
 
             Integer lastVolume = 0;
-            if(preTickVolumeMap.containsKey(symbol)) {
+            if (preTickVolumeMap.containsKey(symbol)) {
                 lastVolume = tickData.getVolume() - preTickVolumeMap.get(symbol);
-            }else {
+            } else {
                 lastVolume = tickData.getVolume();
             }
             tickData.setLastVolume(lastVolume);
             preTickVolumeMap.put(symbol, tickData.getVolume());
             tickData.setOpenInterest(pDepthMarketData.getOpenInterest());
-            tickData.setPreOpenInterest((long)pDepthMarketData.getPreOpenInterest());
+            tickData.setPreOpenInterest((long) pDepthMarketData.getPreOpenInterest());
             tickData.setPreClosePrice(pDepthMarketData.getPreClosePrice());
             tickData.setPreSettlePrice(pDepthMarketData.getPreSettlementPrice());
             tickData.setOpenPrice(pDepthMarketData.getOpenPrice());
@@ -291,10 +317,10 @@ public class CtpMdGateway extends CThostFtdcMdSpi  implements MdGateway {
             tickData.setAskVolume4(pDepthMarketData.getAskVolume4());
             tickData.setAskVolume5(pDepthMarketData.getAskVolume5());
 
-            log.info("tick:{}",tickData);
+            log.info("tick:{}", tickData);
             //todo 对象池
             tickData.setTimeStampRecv(System.nanoTime());
-            fastQueue.emitEvent(FastEvent.EVENT_TICK,tickData);
+            fastQueue.emitEvent(FastEvent.EVENT_TICK, tickData);
 
         } else {
             log.warn("{}OnRtnDepthMarketData! 收到行情信息为空", mdName);

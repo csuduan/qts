@@ -2,14 +2,14 @@ package org.qts.trader.gateway.tora;
 
 import org.qts.common.entity.Contract;
 import org.qts.common.entity.LoginInfo;
-import org.qts.common.entity.acct.AcctInfo;
+import org.qts.trader.core.AcctInst;
 import org.qts.common.entity.trade.CancelOrderReq;
 import org.qts.common.entity.trade.Order;
 import org.qts.trader.gateway.TdGateway;
 
 public class ToraTdGateway implements TdGateway {
 
-    public ToraTdGateway(AcctInfo acctInfo){
+    public ToraTdGateway(AcctInst acctInfo){
 
     }
     @Override

@@ -3,7 +3,6 @@ package org.qts.trader.gateway;
 
 import org.qts.common.entity.Contract;
 import org.qts.common.entity.LoginInfo;
-import org.qts.common.entity.acct.AcctInfo;
 import org.qts.common.entity.trade.CancelOrderReq;
 import org.qts.common.entity.trade.Order;
 
@@ -16,7 +15,7 @@ public interface TdGateway {
 	void connect();
 
 	/**
-	 * 关闭
+	 * 关闭接口
 	 */
 	void close();
 

@@ -29,24 +29,29 @@ C++版交易程序，低延迟(tick2trade<5us)
 1. 环境准备
 * 服务器安装jdk17
 * 拷贝qts.sqlite到服务器中/opt/dev/qts
-* 拷贝依赖lib到/opt/dev/qts/qts-master
+* 拷贝接口依赖库lib到/opt/dev/qts
+* 拷贝jar依赖包jars到/opt/dev/qts
 * 设置环境变量  
 ```
-export LD_LIBRARY_PATH=/opt/dev/qts/qts-master/lib/ctp:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/opt/dev/qts/lib/ctp:$LD_LIBRARY_PATH
 ```
 
 2. 启动管理器
-java qts-admin.jar
+```
+cd /opt/dev/qts
+java -jar qts-admin.jar
+```
 
+3. 启动交易核心(手动)
+```
+cd /opt/dev/qts
+java -DacctId=xxx -jar qts-trader.jar  
+```
 
-3. 启动WEB
+4. 启动WEB
 * 执行命令 npm run serve
 * 浏览器访问http://localhost:8080/
 
-
-4. 启动交易核心
-* 手动启动  java -DacctId=xxx -jar qts-trader.jar  
-* qts-admin启动
 
 
 ## 参考

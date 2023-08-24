@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * @author sun0x00@gmail.com
+ * 报单
  */
 @Data
 public class Order implements Serializable {

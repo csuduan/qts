@@ -7,12 +7,14 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.concurrent.CountDownLatch;
 
 @SpringBootApplication
 @ComponentScan({"org.qts.common","org.qts.trader"})
 @Slf4j
+@EnableScheduling
 public class TraderApplication implements CommandLineRunner {
     public static void main(String[] args) {
         SpringApplication.run(TraderApplication.class, args);

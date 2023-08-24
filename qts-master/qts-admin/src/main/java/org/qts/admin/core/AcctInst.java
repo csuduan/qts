@@ -2,11 +2,13 @@ package org.qts.admin.core;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.qts.admin.entity.AcctInstDesc;
+import org.qts.admin.entity.AcctDesc;
 import org.qts.admin.exception.BizException;
 import org.qts.common.entity.Enums;
 import org.qts.common.entity.Message;
+import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.acct.AcctInfo;
+import org.qts.common.entity.config.AcctConf;
 import org.qts.common.entity.event.MessageEvent;
 import org.qts.common.rpc.tcp.client.MsgHandler;
 import org.qts.common.rpc.tcp.client.TcpClient;
@@ -14,41 +16,37 @@ import org.qts.common.utils.ProcessUtil;
 import org.qts.common.utils.SequenceUtil;
 import org.qts.common.utils.SpringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Data
 @Slf4j
-public class AcctInst implements MsgHandler {
+public class AcctInst  implements MsgHandler {
+    private AcctDetail acct;
     private String id;
-    private String group;
-    private String name;
     private Enums.ACCT_STATUS status;
-    private Boolean tdStatus;
-    private Boolean mdStatus;
-
-    private AcctInfo acctInfo;
     private Integer pid = 0;
     private String updateTimes;
 
     private TcpClient tcpClient;
 
-    public AcctInstDesc getAcctInstDesc(){
-        AcctInstDesc acctInstDesc =new AcctInstDesc();
-        BeanUtils.copyProperties(this,acctInstDesc);
-        BeanUtils.copyProperties(this.acctInfo,acctInstDesc);
-        return acctInstDesc;
-    }
+    public AcctInst(AcctConf conf){
+        this.id = conf.getId();
+        this.acct = new AcctDetail(conf);
+        this.status = Enums.ACCT_STATUS.UNSTARTED;
+        this.updateTimes = LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
 
-    public Boolean init(){
-        this.tcpClient = new TcpClient(this.id,this.acctInfo.getAcctConf().getPort(),this);
-        this.chekcInstStatus();
-        return true;
+        this.tcpClient = new TcpClient(this.acct.getId(),this.acct.getConf().getPort(),this);
+    }
+    public AcctDesc getAcctInstDesc(){
+        AcctDesc acctDesc =new AcctDesc();
+        BeanUtils.copyProperties(this.acct,acctDesc);
+        acctDesc.setStatus(this.status);
+        acctDesc.setUpdateTimes(this.updateTimes);
+        return acctDesc;
     }
 
     public void chekcInstStatus(){
