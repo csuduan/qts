@@ -2,13 +2,12 @@ package org.qts.trader.gateway.ctp;
 
 
 import ctp.thostmduserapi.*;
-import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.qts.common.disruptor.FastQueue;
 import org.qts.common.disruptor.event.FastEvent;
 import org.qts.common.entity.MdInfo;
-import org.qts.trader.core.AcctInst;
+import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.trade.Tick;
 import org.qts.trader.gateway.MdGateway;
 
@@ -29,7 +28,7 @@ public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
         }
     }
 
-    private AcctInst acctInst;
+    private AcctDetail acct;
     private boolean isRunning = false;
     private boolean isConnected = false;
     private String tradingDay;
@@ -43,8 +42,8 @@ public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
     private ScheduledExecutorService scheduler;
 
 
-    public CtpMdGateway(AcctInst acctInst) {
-        this.acctInst = acctInst;
+    public CtpMdGateway(AcctDetail acctInst) {
+        this.acct = acctInst;
         this.scheduler = acctInst.getScheduler();
         this.fastQueue = acctInst.getFastQueue();
         this.mdInfo = new MdInfo(acctInst.getConf());
@@ -320,7 +319,7 @@ public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
             log.info("tick:{}", tickData);
             //todo 对象池
             tickData.setTimeStampRecv(System.nanoTime());
-            fastQueue.emitEvent(FastEvent.EVENT_TICK, tickData);
+            fastQueue.emitEvent(FastEvent.EV_TICK, tickData);
 
         } else {
             log.warn("{}OnRtnDepthMarketData! 收到行情信息为空", mdName);

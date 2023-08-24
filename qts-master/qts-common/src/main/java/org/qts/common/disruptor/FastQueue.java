@@ -1,5 +1,7 @@
 package org.qts.common.disruptor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -25,13 +27,13 @@ import com.lmax.disruptor.util.DaemonThreadFactory;
 //@PropertySource(value = { "classpath:rt-core.properties" })
 @Slf4j
 public class FastQueue {
-	private static ExecutorService executor = Executors.newCachedThreadPool(DaemonThreadFactory.INSTANCE);
-
 	private final Map<EventHandler<FastEvent>, BatchEventProcessor<FastEvent>> handlerProcessorMap = new ConcurrentHashMap<>();
 
 	private Disruptor<FastEvent> disruptor;
 
 	private RingBuffer<FastEvent> ringBuffer;
+
+	private List<EventHandler<FastEvent>> eventHandlers=new ArrayList<>();
 
 	//@Value("${engine.event.FastEventEngine.WaitStrategy}")
 	//private String waitStrategy;

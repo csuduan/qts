@@ -1,33 +1,70 @@
 package org.qts.common.entity.acct;
 
+import com.alibaba.fastjson.annotation.JSONField;
 import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.qts.common.disruptor.FastQueue;
+import org.qts.common.entity.Contract;
 import org.qts.common.entity.config.AcctConf;
 import org.qts.common.entity.trade.Order;
 import org.qts.common.entity.trade.Position;
+import org.qts.common.entity.trade.Tick;
 import org.qts.common.entity.trade.Trade;
+import org.springframework.beans.BeanUtils;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
-@Data
+@Getter
+@NoArgsConstructor
 public class AcctDetail extends AcctInfo{
     //配置信息
-    protected AcctConf conf;
-
+    private AcctConf conf;
     //持仓列表
     protected Map<String, Position> positions =new HashMap<>();
     //报单列表(挂单)
     protected Map<String, Order> orders = new HashMap<>();
     //成交列表
-    protected List<Trade> tradeList = new ArrayList<>();
+    protected Map<String,Trade> tradeList = new HashMap<>();
+    //行情列表
+    private Map<String, Tick> ticks = new HashMap<>();
+    //合约列表
+    private Map<String,Contract> contracts = new HashMap<>();
+    private int versions;
+
+
+    @ToString.Exclude
+    @JSONField(serialize = false)
+    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
+    @ToString.Exclude
+    @JSONField(serialize = false)
+    private FastQueue fastQueue;
 
     public AcctDetail(AcctConf conf){
         this.id=conf.getId();
         this.name=conf.getName();
         this.group=conf.getGroup();
         this.conf = conf;
+    }
+
+    public AcctDetail(AcctConf conf,FastQueue queue){
+        this.id=conf.getId();
+        this.name=conf.getName();
+        this.group=conf.getGroup();
+        this.conf = conf;
+        this.fastQueue =queue;
+    }
+
+    public AcctInfo getAcctInfo(){
+        AcctInfo acctInfo = new AcctInfo();
+        BeanUtils.copyProperties(this,acctInfo);
+        return acctInfo;
     }
 }

@@ -1,6 +1,6 @@
 package org.qts.trader.gateway;
 
-import org.qts.trader.core.AcctInst;
+import org.qts.common.entity.acct.AcctDetail;
 import org.qts.trader.gateway.ctp.CtpMdGateway;
 import org.qts.trader.gateway.ctp.CtpTdGateway;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +9,7 @@ import org.qts.trader.gateway.tora.ToraTdGateway;
 
 @Slf4j
 public class GatwayFactory {
-    public static TdGateway createTdGateway(AcctInst account) {
+    public static TdGateway createTdGateway(AcctDetail account) {
         String tdType = account.getConf().getTdType();
         TdGateway tdGateway = null;
         switch (tdType) {
@@ -20,7 +20,7 @@ public class GatwayFactory {
         return tdGateway;
     }
 
-    public static MdGateway createMdGateway(AcctInst acctInfo) {
+    public static MdGateway createMdGateway(AcctDetail acctInfo) {
         String mdType = acctInfo.getConf().getMdType();
         MdGateway mdGateway = null;
         switch (mdType) {

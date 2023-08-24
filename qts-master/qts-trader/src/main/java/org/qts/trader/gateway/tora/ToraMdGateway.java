@@ -1,6 +1,6 @@
 package org.qts.trader.gateway.tora;
 
-import org.qts.trader.core.AcctInst;
+import org.qts.common.entity.acct.AcctDetail;
 import org.qts.trader.gateway.MdGateway;
 
 import java.util.List;
@@ -8,7 +8,7 @@ import java.util.List;
 public class ToraMdGateway implements MdGateway {
 
 
-    public ToraMdGateway(AcctInst acctInfo) {
+    public ToraMdGateway(AcctDetail acctInfo) {
 
     }
 

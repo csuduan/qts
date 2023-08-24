@@ -84,20 +84,6 @@ public interface Enums {
             add(ORDER_STATUS.CANCELLED);
         }
     };
-
-    enum ACCT_CMD {
-        CONNECT,
-        DISCONNECT,
-        PAUSE_TRADE,
-        RESUME_TRADE,
-        ORDER,
-        CANCEL,
-        QRY_TRADE,
-        QRY_ORDER,
-        QRY_POSITION,
-        QRY_ACCT,
-
-    }
     enum MSG_TYPE {
         RETURN,
         PING,
@@ -110,24 +96,25 @@ public interface Enums {
         PAUSE_CLOSE,
         ACT_ORDER,
         ACT_CANCEL,
+        QRY_ACCT,
+        QRY_POSITION,
         QRY_TRADE,
         QRY_ORDER,
-        QRY_POSITION,
-        QRY_ACCT,
         QRY_CONF,
+        QRY_CONTRACT,
+        QRY_TICK,
 
 
         //推送消息
-        ON_STATUS,
-        ON_LOG,
+        ON_ACCT,
         ON_POSITION,
         ON_TRADE,
         ON_ORDER,
         ON_CONTRACT,
         ON_BAR,
-        ON_ACCT,
-        ON_ACCTDETAIL,
+        ON_TICK,
         ON_SERVER,
+        ON_LOG
     }
 
 }

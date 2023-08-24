@@ -6,6 +6,7 @@ import org.qts.common.dao.AcctMapper;
 import org.qts.common.disruptor.FastQueue;
 import org.qts.common.disruptor.event.FastEvent;
 import org.qts.common.entity.*;
+import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.acct.AcctInfo;
 import org.qts.common.entity.config.AcctConf;
 import org.qts.common.entity.trade.*;
@@ -41,20 +42,11 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
 
     private FastQueue fastQueue;
 
-    private AcctInst acctInst;
+    private AcctDetail acct;
+
     private MdGateway mdGateway;
     private TdGateway tdGateway;
     private StrategyEngine strategyEngine;
-
-    private Set<String> contractSubSet = new HashSet<>();
-
-    //最新行情
-    private Map<String, Tick> lastTickMap = new HashMap<>();
-    //合约信息(合约代码-合约信息)
-    private Map<String, Contract> contractMap = new HashMap<>();
-    //报单列表(orderRef-order)
-    private Map<String, Order> pendingOrderMap = new HashMap<>();
-
     private Map<String, BarGenerator> barGeneratorMap = new HashMap<>();
 
 
@@ -70,16 +62,16 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
         String waitStrategy = SpringUtils.getContext().getEnvironment().getProperty("fastQueue.WaitStrategy");
         this.fastQueue = new FastQueue(waitStrategy, this);
 
-        this.acctInst = new AcctInst(acctConf, fastQueue);
+        this.acct = new AcctDetail(acctConf, fastQueue);
 
 
-        this.tdGateway = GatwayFactory.createTdGateway(acctInst);
-        this.mdGateway = GatwayFactory.createMdGateway(acctInst);
+        this.tdGateway = GatwayFactory.createTdGateway(acct);
+        this.mdGateway = GatwayFactory.createMdGateway(acct);
 
         this.strategyEngine = new StrategyEngine();
 
         //启动ipcServer
-        Integer port = this.acctInst.getAcct().getConf().getPort();
+        Integer port = this.acct.getConf().getPort();
         this.tcpServer = new TcpServer(port, this);
         this.tcpServer.start();
     }
@@ -104,10 +96,10 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
      * 报单
      */
     public void insertOrder(Order order) {
-        String exchange = this.contractMap.get(order.getSymbol()).getExchange();
+        String exchange = acct.getContracts().get(order.getSymbol()).getExchange();
         //补充报单信息
         order.setExchange(exchange);
-        Tick lastTick = this.lastTickMap.get(order.getSymbol());
+        Tick lastTick = acct.getTicks().get(order.getSymbol());
         if (order.getPrice() == 0 && lastTick != null) {
             //todo 以对手价报单
             order.setPrice(lastTick.getLastPrice());
@@ -122,8 +114,8 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
      * @param orderRef
      */
     public void cancelOrder(String orderRef) {
-        if (pendingOrderMap.containsKey(orderRef)) {
-            Order order = pendingOrderMap.get(orderRef);
+        if (this.acct.getOrders().containsKey(orderRef)) {
+            Order order = this.acct.getOrders().get(orderRef);
             //todo
             CancelOrderReq cancelOrderReq = new CancelOrderReq();
             cancelOrderReq.setOrderID(orderRef);
@@ -142,6 +134,7 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
             barGenerator = barGeneratorMap.get(tick.getSymbol());
         //更新bar
         barGenerator.updateTick(tick);
+        strategyEngine.onTick(tick);
     }
 
     public void onBar(Bar bar) {
@@ -149,16 +142,6 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
     }
 
     public void onOrder(Order order) throws Exception {
-        if (!this.pendingOrderMap.containsKey(order.getOrderRef()))
-            return;//过滤非本地报单
-
-        if (order.isFinished()) {
-            if (this.pendingOrderMap.containsKey(order.getOrderRef())) {
-                this.pendingOrderMap.remove(order.getOrderRef());
-            }
-        } else {
-            this.pendingOrderMap.put(order.getOrderRef(), order);
-        }
         this.strategyEngine.onOrder(order);
     }
 
@@ -168,26 +151,22 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
     }
 
     public void onContract(Contract contract) {
-        this.contractMap.put(contract.getSymbol(), contract);
 
     }
 
     public void onAccoPosition(Position accoPosition) {
-        this.acctInst.getAcct().getPositions().put(accoPosition.getId(), accoPosition);
+        this.acct.getPositions().put(accoPosition.getId(), accoPosition);
     }
 
     @Override
     public void onEvent(final FastEvent fastEvent, final long sequence, final boolean endOfBatch) throws Exception {
         switch (fastEvent.getType()) {
-            case FastEvent.EVENT_TICK -> {
+            case FastEvent.EV_TICK -> {
                 Tick tick = fastEvent.getData(Tick.class);
                 tick.setTimeStampOnEvent(System.nanoTime());
-                if (!this.contractSubSet.contains(tick.getSymbol()))
-                    return;
-                this.lastTickMap.put(tick.getSymbol(), tick);
                 this.onTick(tick);
             }
-            case FastEvent.EVENT_TRADE -> {
+            case FastEvent.EV_TRADE -> {
                 try {
                     Trade trade = fastEvent.getData(Trade.class);
                     this.onTrade(trade);
@@ -195,7 +174,7 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
                     log.error("onTrade发生异常", e);
                 }
             }
-            case FastEvent.EVENT_ORDER -> {
+            case FastEvent.EV_ORDER -> {
                 try {
                     Order order = fastEvent.getData(Order.class);
                     this.onOrder(order);
@@ -203,7 +182,7 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
                     log.error("onOrder发生异常", e);
                 }
             }
-            case FastEvent.EVENT_CONTRACT -> {
+            case FastEvent.EV_CONTRACT -> {
                 try {
                     Contract contract = fastEvent.getData(Contract.class);
                     this.onContract(contract);
@@ -211,7 +190,7 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
                     log.error("onContract发生异常", e);
                 }
             }
-            case FastEvent.EVENT_POSITION -> {
+            case FastEvent.EV_POSITION -> {
                 try {
                     Position position = fastEvent.getData(Position.class);
                     this.onAccoPosition(position);
@@ -219,10 +198,10 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
                     log.error("onPosition发生异常", e);
                 }
             }
-            case FastEvent.EVENT_ACCT -> {
+            case FastEvent.EV_ACCT -> {
                 try {
                     //Account account = fastEvent.ge();
-                    AcctInst acctInfo1 = fastEvent.getData(AcctInst.class);
+                    AcctDetail acctInfo1 = fastEvent.getData(AcctDetail.class);
                     //onAccount(account);
                 } catch (Exception e) {
                     log.error("onAccount发生异常", e);
@@ -267,13 +246,27 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
             case PAUSE_OPEN -> {
                 CommReq data = req.getData(CommReq.class);
                 Boolean enable = data.isEnable();
-                this.acctInst.getAcct().setPauseOpen(enable);
+                this.acct.setPauseOpen(enable);
             }
             case PAUSE_CLOSE -> {
                 CommReq data = req.getData(CommReq.class);
                 Boolean enable = data.isEnable();
-                this.acctInst.getAcct().setPauseClose(enable);
+                this.acct.setPauseClose(enable);
             }
+            case QRY_ACCT -> {
+                rsp =req.buildResp(0, this.acct);
+            }
+            case QRY_POSITION -> {
+                rsp =req.buildResp(0, this.acct.getPositions().values());
+            }
+            case QRY_TRADE -> {
+                rsp =req.buildResp(0, this.acct.getTradeList().values());
+
+            }
+            case QRY_ORDER -> {
+                rsp =req.buildResp(0, this.acct.getOrders().values());
+            }
+
             default -> {
                 log.warn("未处理的消息类型{}", req.getType());
             }
@@ -283,15 +276,13 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
 
     @Scheduled(fixedRate = 30000)
     public void printAcct() {
-        if(this.acctInst == null)
+        if(this.acct == null)
             return;
         StringBuilder builder = new StringBuilder();
-        AcctInfo acctInfo = new AcctInfo();
-        BeanUtils.copyProperties(this.acctInst.getAcct(), acctInfo + "\n");
-        builder.append(acctInfo.toString());
-        this.acctInst.getAcct().getPositions().values().forEach(x -> builder.append(x.toString() + "\n"));
-        this.acctInst.getAcct().getOrders().values().forEach(x -> builder.append(x.toString() + "\n"));
-        this.acctInst.getAcct().getTradeList().forEach(x -> builder.append(x.toString() + "\n"));
+        builder.append(this.acct.getAcctInfo().toString()+"\n");
+        this.acct.getPositions().values().forEach(x -> builder.append(x.toString() + "\n"));
+        this.acct.getOrders().values().forEach(x -> builder.append(x.toString() + "\n"));
+        this.acct.getTradeList().values().forEach(x -> builder.append(x.toString() + "\n"));
         log.info("PRINT==> \n{}", builder.toString());
     }
 

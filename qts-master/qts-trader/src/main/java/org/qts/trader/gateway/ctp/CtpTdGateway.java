@@ -3,12 +3,11 @@ package org.qts.trader.gateway.ctp;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ctp.thosttraderapi.*;
-import lombok.Synchronized;
 import org.apache.commons.io.FileUtils;
 import org.qts.common.disruptor.FastQueue;
 import org.qts.common.disruptor.event.FastEvent;
@@ -16,8 +15,7 @@ import org.qts.common.entity.Constant;
 import org.qts.common.entity.Contract;
 import org.qts.common.entity.Enums;
 import org.qts.common.entity.LoginInfo;
-import org.qts.common.entity.acct.AcctInfo;
-import org.qts.trader.core.AcctInst;
+import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.trade.CancelOrderReq;
 import org.qts.common.entity.trade.Order;
 import org.qts.common.entity.trade.Position;
@@ -42,7 +40,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
     }
 
     private String tdName;
-    private AcctInst acctInst;
+    private AcctDetail acct;
 
     private LoginInfo loginInfo;
     private FastQueue fastQueue;
@@ -65,11 +63,11 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
     private Map<String, Order> orderMap = new HashMap<>();
 
 
-    public CtpTdGateway(AcctInst acctInst) {
-        this.acctInst = acctInst;
+    public CtpTdGateway(AcctDetail acctInst) {
+        this.acct = acctInst;
         this.scheduler = acctInst.getScheduler();
         this.fastQueue = acctInst.getFastQueue();
-        this.loginInfo = new LoginInfo(acctInst.getAcct().getConf());
+        this.loginInfo = new LoginInfo(acctInst.getConf());
         this.tdName = loginInfo.getUserId();
         log.info("td init ...");
         this.connect();
@@ -172,7 +170,10 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 
     @Override
     public void qryContract() {
-
+        log.info("开始查询合约信息!");
+        this.contractMap.clear();
+        CThostFtdcQryInstrumentField cThostFtdcQryInstrumentField = new CThostFtdcQryInstrumentField();
+        tdApi.ReqQryInstrument(cThostFtdcQryInstrumentField, reqID.incrementAndGet());
     }
 
     class QueryTimerTask extends TimerTask {
@@ -361,11 +362,26 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
             tradingDay = pRspUserLogin.getTradingDay();
             log.info("{}交易接口获取到的交易日为{}", tdName, tradingDay);
 
+            String maxOrderRef = pRspUserLogin.getMaxOrderRef();
+            log.info("maxOrderRef:{}",maxOrderRef);
+
             // 确认结算单
             CThostFtdcSettlementInfoConfirmField settlementInfoConfirmField = new CThostFtdcSettlementInfoConfirmField();
             settlementInfoConfirmField.setBrokerID(loginInfo.getBrokerId());
             settlementInfoConfirmField.setInvestorID(loginInfo.getUserId());
             tdApi.ReqSettlementInfoConfirm(settlementInfoConfirmField, reqID.incrementAndGet());
+
+            //发起其他查询
+            int delay=1250;
+            this.scheduler.schedule(()->{
+                this.queryAccount();
+            },delay, TimeUnit.MILLISECONDS);
+            this.scheduler.schedule(()->{
+                this.qryContract();
+            },delay*2, TimeUnit.MILLISECONDS);
+            this.scheduler.schedule(()->{
+                this.queryPosition();
+            },delay*3, TimeUnit.MILLISECONDS);
 
         } else {
             log.error("{}交易接口登录回报错误! ErrorID:{},ErrorMsg:{}", tdName, pRspInfo.getErrorID(),
@@ -433,7 +449,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
             Order order = this.orderMap.get(orderRef);
             order.setStatus(Enums.ORDER_STATUS.ERROR);
             order.setStatusMsg(pRspInfo.getErrorMsg());
-            this.fastQueue.emitEvent(FastEvent.EVENT_ORDER, order);
+            this.fastQueue.emitEvent(FastEvent.EV_ORDER, order);
             // 发送委托事件
             log.error("{}交易接口发单错误回报(柜台)! ErrorID:{},ErrorMsg:{}", tdName, pRspInfo.getErrorID(),
                     pRspInfo.getErrorMsg());
@@ -471,12 +487,6 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
             log.error("{}交易接口结算信息确认出错! ErrorID:{},ErrorMsg:{}", tdName, pRspInfo.getErrorID(),
                     pRspInfo.getErrorMsg());
         }
-
-        // 查询所有合约
-        log.warn("{}交易接口开始查询合约信息!", tdName);
-        this.contractMap.clear();
-        CThostFtdcQryInstrumentField cThostFtdcQryInstrumentField = new CThostFtdcQryInstrumentField();
-        tdApi.ReqQryInstrument(cThostFtdcQryInstrumentField, reqID.incrementAndGet());
 
     }
 
@@ -683,7 +693,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
                     }
                 }
                 // 发送持仓事件
-                this.fastQueue.emitEvent(FastEvent.EVENT_POSITION, tmpPosition);
+                this.fastQueue.emitEvent(FastEvent.EV_POSITION, tmpPosition);
 
             }
 
@@ -698,30 +708,21 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
     // 账户查询回报
     public void OnRspQryTradingAccount(CThostFtdcTradingAccountField pTradingAccount, CThostFtdcRspInfoField pRspInfo,
                                        int nRequestID, boolean bIsLast) {
-        AcctInfo account = new AcctInfo();
-        account.setId(this.tdName);
-        account.setAvailable(pTradingAccount.getAvailable());
-        account.setCloseProfit(pTradingAccount.getCloseProfit());
-        account.setCommission(pTradingAccount.getCommission());
-        account.setMargin(pTradingAccount.getCurrMargin());
-        account.setBalanceProfit(pTradingAccount.getPositionProfit());
-        account.setPreBalance(pTradingAccount.getPreBalance());
+        this.acct.setAvailable(pTradingAccount.getAvailable());
+        this.acct.setCloseProfit(pTradingAccount.getCloseProfit());
+        this.acct.setCommission(pTradingAccount.getCommission());
+        this.acct.setMargin(pTradingAccount.getCurrMargin());
+        this.acct.setBalanceProfit(pTradingAccount.getPositionProfit());
+        this.acct.setPreBalance(pTradingAccount.getPreBalance());
         //account.setDeposit(pTradingAccount.getDeposit());
         //account.setWithdraw(pTradingAccount.getWithdraw());
         double balance = pTradingAccount.getPreBalance() - pTradingAccount.getPreCredit()
                 - pTradingAccount.getPreMortgage() + pTradingAccount.getMortgage() - pTradingAccount.getWithdraw()
                 + pTradingAccount.getDeposit() + pTradingAccount.getCloseProfit() + pTradingAccount.getPositionProfit()
                 + pTradingAccount.getCashIn() - pTradingAccount.getCommission();
-        account.setBalance(balance);
-        this.fastQueue.emitEvent(FastEvent.EVENT_ACCT, account);
-
-        log.info("{} 账户查询完毕,Avaliable:{},Balance:{}", tdName, account.getAvailable(), account.getBalance());
-        try {
-            Thread.sleep(1250);
-        } catch (InterruptedException e) {
-            log.error("sleep error", e);
-        }
-        queryPosition();
+        this.acct.setBalance(pTradingAccount.getBalance());
+        this.fastQueue.emitEvent(FastEvent.EV_ACCT, null);
+        log.info("账户查询完毕,{}", this.acct.getAcctInfo());
     }
 
     public void OnRspQryInvestor(CThostFtdcInvestorField pInvestor, CThostFtdcRspInfoField pRspInfo, int nRequestID,
@@ -773,7 +774,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
             }
         }
 
-        this.fastQueue.emitEvent(FastEvent.EVENT_CONTRACT, contract);
+        this.fastQueue.emitEvent(FastEvent.EV_CONTRACT, contract);
 
         if (bIsLast) {
             log.info("{} 交易接口合约信息获取完成!共计{}条", tdName, contractMap.size());
@@ -782,7 +783,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
             } catch (InterruptedException e) {
                 log.error("sleep error", e);
             }
-            queryAccount();
+            //queryAccount();
         }
 
     }
@@ -844,7 +845,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
         order.setStatus(CtpConstant.statusMapReverse.get(pOrder.getOrderStatus()));
         order.setTradedVolume(pOrder.getVolumeTotalOriginal());
         order.setUpdateTime(pOrder.getUpdateTime());
-        fastQueue.emitEvent(FastEvent.EVENT_ORDER, order);
+        fastQueue.emitEvent(FastEvent.EV_ORDER, order);
     }
 
     // 成交回报
@@ -865,7 +866,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
         trade.setVolume(pTrade.getVolume());
         trade.setTradeDate(pTrade.getTradeDate());
         trade.setTradeTime(pTrade.getTradeTime());
-        fastQueue.emitEvent(FastEvent.EVENT_TRADE, trade);
+        fastQueue.emitEvent(FastEvent.EV_TRADE, trade);
     }
 
     // 发单错误回报（交易所）
@@ -875,7 +876,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
             Order order = this.orderMap.get(orderRef);
             order.setStatus(Enums.ORDER_STATUS.ERROR);
             order.setStatusMsg(pRspInfo.getErrorMsg());
-            fastQueue.emitEvent(FastEvent.EVENT_ORDER, order);
+            fastQueue.emitEvent(FastEvent.EV_ORDER, order);
             // 发送委托事件
             log.error("{}交易接口发单错误回报（交易所）! ErrorID:{},ErrorMsg:{}", tdName, pRspInfo.getErrorID(),
                     pRspInfo.getErrorMsg());
