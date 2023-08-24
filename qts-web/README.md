@@ -8,3 +8,6 @@ https://yiming_chang.gitee.io/vue-pure-admin/#/pure-admin-utils/index
 
 * elemnt-plus
 https://element-plus.org/zh-CN/component/button.html
+
+* vue-router
+https://router.vuejs.org/zh/guide/

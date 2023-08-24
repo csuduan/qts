@@ -20,7 +20,9 @@ export const useAcctStore = defineStore({
         updateAcctInfo(newAcctInst:AcctInst) {
             const index = this.acctInfos.findIndex((acc) => acc.id === newAcctInst.id);
             if (index !== -1) {
+                const selected = this.acctInfos[index].isSelected;
                 this.acctInfos[index] = { ...this.acctInfos[index], ...newAcctInst };
+                this.acctInfos[index].isSelected = selected;//保持选中状态不变
             }
         },
         updateAcctConf(newAcctConf:AcctConf) {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {acctOperate, getAcctInstList, stopAcctInst} from "@/api/acct";
+import {acctOperate, getAcctInstList, stopAcctInst,startAcctInst} from "@/api/acct";
 import {FormInstance, ElMessageBox} from "element-plus";
 import {reactive, ref, onMounted} from "vue";
 import {useRenderIcon} from "@/components/ReIcon/src/hooks";
@@ -18,8 +18,6 @@ import Menu from "@iconify-icons/ep/menu";
 import Connect from "@iconify-icons/ep/connection";
 import AddFill from "@iconify-icons/ri/add-circle-line";
 import { useDetail } from "../hooks";
-
-
 
 
 defineOptions({
@@ -45,8 +43,19 @@ let switchLoadMap = ref({});
 
 const formRef = ref<FormInstance>();
 
+
+const statusMap = {
+  'READY': '已就绪',
+  'UNSTARTED': '未启动',
+  'STARTING': '启动中',
+  'CONNING':'连接中'
+};
+
+const getStatusName=(status)=>{
+  return statusMap[status];
+}
+
 function handleUpdate(row) {
-  console.log(row);
 }
 
 function connectAcct(row, status) {
@@ -64,6 +73,16 @@ function connectAcct(row, status) {
   };
   console.log(msg);
   acctOperate(msg);
+}
+
+function stopAcct(row){
+  let acctId = row.id;
+  stopAcctInst({acctId:acctId})
+}
+
+function startAcct(row){
+  let acctId = row.id;
+  startAcctInst({acctId:acctId})
 }
 
 function jumpDetail(row) {
@@ -99,6 +118,8 @@ function handleSizeChange(val: number) {
 function handleSelectionChange(val) {
   console.log("handleSelectionChange", val);
 }
+
+
 
 function onChange(checked, {$index, row}) {
   ElMessageBox.confirm(
@@ -144,7 +165,6 @@ async function fetchAcctInfos() {
   console.info("fetchAcctInfos...")
   loading.value = true;
   let {data} = await getAcctInstList();
-  console.log('data:' + data)
   dataList.value = data;
   totalPage.value = data.length;
   useAcctStoreHook().setAcctInfos(data);
@@ -163,18 +183,24 @@ onMounted(() => {
   fetchAcctInfos();
   // 创建一个每60秒触发一次的计时器
   const refreshInterval = setInterval(() => {
-    //fetchAcctInfos(); // 定时获取数据并更新状态
+     fetchAcctInfos(); // 定时获取数据并更新状态
   }, 60000); // 60秒
 
 
 });
+
+
+
 </script>
 
 <template>
   <div class="main">
     <div>
-      <el-button type="primary" @click="startAcct">启动账户</el-button>
-      <el-button type="primary" @click="stopAcct">停止账户</el-button>
+      <el-button type="primary" @click="startAcct" size="small">启动</el-button>
+      <el-button type="primary" @click="stopAcct" size="small">停止</el-button>
+      <el-button type="primary" @click="stopAcct" size="small">连接</el-button>
+      <el-button type="primary" @click="stopAcct" size="small">断开</el-button>
+
     </div>
     <div class="acct-list">
       <el-table
@@ -183,17 +209,16 @@ onMounted(() => {
           :size="'small'"
           :data="useAcctStoreHook().acctInfos"
           :header-cell-style="{ background: '#fafafa', color: '#606266' }"
-          @selection-change="handleSelectionChange"
       >
         <el-table-column
             type="selection"
             align="center"
             width="55"
+            prop="isSelected"
         />
         <el-table-column label="分组" align="center" prop="group"/>
         <el-table-column label="账户编号" align="center" prop="id"/>
         <el-table-column
-            prop="enable"
             label="账户状态"
             width="80"
             :show-overflow-tooltip="true"
@@ -204,12 +229,11 @@ onMounted(() => {
                 :type="scope.row.status == 'READY' ? 'success' : 'danger'"
                 disable-transitions
             >
-              {{ scope.row.status }}
+              {{ getStatusName(scope.row.status) }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column
-            prop="enable"
             label="接口状态"
             width="140"
             :show-overflow-tooltip="true"
@@ -235,7 +259,6 @@ onMounted(() => {
         <el-table-column label="静态市值" align="center" prop="balance"/>
         <el-table-column label="动态市值" align="center" prop="mv"/>
         <el-table-column label="当前保证金" align="center" prop="margin"/>
-        <el-table-column label="风险度" align="center" prop="risk"/>
         <el-table-column
             label="持仓盈亏"
             align="center"
@@ -275,7 +298,7 @@ onMounted(() => {
                     <el-button
                         class="reset-margin !h-20px !text-gray-500"
                         type="text"
-                        @click="connectAcct(scope.row, false)"
+                        @click="startAcct(scope.row)"
                         :size="size"
                     >
                       启动
@@ -285,7 +308,7 @@ onMounted(() => {
                     <el-button
                         class="reset-margin !h-20px !text-gray-500"
                         type="text"
-                        @click="connectAcct(scope.row, false)"
+                        @click="stopAcct(scope.row)"
                         :size="size"
                     >
                       停止

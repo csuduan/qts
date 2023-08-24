@@ -1,11 +1,19 @@
-# Quick Trading System
-极速交易系统(qts)
 
-**qts当前处于开发阶段，暂不可用，正在快马加鞭中...**
+<p align="center">
+  <img src="./qts-logo.png" width="200">
+</p>
+
+Quick Trading Sysmtem(Qts)是一款支持多账户的量化交易系统。该系统由1个master+n个trader模块组成，master模块同意管理多个交易执行器，每个账户对应1个交易执行器(trader)，支持java(通用版)、c++(极速版)、python版本(快捷版)。
+
+**qts当前处于开发阶段，正在快马加鞭完善中...**
 
 
-# 架构
-![架构图](./qts.png)
+## 架构
+
+<p align="center">
+  <img src="./qts-arti.png" width="400">
+</p>
+
 
 * qts-ctrader   交易核心(C++)
 C++版交易程序，低延迟(tick2trade<5us)
@@ -17,7 +25,7 @@ C++版交易程序，低延迟(tick2trade<5us)
 
 
 
-# 部署启动
+## 部署启动
 1. 环境准备
 * 服务器安装jdk17
 * 拷贝qts.sqlite到服务器中/opt/dev/qts
@@ -41,7 +49,7 @@ java qts-admin.jar
 * qts-admin启动
 
 
-# 参考
+## 参考
 * CTP封装
   https://github.com/sun0x00/swig-java-ctp
 ```shell

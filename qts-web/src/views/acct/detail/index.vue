@@ -27,17 +27,6 @@ if(! isEmpty(isEmpty(route.query))){
 }
 
 
-const options = [
-  {
-    value: "ost",
-    label: "ost"
-  },
-  {
-    value: "sim",
-    label: "sim"
-  }
-];
-
 const handleClick = (tab: TabsPaneContext, event: Event) => {
   console.log(tab, event)
 }
@@ -65,14 +54,28 @@ onMounted(() => {
 <template>
   <div class="main">
     <el-card>
-      <el-select v-model="username"  @change="onChange" class="acct-select">
-        <el-option
-            v-for="item in options"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
-        />
-      </el-select>
+      <div class="acct-desc">
+        <span>{{acctId}}</span>
+        <el-tag
+            :type="'danger'"
+            disable-transitions
+        >
+          交易
+        </el-tag>
+        <el-divider direction="vertical" class="split-desc"/>
+        <el-tag
+            :type="'danger'"
+            disable-transitions
+        >
+          行情
+        </el-tag>
+        <span>交易日：{{20230822}}</span>
+        <span>市值：{{'--'}}</span>
+        <span>保证金：{{'--'}}</span>
+        <span>持仓盈亏：{{'--'}}</span>
+        <span>手续费：{{'--'}}</span>
+
+      </div>
 
       <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
         <el-tab-pane label="交易" name="first">
@@ -80,8 +83,8 @@ onMounted(() => {
         </el-tab-pane>
         <el-tab-pane label="换仓" name="second">Config</el-tab-pane>
         <el-tab-pane label="策略" name="third">Role</el-tab-pane>
-        <el-tab-pane label="管理" name="third">Role</el-tab-pane>
-        <el-tab-pane label="日志" name="fourth">Task</el-tab-pane>
+        <el-tab-pane label="管理" name="fourth">Role</el-tab-pane>
+        <el-tab-pane label="日志" name="five">Task</el-tab-pane>
       </el-tabs>
 
 
@@ -101,12 +104,21 @@ onMounted(() => {
 }
 
 .demo-tabs{
-  margin-top: -20px;
-  z-index: -30;
+  margin-top: -30px;
+  //z-index: -30;
+}
+
+.acct-desc > span{
+  margin: 0 10px;
+}
+
+.split-desc{
+  margin: 0 -5px;
 }
 
 .acct-select{
 }
+
 
 </style>
 <style lang="scss">

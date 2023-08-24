@@ -70,7 +70,7 @@ public class AcctInst implements MsgHandler {
         this.tcpClient.start();
         if(this.tcpClient.isConnected())
             this.setStatus(Enums.ACCT_STATUS.READY);
-       this.updateTimes = LocalTime.now().format(DateTimeFormatter.ofPattern("hhmmss"));
+       this.updateTimes = LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
 
        //广播状态
         SpringUtils.pushEvent(new MessageEvent(new Message(Enums.MSG_TYPE.ON_ACCT,this.getAcctInstDesc())));

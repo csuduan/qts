@@ -52,6 +52,8 @@ public class AcctController {
     public Response<Boolean> stopInst(String acctId){
         Response<Boolean> response=new Response<>();
         //response.setData(agentService.acctOperate(req.getAcctId(),req.getType(),data));
+        Message req = new Message(Enums.MSG_TYPE.EXIT);
+        acctService.request(acctId,req);
         return response;
     }
 

@@ -5,8 +5,8 @@
         <!-- %logger{36} 表示 Logger 名字最长36个字符 -->
         <property name="LOG_PATTERN" value="%date{HH:mm:ss.SSS} [%thread] [%-5level] [%logger{36} %4L] - %msg%n" />
         <!-- 定义日志存储的路径 -->
-        <property name="FILE_PATH" value="/opt/logs/mts" />
-        <property name="FILE_NAME" value="mts-admin.log" />
+        <property name="FILE_PATH" value="/opt/logs/qts" />
+        <property name="FILE_NAME" value="qts-admin.log" />
     </Properties>
 
     <appenders>

@@ -29,7 +29,8 @@ export const startAcctInst = (data?: object): ResponseType => {
     return http.request("get", "/api/v1/acct/inst/start", { data });
 };
 export const stopAcctInst = (data?: object): ResponseType => {
-    return http.request("get", "/api/v1/acct/inst/stop", { data });
+    console.info("stop inst ",data)
+    return http.get("/api/v1/acct/inst/stop", {params:data});
 };
 
 /**

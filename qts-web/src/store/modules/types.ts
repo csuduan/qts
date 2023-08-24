@@ -53,6 +53,7 @@ export type AcctConf = {
 };
 
 export type AcctInst = {
+    isSelected: boolean;
     id: string;
     group: string;
     user: string;

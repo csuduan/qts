@@ -3,6 +3,8 @@ import { MsgType } from "@/utils/enums";
 const { VITE_PROXY_DOMAIN_REAL } = import.meta.env;
 
 
+
+
 class SocketService {
     // 和服务端连接的socket对象
     ws = null;
@@ -55,7 +57,7 @@ class SocketService {
         };
         // 得到服务端发送过来的数据
         this.ws.onmessage = msg => {
-            console.log("onMessage:", msg.data);
+            console.debug("onMessage:", msg.data);
             const { type, data } = JSON.parse(msg.data);
             const json = JSON.parse(data);
             switch (type) {
@@ -63,6 +65,8 @@ class SocketService {
                     useAcctStoreHook().updateAcctInfo(json);
                     break;
             }
+
+
         };
     }
     // 回调函数的注册
