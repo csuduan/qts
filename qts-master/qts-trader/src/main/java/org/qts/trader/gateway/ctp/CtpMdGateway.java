@@ -53,10 +53,6 @@ public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
     }
 
 
-    public CThostFtdcMdApi getMdApi() {
-        return this.mdApi;
-    }
-
     private void setConnected(boolean connected) {
         this.isConnected = connected;
     }
