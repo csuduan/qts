@@ -312,14 +312,13 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
         tdApi.ReqOrderAction(cThostFtdcInputOrderActionField, reqID.incrementAndGet());
     }
 
-    private void login() {
+    private void login(boolean auth) {
         if (tdApi == null) {
             log.warn("{} 交易接口实例已经释放", tdName);
             return;
         }
 
-
-        if (StringUtils.hasLength(loginInfo.getAuthCode())) {
+        if(auth){
             // 验证
             CThostFtdcReqAuthenticateField authenticateField = new CThostFtdcReqAuthenticateField();
             authenticateField.setAuthCode(loginInfo.getAuthCode());
@@ -328,7 +327,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
             //authenticateField.setUserProductInfo(loginInfo.get());
             authenticateField.setAppID(loginInfo.getAppId());
             tdApi.ReqAuthenticate(authenticateField, reqID.incrementAndGet());
-        } else {
+        }else{
             // 登录
             CThostFtdcReqUserLoginField userLoginField = new CThostFtdcReqUserLoginField();
             userLoginField.setBrokerID(loginInfo.getBrokerId());
@@ -336,12 +335,16 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
             userLoginField.setPassword(loginInfo.getPassword());
             tdApi.ReqUserLogin(userLoginField, 0);
         }
+
     }
 
     // 前置机联机回报
     public void OnFrontConnected() {
         log.info("OnFrontConnected ...");
-        login();
+        if(StringUtils.hasLength(loginInfo.getAuthCode()))
+            login(true);
+        else
+            login(false);
     }
 
     // 前置机断开回报
@@ -424,8 +427,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 
         if (pRspInfo.getErrorID() == 0) {
             log.info(tdName + "交易接口客户端验证成功");
-            login();
-
+            login(false);
         } else {
             log.error("{}交易接口客户端验证失败! ErrorID:{},ErrorMsg:{}", tdName, pRspInfo.getErrorID(),
                     pRspInfo.getErrorMsg());
