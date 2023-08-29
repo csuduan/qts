@@ -8,7 +8,7 @@ public class TraderApiTest {
 
 	static
 	{
-		System.loadLibrary("x64/javatraderapi");
+		System.loadLibrary("javatraderapi");
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException

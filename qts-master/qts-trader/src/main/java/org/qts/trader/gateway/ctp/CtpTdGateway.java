@@ -2,6 +2,7 @@ package org.qts.trader.gateway.ctp;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -21,6 +22,7 @@ import org.qts.common.entity.trade.Order;
 import org.qts.common.entity.trade.Position;
 import org.qts.common.entity.trade.Trade;
 import lombok.extern.slf4j.Slf4j;
+import org.qts.common.utils.SpringUtils;
 import org.qts.trader.gateway.TdGateway;
 import org.springframework.util.StringUtils;
 
@@ -31,9 +33,14 @@ import static ctp.thosttraderapi.thosttradeapiConstants.THOST_FTDC_AF_Delete;
 
 @Slf4j
 public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
+    private static String basePath;
     static {
         try {
-            System.loadLibrary("thosttraderapi_wrap");
+            String basePath = SpringUtils.getContext().getEnvironment().getProperty("base.path");
+            if(!StringUtils.hasLength(basePath))
+                throw new RuntimeException("can not find apiPath");
+            //System.loadLibrary("ctp/thosttraderapi_wrap");
+            System.load(basePath+"/lib/ctp/libthosttraderapi_wrap.so");
         } catch (Exception e) {
             log.error("加载库失败!", e);
         }
@@ -112,7 +119,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
             String envTmpDir = System.getProperty("java.io.tmpdir");
             String tempFilePath = envTmpDir + File.separator + "qts" + File.separator + "td_"
                     + this.loginInfo.getAcctId();
-            File tempFile = new File("./data/td/" + this.loginInfo.getAcctId());
+            File tempFile = new File(basePath+"/data/td/" + this.loginInfo.getAcctId());
             if (!tempFile.getParentFile().exists()) {
                 try {
                     FileUtils.forceMkdir(tempFile);
@@ -156,11 +163,6 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
         }).start();
     }
 
-
-    @Override
-    public LoginInfo getLoginInfo() {
-        return this.loginInfo;
-    }
 
     @Override
     public Contract getContract(String symbol) {
@@ -209,7 +211,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
     /**
      * 查询账户
      */
-    public void queryAccount() {
+    public void qryTradingAccount() {
         if (tdApi == null) {
             log.info("{}尚未初始化,无法查询账户", tdName);
             return;
@@ -221,7 +223,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
     /**
      * 查询持仓
      */
-    public void queryPosition() {
+    public void qryPosition() {
         if (tdApi == null) {
             log.info("{}尚未初始化,无法查询持仓", tdName);
             return;
@@ -374,13 +376,13 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
             //发起其他查询
             int delay=1250;
             this.scheduler.schedule(()->{
-                this.queryAccount();
+                this.qryTradingAccount();
             },delay, TimeUnit.MILLISECONDS);
             this.scheduler.schedule(()->{
                 this.qryContract();
             },delay*2, TimeUnit.MILLISECONDS);
             this.scheduler.schedule(()->{
-                this.queryPosition();
+                this.qryPosition();
             },delay*3, TimeUnit.MILLISECONDS);
 
         } else {

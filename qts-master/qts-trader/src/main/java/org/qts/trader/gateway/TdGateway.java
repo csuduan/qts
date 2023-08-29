@@ -2,7 +2,6 @@ package org.qts.trader.gateway;
 
 
 import org.qts.common.entity.Contract;
-import org.qts.common.entity.LoginInfo;
 import org.qts.common.entity.trade.CancelOrderReq;
 import org.qts.common.entity.trade.Order;
 
@@ -38,8 +37,11 @@ public interface TdGateway {
 	 */
 	boolean isConnected();
 
-	LoginInfo getLoginInfo();
 	Contract getContract(String symbol);
+
+	//查询类接口
 	void qryContract();
+	void qryPosition();
+	void qryTradingAccount();
 
 }

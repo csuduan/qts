@@ -9,7 +9,9 @@ import org.qts.common.disruptor.event.FastEvent;
 import org.qts.common.entity.MdInfo;
 import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.trade.Tick;
+import org.qts.common.utils.SpringUtils;
 import org.qts.trader.gateway.MdGateway;
+import org.springframework.util.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,9 +22,15 @@ import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
 public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
+    private static String basePath;
     static {
         try {
-            System.loadLibrary("thostmduserapi_wrap");
+            //System.loadLibrary("thostmduserapi_wrap");
+            basePath = SpringUtils.getContext().getEnvironment().getProperty("base.path");
+            if(!StringUtils.hasLength(basePath))
+                throw new RuntimeException("can not find apiPath");
+            //System.loadLibrary("ctp/thosttraderapi_wrap");
+            System.load(basePath+"/lib/ctp/libthostmduserapi_wrap.so");
         } catch (Exception e) {
             log.error("加载库失败!", e);
         }
@@ -88,7 +96,7 @@ public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
             String envTmpDir = System.getProperty("java.io.tmpdir");
             String tempFilePath = envTmpDir + File.separator + "qts" + File.separator + "md_"
                     + this.mdInfo.getId();
-            File tempFile = new File("./data/md/" + this.mdInfo.getId());
+            File tempFile = new File(basePath+"/data/md/" + this.mdInfo.getId());
             if (!tempFile.getParentFile().exists()) {
                 try {
                     FileUtils.forceMkdir(tempFile);
