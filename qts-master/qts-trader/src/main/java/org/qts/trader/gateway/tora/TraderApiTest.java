@@ -53,8 +53,8 @@ class DemoTdSpi extends CTORATstpTraderSpi {
 		// ���ӳɹ������Ե�½
 		CTORATstpReqUserLoginField req_user_login_field = new CTORATstpReqUserLoginField();
 		
-		req_user_login_field.setLogInAccount(UserID);
-		req_user_login_field.setLogInAccountType(traderapi.getTORA_TSTP_LACT_UserID());
+		req_user_login_field.setLogInAccount("UserID");
+		req_user_login_field.setLogInAccountType(traderapi.getTORA_TSTP_LACT_AccountID());
 		req_user_login_field.setPassword(Password);
 		req_user_login_field.setUserProductInfo("javademo");
 		

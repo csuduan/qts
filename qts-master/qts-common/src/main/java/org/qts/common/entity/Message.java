@@ -11,6 +11,7 @@ public  class Message {
     private String requestId;//请求编号
     private MSG_TYPE type;//消息类型
     private int  code; //0-成功
+    private String  retMsg;
     private String data;//报文体
     public static final Message DEFAULT=new Message();
 

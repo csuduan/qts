@@ -258,15 +258,15 @@ public class LocalPos implements Serializable {
 	 */
 	public void updatePosition(Position position) {
 		if (Constant.DIRECTION_LONG.equals(position.getDirection())) {
-			longPos = position.getPosition();
-			longYd = position.getYdPosition();
+			longPos = position.getTotalPos();
+			longYd = position.getYdPos();
 			longTd = longPos - longYd;
 			longProfit = position.getPositionProfit();
 			longPrice = position.getAvgPrice();
 
 		} else if (Constant.DIRECTION_SHORT.equals(position.getDirection())) {
-			shortPos = position.getPosition();
-			shortYd = position.getYdPosition();
+			shortPos = position.getTotalPos();
+			shortYd = position.getYdPos();
 			shortTd = shortPos - shortYd;
 			shortProfit = position.getPositionProfit();
 			shortPrice = position.getAvgPrice();

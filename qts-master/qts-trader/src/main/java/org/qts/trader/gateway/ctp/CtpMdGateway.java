@@ -11,10 +11,12 @@ import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.trade.Tick;
 import org.qts.common.utils.SpringUtils;
 import org.qts.trader.gateway.MdGateway;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -45,7 +47,6 @@ public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
     protected FastQueue fastQueue;
 
     private CThostFtdcMdApi mdApi = null;
-    private HashSet<String> subscribedSymbols = new HashSet<>();
     private HashMap<String, Integer> preTickVolumeMap = new HashMap<>();
     private ScheduledExecutorService scheduler;
 
@@ -73,7 +74,7 @@ public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
 
         scheduler.submit(() -> {
             try {
-                log.info("td start connect...");
+                log.info("md start connect...");
                 this.connectAsync();
                 //10s后若连接失败，则自动关闭
                 Thread.sleep(10000);
@@ -140,14 +141,17 @@ public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
 
 
     @Override
-    public void subscribe(String symbol) {
-        this.subscribedSymbols.add(symbol);
-        if (isConnected()) {
-            String[] symbolArray = new String[1];
-            symbolArray[0] = symbol;
-            mdApi.SubscribeMarketData(symbolArray, 1);
-        } else {
+    public void subscribe(List<String> symbols) {
+        if(CollectionUtils.isEmpty(symbols))
+            return;
+        if(!isConnected()){
             log.warn(mdName + "无法订阅行情,行情服务器尚未连接成功");
+            return;
+        }
+
+        int ret = mdApi.SubscribeMarketData(symbols.toArray(new String[0]), symbols.size());
+        if(ret!=0){
+            log.error("SubscribeMarketData fail ,ret={}",ret);
         }
     }
 
@@ -157,10 +161,6 @@ public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
     }
 
 
-    @Override
-    public List<String> getSubscribedSymbols() {
-        return this.subscribedSymbols.stream().toList();
-    }
 
 
     /**
@@ -191,10 +191,8 @@ public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
             this.tradingDay = pRspUserLogin.getTradingDay();
             log.info("{}行情接口获取到的交易日为{}", mdName, tradingDay);
             // 重新订阅之前的合约
-            if (!this.getSubscribedSymbols().isEmpty()) {
-                String[] subscribedSymbolsArray = this.getSubscribedSymbols()
-                        .toArray(new String[this.getSubscribedSymbols().size()]);
-                this.mdApi.SubscribeMarketData(subscribedSymbolsArray, subscribedSymbolsArray.length + 1);
+            if (!this.acct.getSubList().isEmpty()) {
+                this.subscribe(this.acct.getSubList().stream().toList());
             }
         } else {
             log.warn("{}行情接口登录回报错误! ErrorID:{},ErrorMsg:{}", mdName, pRspInfo.getErrorID(),

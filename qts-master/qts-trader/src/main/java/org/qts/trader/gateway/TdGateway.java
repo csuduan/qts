@@ -2,7 +2,7 @@ package org.qts.trader.gateway;
 
 
 import org.qts.common.entity.Contract;
-import org.qts.common.entity.trade.CancelOrderReq;
+import org.qts.common.entity.trade.OrderCancelReq;
 import org.qts.common.entity.trade.Order;
 
 
@@ -28,7 +28,7 @@ public interface TdGateway {
 	/**
 	 * 撤单
 	 */
-	void cancelOrder(CancelOrderReq cancelOrderReq);
+	void cancelOrder(OrderCancelReq cancelOrderReq);
 
 	/**
 	 * 返回网关状态

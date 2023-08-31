@@ -2,7 +2,6 @@ package org.qts.trader.gateway.ctp;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -17,7 +16,7 @@ import org.qts.common.entity.Contract;
 import org.qts.common.entity.Enums;
 import org.qts.common.entity.LoginInfo;
 import org.qts.common.entity.acct.AcctDetail;
-import org.qts.common.entity.trade.CancelOrderReq;
+import org.qts.common.entity.trade.OrderCancelReq;
 import org.qts.common.entity.trade.Order;
 import org.qts.common.entity.trade.Position;
 import org.qts.common.entity.trade.Trade;
@@ -255,11 +254,11 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
         cThostFtdcInputOrderField.setVolumeTotalOriginal(orderReq.getTotalVolume());
 
         cThostFtdcInputOrderField.setOrderPriceType(
-                CtpConstant.priceTypeMap.getOrDefault(orderReq.getPriceType(), Character.valueOf('\0')));
+                CtpMapper.priceTypeMap.getOrDefault(orderReq.getPriceType(), Character.valueOf('\0')));
         cThostFtdcInputOrderField
-                .setDirection(CtpConstant.directionMap.getOrDefault(orderReq.getDirection(), Character.valueOf('\0')));
+                .setDirection(CtpMapper.directionMap.getOrDefault(orderReq.getDirection(), Character.valueOf('\0')));
         cThostFtdcInputOrderField.setCombOffsetFlag(
-                String.valueOf(CtpConstant.offsetMap.getOrDefault(orderReq.getOffset(), Character.valueOf('\0'))));
+                String.valueOf(CtpMapper.offsetMap.getOrDefault(orderReq.getOffset(), Character.valueOf('\0'))));
         cThostFtdcInputOrderField.setOrderRef(orderReq.getOrderRef());
         cThostFtdcInputOrderField.setInvestorID(loginInfo.getUserId());
         cThostFtdcInputOrderField.setUserID(loginInfo.getUserId());
@@ -291,7 +290,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
     }
 
     // 撤单
-    public void cancelOrder(CancelOrderReq cancelOrderReq) {
+    public void cancelOrder(OrderCancelReq cancelOrderReq) {
 
         if (tdApi == null) {
             log.info("{}尚未初始化,无法撤单", tdName);
@@ -301,9 +300,14 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 
         cThostFtdcInputOrderActionField.setInstrumentID(cancelOrderReq.getSymbol());
         cThostFtdcInputOrderActionField.setExchangeID(cancelOrderReq.getExchange());
-        cThostFtdcInputOrderActionField.setOrderRef(cancelOrderReq.getOrderID());
-        cThostFtdcInputOrderActionField.setFrontID(cancelOrderReq.getFrontID());
-        cThostFtdcInputOrderActionField.setSessionID(cancelOrderReq.getSessionID());
+        if(StringUtils.hasLength(cancelOrderReq.getOrderSysID())){
+            cThostFtdcInputOrderActionField.setOrderSysID(cancelOrderReq.getOrderSysID());
+        }else{
+            cThostFtdcInputOrderActionField.setOrderRef(cancelOrderReq.getOrderRef());
+            cThostFtdcInputOrderActionField.setFrontID(cancelOrderReq.getFrontId());
+            cThostFtdcInputOrderActionField.setSessionID(cancelOrderReq.getSessionId());
+        }
+
 
         cThostFtdcInputOrderActionField.setActionFlag(THOST_FTDC_AF_Delete);
         cThostFtdcInputOrderActionField.setBrokerID(loginInfo.getBrokerId());
@@ -564,33 +568,31 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
         } else {
             position = new Position();
             positionMap.put(posName, position);
-            position.setId(posName);
             position.setSymbol(symbol);
             position.setExchange(this.contractMap.get(symbol).getExchange());
             position.setMultiple(this.contractMap.get(symbol).getMultiple());
 
             position.setDirection(
-                    CtpConstant.posiDirectionMapReverse.getOrDefault(pInvestorPosition.getPosiDirection(), Enums.POS_DIRECTION.NONE));
+                    CtpMapper.posiDirectionMapReverse.getOrDefault(pInvestorPosition.getPosiDirection(), Enums.POS_DIRECTION.NONE));
 
-            position.setAcctId(tdName);
         }
 
         position.setUseMargin(position.getUseMargin() + pInvestorPosition.getUseMargin());
         position.setExchangeMargin(position.getExchangeMargin() + pInvestorPosition.getExchangeMargin());
 
-        position.setPosition(position.getPosition() + pInvestorPosition.getPosition());
+        position.setTotalPos(position.getTotalPos() + pInvestorPosition.getPosition());
 
         if (Constant.DIRECTION_LONG.equals(position.getDirection())) {
-            position.setFrozen(pInvestorPosition.getShortFrozen());
+            position.setTotalFrozen(pInvestorPosition.getShortFrozen());
         } else {
-            position.setFrozen(pInvestorPosition.getLongFrozen());
+            position.setTotalFrozen(pInvestorPosition.getLongFrozen());
         }
 
         if ("INE".contentEquals(position.getExchange()) || "SHFE".contentEquals(position.getExchange())) {
             // 针对上期所、上期能源持仓的今昨分条返回（有昨仓、无今仓）,读取昨仓数据
             if (pInvestorPosition.getYdPosition() > 0 && pInvestorPosition.getTodayPosition() == 0) {
 
-                position.setYdPosition(position.getYdPosition() + pInvestorPosition.getPosition());
+                position.setYdPos(position.getYdPos() + pInvestorPosition.getPosition());
 
                 if (Constant.DIRECTION_LONG.equals(position.getDirection())) {
                     position.setYdFrozen(position.getYdFrozen() + pInvestorPosition.getShortFrozen());
@@ -598,7 +600,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
                     position.setYdFrozen(position.getYdFrozen() + pInvestorPosition.getLongFrozen());
                 }
             } else {
-                position.setTdPosition(position.getTdPosition() + pInvestorPosition.getPosition());
+                position.setTdPos(position.getTdPos() + pInvestorPosition.getPosition());
 
                 if (Constant.DIRECTION_LONG.equals(position.getDirection())) {
                     position.setTdFrozen(position.getTdFrozen() + pInvestorPosition.getShortFrozen());
@@ -607,58 +609,58 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
                 }
             }
         } else {
-            position.setTdPosition(position.getTdPosition() + pInvestorPosition.getTodayPosition());
-            position.setYdPosition(position.getPosition() - position.getTdPosition());
+            position.setTdPos(position.getTdPos() + pInvestorPosition.getTodayPosition());
+            position.setYdPos(position.getTotalPos() - position.getTdPos());
 
             // 中金所优先平今
             if ("CFFEX".equals(position.getExchange())) {
-                if (position.getTdPosition() > 0) {
-                    if (position.getTdPosition() >= position.getFrozen()) {
-                        position.setTdFrozen(position.getFrozen());
+                if (position.getTdPos() > 0) {
+                    if (position.getTdPos() >= position.getTotalFrozen()) {
+                        position.setTdFrozen(position.getTotalFrozen());
                     } else {
-                        position.setTdFrozen(position.getTdPosition());
-                        position.setYdFrozen(position.getFrozen() - position.getTdPosition());
+                        position.setTdFrozen(position.getTdPos());
+                        position.setYdFrozen(position.getTotalFrozen() - position.getTdPos());
                     }
                 } else {
-                    position.setYdFrozen(position.getFrozen());
+                    position.setYdFrozen(position.getTotalFrozen());
                 }
             } else {
                 // 除了上面几个交易所之外的交易所，优先平昨
-                if (position.getYdPosition() > 0) {
-                    if (position.getYdPosition() >= position.getFrozen()) {
-                        position.setYdFrozen(position.getFrozen());
+                if (position.getYdPos() > 0) {
+                    if (position.getYdPos() >= position.getTotalFrozen()) {
+                        position.setYdFrozen(position.getTotalFrozen());
                     } else {
-                        position.setYdFrozen(position.getYdPosition());
-                        position.setTdFrozen(position.getFrozen() - position.getYdPosition());
+                        position.setYdFrozen(position.getYdPos());
+                        position.setTdFrozen(position.getTotalFrozen() - position.getYdPos());
                     }
                 } else {
-                    position.setTdFrozen(position.getFrozen());
+                    position.setTdFrozen(position.getTotalFrozen());
                 }
             }
 
         }
 
         // 计算成本
-        Double cost = position.getAvgPrice() * position.getPosition() * position.getMultiple();
-        Double openCost = position.getOpenPrice() * position.getPosition() * position.getMultiple();
+        Double cost = position.getAvgPrice() * position.getTotalPos() * position.getMultiple();
+        Double openCost = position.getOpenPrice() * position.getTotalPos() * position.getMultiple();
 
         // 汇总总仓
         position.setPositionProfit(position.getPositionProfit() + pInvestorPosition.getPositionProfit());
 
         // 计算持仓均价
-        if (position.getPosition() != 0) {
-            position.setAvgPrice((cost + pInvestorPosition.getPositionCost()) / (position.getPosition() * position.getMultiple()));
-            position.setOpenPrice((openCost + pInvestorPosition.getOpenCost()) / (position.getPosition() * position.getMultiple()));
+        if (position.getTotalPos() != 0) {
+            position.setAvgPrice((cost + pInvestorPosition.getPositionCost()) / (position.getTotalPos() * position.getMultiple()));
+            position.setOpenPrice((openCost + pInvestorPosition.getOpenCost()) / (position.getTotalPos() * position.getMultiple()));
         }
 
         // 回报结束
         if (bIsLast) {
             for (Position tmpPosition : positionMap.values()) {
-                if (tmpPosition.getPosition() != 0) {
+                if (tmpPosition.getTotalPos() != 0) {
                     tmpPosition.setPriceDiff(tmpPosition.getPositionProfit() / tmpPosition.getMultiple()
-                            / tmpPosition.getPosition());
+                            / tmpPosition.getTotalPos());
 
-                    if (Constant.DIRECTION_LONG.equals(tmpPosition.getDirection()) || (tmpPosition.getPosition() > 0
+                    if (Constant.DIRECTION_LONG.equals(tmpPosition.getDirection()) || (tmpPosition.getTotalPos() > 0
                             && Constant.DIRECTION_NET.equals(tmpPosition.getDirection()))) {
 
                         // 计算最新价格
@@ -667,10 +669,10 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
                         tmpPosition.setOpenPriceDiff(tmpPosition.getLastPrice() - tmpPosition.getOpenPrice());
                         // 计算开仓盈亏
                         tmpPosition.setOpenPositionProfit(
-                                tmpPosition.getOpenPriceDiff() * tmpPosition.getPosition() * tmpPosition.getMultiple());
+                                tmpPosition.getOpenPriceDiff() * tmpPosition.getTotalPos() * tmpPosition.getMultiple());
 
                     } else if (Constant.DIRECTION_SHORT.equals(tmpPosition.getDirection())
-                            || (tmpPosition.getPosition() < 0
+                            || (tmpPosition.getTotalPos() < 0
                             && Constant.DIRECTION_NET.equals(tmpPosition.getDirection()))) {
 
                         // 计算最新价格
@@ -679,7 +681,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
                         tmpPosition.setOpenPriceDiff(tmpPosition.getOpenPrice() - tmpPosition.getLastPrice());
                         // 计算开仓盈亏
                         tmpPosition.setOpenPositionProfit(
-                                tmpPosition.getOpenPriceDiff() * tmpPosition.getPosition() * tmpPosition.getMultiple());
+                                tmpPosition.getOpenPriceDiff() * tmpPosition.getTotalPos() * tmpPosition.getMultiple());
 
                     } else {
                         log.error("{} 计算持仓时发现未处理方向，持仓详情{}", tdName, tmpPosition.toString());
@@ -687,7 +689,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 
                     // 计算保最新合约价值
                     tmpPosition.setContractValue(tmpPosition.getLastPrice()
-                            * tmpPosition.getMultiple() * tmpPosition.getPosition());
+                            * tmpPosition.getMultiple() * tmpPosition.getTotalPos());
 
                     if (tmpPosition.getUseMargin() != 0) {
                         tmpPosition.setPositionProfitRatio(tmpPosition.getPositionProfit() / tmpPosition.getUseMargin());
@@ -756,12 +758,15 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
     // 合约查询回报
     public void OnRspQryInstrument(CThostFtdcInstrumentField pInstrument, CThostFtdcRspInfoField pRspInfo,
                                    int nRequestID, boolean bIsLast) {
-        Contract contract = new Contract(pInstrument.getInstrumentID(), CtpConstant.exchangeMapReverse.get(pInstrument.getExchangeID()));
+
+        if(!StringUtils.hasLength(pInstrument.getInstrumentID()))
+            return;
+        Contract contract = new Contract(pInstrument.getInstrumentID(), CtpMapper.exchangeMapReverse.get(pInstrument.getExchangeID()));
 
         contract.setMultiple(pInstrument.getVolumeMultiple());
         contract.setPriceTick(pInstrument.getPriceTick());
         contract.setStrikePrice(pInstrument.getStrikePrice());
-        contract.setType(CtpConstant.productClassMapReverse.getOrDefault(pInstrument.getProductClass(),
+        contract.setType(CtpMapper.productClassMapReverse.getOrDefault(pInstrument.getProductClass(),
                 Constant.PRODUCT_UNKNOWN));
         contract.setExpiryDate(pInstrument.getExpireDate());
         // 针对商品期权
@@ -825,18 +830,18 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 //		orderRef = new AtomicInteger(Math.max(orderRef.get(), Integer.valueOf(newRef)));
 //
 //		String symbol = pOrder.getInstrumentID();
-//		String exchange = CtpConstant.exchangeMapReverse.get(pOrder.getExchangeID());
+//		String exchange = CtpMapper.exchangeMapReverse.get(pOrder.getExchangeID());
 //		/*
 //		 * CTP的报单号一致性维护需要基于frontID, sessionID, orderID三个字段
 //		 * 但在本接口设计中,已经考虑了CTP的OrderRef的自增性,避免重复 唯一可能出现OrderRef重复的情况是多处登录并在非常接近的时间内（几乎同时发单
 //		 */
 //		//String orderID = pOrder.getOrderRef();
-//		String direction = CtpConstant.directionMapReverse.get(pOrder.getDirection());
-//		String offset = CtpConstant.offsetMapReverse.get(pOrder.getCombOffsetFlag().toCharArray()[0]);
+//		String direction = CtpMapper.directionMapReverse.get(pOrder.getDirection());
+//		String offset = CtpMapper.offsetMapReverse.get(pOrder.getCombOffsetFlag().toCharArray()[0]);
 //		double price = pOrder.getLimitPrice();
 //		int totalVolume = pOrder.getVolumeTotalOriginal();
 //		int tradedVolume = pOrder.getVolumeTraded();
-//		String status = CtpConstant.statusMapReverse.get(pOrder.getOrderStatus());
+//		String status = CtpMapper.statusMapReverse.get(pOrder.getOrderStatus());
 //		String tradingDay = tradingDayStr;
 //		String orderDate = pOrder.getInsertDate();
 //		String orderTime = pOrder.getInsertTime();
@@ -846,7 +851,7 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
 //		int frontID = pOrder.getFrontID();
 //		int sessionID = pOrder.getSessionID();
 
-        order.setStatus(CtpConstant.statusMapReverse.get(pOrder.getOrderStatus()));
+        order.setStatus(CtpMapper.statusMapReverse.get(pOrder.getOrderStatus()));
         order.setTradedVolume(pOrder.getVolumeTotalOriginal());
         order.setUpdateTime(pOrder.getUpdateTime());
         fastQueue.emitEvent(FastEvent.EV_ORDER, order);
@@ -859,13 +864,12 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
         //Order order=this.orderMap.get(pTrade.getOrderRef());
 
         Trade trade = new Trade();
-        trade.setAccountID(this.loginInfo.getAcctId());
         trade.setSymbol(pTrade.getInstrumentID());
         trade.setExchange(pTrade.getExchangeID());
         trade.setOrderRef(pTrade.getOrderRef());
         trade.setTradeID(pTrade.getTradeID());
-        trade.setDirection(CtpConstant.directionMapReverse.getOrDefault(pTrade.getDirection(), Enums.TRADE_DIRECTION.NONE));
-        trade.setOffset(CtpConstant.offsetMapReverse.getOrDefault(pTrade.getOffsetFlag(), Enums.OFFSET.NONE));
+        trade.setDirection(CtpMapper.directionMapReverse.getOrDefault(pTrade.getDirection(), Enums.TRADE_DIRECTION.NONE));
+        trade.setOffset(CtpMapper.offsetMapReverse.getOrDefault(pTrade.getOffsetFlag(), Enums.OFFSET.NONE));
         trade.setPrice(pTrade.getPrice());
         trade.setVolume(pTrade.getVolume());
         trade.setTradeDate(pTrade.getTradeDate());

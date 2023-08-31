@@ -73,6 +73,7 @@ public interface Enums {
         NOTTRADED ,//未成交
         PARTTRADED,//部分成交
         ALLTRADED ,//全部成交
+        PARTCANCELLED,//部成部撤
         CANCELLED ,//已撤单
         ERROR//错单
     }
@@ -82,6 +83,8 @@ public interface Enums {
             add(ORDER_STATUS.ERROR);
             add(ORDER_STATUS.ALLTRADED);
             add(ORDER_STATUS.CANCELLED);
+            add(ORDER_STATUS.PARTCANCELLED);
+
         }
     };
     enum MSG_TYPE {
@@ -94,8 +97,8 @@ public interface Enums {
         MD_SUBS,
         PAUSE_OPEN,
         PAUSE_CLOSE,
-        ACT_ORDER,
-        ACT_CANCEL,
+        ORDER_INSERT,
+        ORDER_CANCEL,
         QRY_ACCT,
         QRY_POSITION,
         QRY_TRADE,

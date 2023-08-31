@@ -5,6 +5,7 @@ import org.qts.common.entity.Enums;
 import org.qts.common.utils.CommonUtil;
 
 import java.io.Serializable;
+import java.time.LocalTime;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -13,22 +14,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Data
 public class Order implements Serializable {
 
-	private static final long serialVersionUID = 7932302478961553376L;
-
-	private static AtomicInteger orderRefGen = new AtomicInteger(CommonUtil.getRandom(10000, 555000)); // 订单编号
-
-	private String accountID; // 账户代码
-	// 代码编号相关
+	//private static AtomicInteger orderRefGen = new AtomicInteger(CommonUtil.getRandom(10000, 555000)); // 订单编号
+	private static AtomicInteger orderRefGen = new AtomicInteger(LocalTime.now().toSecondOfDay()); // 订单编号
+	//代码编号相关
 	private String symbol; // 代码
 	private String exchange; // 交易所代码
 	private String orderRef; // 订单编号
+	private String OrderSysID;
 	// 报单相关
-	private Enums.POS_DIRECTION direction; // 报单方向
+	private Enums.TRADE_DIRECTION direction; // 报单方向
 	private Enums.OFFSET offset; // 报单开平仓
+	private Enums.PRICE_TYPE priceType;//报单价格类型
 	private double price; // 报单价格
-	private Enums.ORDER_TYPE priceType;//报单价格类型
 	private int totalVolume; // 报单总数量
 	private int tradedVolume; // 报单成交数量
+	private int lastTradedVolume = 0; // 上一次成交数量
 	private Enums.ORDER_STATUS status; // 报单状态
 	private String statusMsg;
 	private String tradingDay;
@@ -42,20 +42,19 @@ public class Order implements Serializable {
 	// CTP/LTS相关
 	private int frontID; // 前置机编号
 	private int sessionID; // 连接编号
+	private String acctId;
 
-	public Order(String accountID, String symbol, Enums.OFFSET offset, Enums.POS_DIRECTION direction, Enums.ORDER_TYPE priceType, double price, int volume){
+	public Order(String symbol, Enums.OFFSET offset, Enums.TRADE_DIRECTION direction,  int volume,double price){
 		this.orderRef = orderRefGen.incrementAndGet()+"";
-		this.accountID=accountID;
 		this.symbol=symbol;
 		this.offset=offset;
 		this.direction=direction;
 		this.price=price;
 		this.totalVolume=volume;
-		this.priceType=priceType;
+		this.status = Enums.ORDER_STATUS.UNKNOWN;
 	}
 
 	public Order(){
-		this.orderRef = orderRefGen.incrementAndGet()+"";
 	}
 
 	public boolean isFinished(){

@@ -12,7 +12,7 @@ import static ctp.thosttraderapi.thosttradeapiConstants.*;
 /**
  * CTP常量转换器
  */
-public class CtpConstant {
+public class CtpMapper {
 	public static Map<Enums.PRICE_TYPE,Character> priceTypeMap = new HashMap<>();
 	public static Map<Character,Enums.PRICE_TYPE> priceTypeMapReverse = new HashMap<>();
 	

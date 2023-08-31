@@ -1,9 +1,6 @@
 package org.qts.trader.gateway;
 
 
-import org.qts.common.entity.MdInfo;
-import org.qts.common.entity.trade.Tick;
-
 import java.util.List;
 
 public interface MdGateway {
@@ -11,9 +8,9 @@ public interface MdGateway {
     /**
      * 订阅
      *
-     * @param symbol
+     * @param symbols
      */
-    void subscribe(String symbol);
+    void subscribe(List<String> symbols);
 
 
     /**
@@ -25,10 +22,6 @@ public interface MdGateway {
      * 关闭
      */
     void close();
-
-
-    List<String> getSubscribedSymbols();
-
 
 
     boolean isConnected();

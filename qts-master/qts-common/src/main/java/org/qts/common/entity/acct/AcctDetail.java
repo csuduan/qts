@@ -13,12 +13,10 @@ import org.qts.common.entity.trade.Position;
 import org.qts.common.entity.trade.Tick;
 import org.qts.common.entity.trade.Trade;
 import org.springframework.beans.BeanUtils;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -37,6 +35,8 @@ public class AcctDetail extends AcctInfo{
     private Map<String, Tick> ticks = new HashMap<>();
     //合约列表
     private Map<String,Contract> contracts = new HashMap<>();
+    //订阅列表
+    private Set<String> subList = new HashSet<>();
     private int versions;
 
 
@@ -52,6 +52,10 @@ public class AcctDetail extends AcctInfo{
         this.name=conf.getName();
         this.group=conf.getGroup();
         this.conf = conf;
+
+        if(StringUtils.hasLength(conf.getSubList())){
+            this.subList.addAll(Arrays.asList(conf.getSubList().split(",")));
+        }
     }
 
     public AcctDetail(AcctConf conf,FastQueue queue){

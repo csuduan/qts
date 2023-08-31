@@ -3,42 +3,51 @@ package org.qts.trader.gateway.tora;
 import com.tora.traderapi.CTORATstpTraderApi;
 import lombok.extern.slf4j.Slf4j;
 import org.qts.common.disruptor.FastQueue;
+import org.qts.common.disruptor.event.FastEvent;
 import org.qts.common.entity.Contract;
+import org.qts.common.entity.Enums;
 import org.qts.common.entity.LoginInfo;
 import org.qts.common.entity.acct.AcctDetail;
-import org.qts.common.entity.trade.CancelOrderReq;
+import org.qts.common.entity.acct.AcctInfo;
+import org.qts.common.entity.trade.OrderCancelReq;
 import org.qts.common.entity.trade.Order;
 import org.qts.common.entity.trade.Position;
+import org.qts.common.entity.trade.Trade;
+import org.qts.common.utils.SpringUtils;
 import org.qts.trader.gateway.TdGateway;
 
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.tora.traderapi.*;
+import org.springframework.util.StringUtils;
 
-import static com.tora.traderapi.TORA_TE_RESUME_TYPE.TORA_TERT_RESTART;
+import static com.tora.traderapi.TORA_TE_RESUME_TYPE.TORA_TERT_QUICK;
 
 
 @Slf4j
 public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
-
+    private static String basePath;
     static {
         try {
-            System.loadLibrary("javatraderapi");
+            //System.loadLibrary("thostmduserapi_wrap");
+            basePath = SpringUtils.getContext().getEnvironment().getProperty("base.path");
+            if(!StringUtils.hasLength(basePath))
+                throw new RuntimeException("can not find apiPath");
+            //System.loadLibrary("ctp/thosttraderapi_wrap");
+            System.load(basePath+"/lib/tora/libjavatraderapi.so");
         } catch (Exception e) {
             log.error("加载库失败!", e);
         }
     }
 
-    private String tdName;
     private AcctDetail acct;
-
     private LoginInfo loginInfo;
     private FastQueue fastQueue;
     private ScheduledExecutorService scheduler;
-
 
     private CTORATstpTraderApi tdApi;
 
@@ -47,6 +56,7 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
     private String tradingDay;
 
     private AtomicInteger reqID = new AtomicInteger(0); // 操作请求编号
+    private AtomicInteger orderRef = new AtomicInteger(LocalTime.now().toSecondOfDay());
 
     private int frontID = 0; // 前置机编号
     private int sessionID = 0; // 会话编号
@@ -60,7 +70,6 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
         this.scheduler = acctInfo.getScheduler();
         this.fastQueue = acctInfo.getFastQueue();
         this.loginInfo = new LoginInfo(acctInfo.getConf());
-        this.tdName = loginInfo.getUserId();
         log.info("td init ...");
         this.connect();
     }
@@ -71,6 +80,7 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
 
     private void setConnected(boolean status){
         this.isConnected = status;
+        log.info("set isConnected to :{}",this.isConnected);
     }
 
     @Override
@@ -98,13 +108,11 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
         Thread thread = new Thread(() -> {
             isRunning = true;
             log.warn("td thread start ...");
-            String envTmpDir = System.getProperty("java.io.tmpdir");
-
 
             tdApi = CTORATstpTraderApi.CreateTstpTraderApi();
             tdApi.RegisterSpi(this);
-            tdApi.SubscribePublicTopic(TORA_TERT_RESTART); //注册公有流
-            tdApi.SubscribePrivateTopic(TORA_TERT_RESTART);//注册私有流
+            tdApi.SubscribePublicTopic(TORA_TERT_QUICK); //注册公有流
+            tdApi.SubscribePrivateTopic(TORA_TERT_QUICK);//注册私有流
             tdApi.RegisterFront(loginInfo.getAddress());
             tdApi.Init();
             tdApi.Join();
@@ -137,12 +145,60 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
 
     @Override
     public boolean insertOrder(Order orderReq) {
-        return false;
+        if(!isConnected()){
+            log.warn("接口未连接,无法报单");
+            orderReq.setStatus(Enums.ORDER_STATUS.ERROR);
+            orderReq.setStatusMsg("接口未连接");
+            return false;
+        }
+        CTORATstpInputOrderField input_order_field = new CTORATstpInputOrderField();
+        input_order_field.setExchangeID(ToraMapper.exchangeMap.get(orderReq.getExchange()));
+        input_order_field.setSecurityID(orderReq.getSymbol());
+        input_order_field.setDirection(orderReq.getDirection() == Enums.TRADE_DIRECTION.BUY?traderapi.getTORA_TSTP_D_Buy():traderapi.getTORA_TSTP_D_Sell());
+        input_order_field.setVolumeTotalOriginal(orderReq.getTotalVolume());
+        input_order_field.setLimitPrice(orderReq.getPrice());
+        if(orderReq.getPriceType()== Enums.PRICE_TYPE.LIMIT ){
+            input_order_field.setOrderPriceType(traderapi.getTORA_TSTP_OPT_LimitPrice());
+        }else {
+            input_order_field.setOrderPriceType(traderapi.getTORA_TSTP_OPT_BestPrice());
+        }
+
+        input_order_field.setTimeCondition(traderapi.getTORA_TSTP_TC_GFD());
+        input_order_field.setVolumeCondition(traderapi.getTORA_TSTP_VC_AV());
+
+        int ret = tdApi.ReqOrderInsert(input_order_field, reqID.incrementAndGet());
+        if (ret != 0)
+        {
+            log.error("ReqOrderInsert fail, ret[{}]", ret);
+            orderReq.setStatus(Enums.ORDER_STATUS.ERROR);
+            orderReq.setStatusMsg("插入报单失败");
+            return false;
+        }
+        return true;
     }
 
     @Override
-    public void cancelOrder(CancelOrderReq cancelOrderReq) {
+    public void cancelOrder(OrderCancelReq cancelOrderReq) {
+        if(!isConnected()){
+            log.warn("接口未连接,无法撤单");
+            return;
+        }
+        CTORATstpInputOrderActionField input_order_action_field = new CTORATstpInputOrderActionField();
+        input_order_action_field.setExchangeID(ToraMapper.exchangeMap.get(cancelOrderReq.getExchange()));
+        input_order_action_field.setActionFlag(traderapi.getTORA_TSTP_AF_Delete());
+        if(StringUtils.hasLength(cancelOrderReq.getOrderSysID()))
+            input_order_action_field.setOrderSysID(cancelOrderReq.getOrderSysID());
+        else {
+            input_order_action_field.setFrontID(cancelOrderReq.getFrontId());
+            input_order_action_field.setSessionID(cancelOrderReq.getSessionId());
+            input_order_action_field.setOrderRef(Integer.valueOf(cancelOrderReq.getOrderRef()));
+        }
 
+        int ret = tdApi.ReqOrderAction(input_order_action_field, reqID.incrementAndGet());
+        if (ret != 0)
+        {
+            log.error("ReqOrderAction fail, ret[{}]", ret);
+        }
     }
 
     
@@ -154,22 +210,23 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
 
     @Override
     public void qryContract() {
-        if (this.isConnected()) {
-            log.warn("接口未连接,无法查询账户");
+        if (!this.isConnected()) {
+            log.warn("接口未连接,无法查询合约");
             return;
         }
-        CTORATstpQrySecurityField qry_security_field = new CTORATstpQrySecurityField();
-        qry_security_field.setExchangeID(traderapi.getTORA_TSTP_EXD_SSE());
-        //qry_security_field.setSecurityID("600000");
-        int ret = tdApi.ReqQrySecurity(qry_security_field, reqID.incrementAndGet());
-        if (ret != 0)
-            log.error("ReqQrySecurity fail, ret[{}]", ret);
+        //TODO
+//        CTORATstpQrySecurityField qry_security_field = new CTORATstpQrySecurityField();
+//        qry_security_field.setExchangeID(traderapi.getTORA_TSTP_EXD_SSE());
+//        //qry_security_field.setSecurityID("600000");
+//        int ret = tdApi.ReqQrySecurity(qry_security_field, reqID.incrementAndGet());
+//        if (ret != 0)
+//            log.error("ReqQrySecurity fail, ret[{}]", ret);
 
     }
     @Override
     public void qryPosition(){
-        if (this.isConnected()) {
-            log.warn("接口未连接,无法查询账户");
+        if (!this.isConnected()) {
+            log.warn("接口未连接,无法查询持仓");
             return;
         }
         CTORATstpQryPositionField qry_position_field = new CTORATstpQryPositionField();
@@ -181,7 +238,7 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
     }
     @Override
     public void qryTradingAccount() {
-        if (this.isConnected()) {
+        if (!this.isConnected()) {
             log.warn("接口未连接,无法查询账户");
             return;
         }
@@ -194,14 +251,14 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
 
     private void login() {
         if (tdApi == null) {
-            log.warn("{} 交易接口实例已经释放", tdName);
+            log.warn("td is released!");
             return;
         }
 
 
         CTORATstpReqUserLoginField req_user_login_field = new CTORATstpReqUserLoginField();
         req_user_login_field.setLogInAccount(loginInfo.getUserId());
-        req_user_login_field.setLogInAccountType(traderapi.getTORA_TSTP_LACT_UserID());
+        req_user_login_field.setLogInAccountType(traderapi.getTORA_TSTP_LACT_AccountID());
         req_user_login_field.setPassword(loginInfo.getPassword());
         req_user_login_field.setUserProductInfo("qts");
 
@@ -225,24 +282,21 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
     public void OnRspUserLogin(CTORATstpRspUserLoginField pRspUserLogin, CTORATstpRspInfoField pRspInfo, int nRequestID)
     {
         if (pRspInfo.getErrorID() == 0) {
-            log.info("{} 交易接口登录成功! TradingDay:{},SessionID:{},BrokerID:{},UserID:{}", tdName,
-                    pRspUserLogin.getTradingDay(), pRspUserLogin.getSessionID(), "",
-                    pRspUserLogin.getUserID());
-            sessionID = pRspUserLogin.getSessionID();
-            frontID = pRspUserLogin.getFrontID();
+
+            this.sessionID = pRspUserLogin.getSessionID();
+            this.frontID = pRspUserLogin.getFrontID();
             // 修改登录状态为true
             this.setConnected(true);
-            tradingDay = pRspUserLogin.getTradingDay();
-            log.info("{}交易接口获取到的交易日为{}", tdName, tradingDay);
-
+            this.tradingDay = pRspUserLogin.getTradingDay();
             String maxOrderRef = String.valueOf(pRspUserLogin.getMaxOrderRef());
-            log.info("maxOrderRef:{},OrderInsertCommFlux:{},OrderActionCommFlux:{}",
-                    maxOrderRef,pRspUserLogin.getOrderInsertCommFlux(),pRspUserLogin.getOrderActionCommFlux());
+            log.info("OnRspUserLogin! TradingDay:{},SessionID:{},FrontID:{},UserID:{},maxOrderRef:{},OrderInsertCommFlux:{},OrderActionCommFlux:{}",
+                    this.tradingDay, this.sessionID, this.frontID, pRspUserLogin.getUserID(),maxOrderRef,pRspUserLogin.getOrderInsertCommFlux(),pRspUserLogin.getOrderActionCommFlux());
+
 
             //发起其他查询
             int delay=1250;
             this.scheduler.schedule(()->{
-
+                this.qryTradingAccount();
             },delay, TimeUnit.MILLISECONDS);
 
             this.scheduler.schedule(()->{
@@ -254,7 +308,7 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
             },delay*3, TimeUnit.MILLISECONDS);
 
         } else {
-            log.error("{}交易接口登录回报错误! ErrorID:{},ErrorMsg:{}", tdName, pRspInfo.getErrorID(),
+            log.error("OnRspUserLogin error! ErrorID:{},ErrorMsg:{}", pRspInfo.getErrorID(),
                     pRspInfo.getErrorMsg());
         }
     }
@@ -263,14 +317,14 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
     {
         if (pSecurity != null)
         {
-            System.out.printf("OnRspQrySecurity[%d]: SecurityID[%s] SecurityName[%s] UpperLimitPrice[%.3f] LowerLimitPrice[%.3f]\n",
+            log.info("OnRspQrySecurity[{}]: SecurityID[{}] SecurityName[{}] UpperLimitPrice[{}] LowerLimitPrice[{}]",
                     nRequestID, pSecurity.getSecurityID(), pSecurity.getSecurityName(),
                     pSecurity.getUpperLimitPrice(), pSecurity.getLowerLimitPrice());
         }
 
         if (bIsLast)
         {
-            System.out.printf("��ѯ��Լ��Ϣ����!\n");
+            log.info("OnRspUserLogin finish");
         }
     }
 
@@ -292,6 +346,10 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
                     nRequestID, pTradingAccount.getDepartmentID(), pTradingAccount.getInvestorID(),
                     pTradingAccount.getAccountID(), pTradingAccount.getCurrencyID(), pTradingAccount.getUsefulMoney(),
                     pTradingAccount.getWithdraw());
+            AcctInfo acctInfo = acct.getAcctInfo();
+            acctInfo.setAvailable(pTradingAccount.getUsefulMoney());
+            acctInfo.setPreBalance(pTradingAccount.getPreDeposit());
+            acctInfo.setBalance(pTradingAccount.getDeposit()+pTradingAccount.getDeposit()-pTradingAccount.getWithdraw());
         }
     }
 
@@ -299,9 +357,25 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
     {
         if (pPosition != null)
         {
-            System.out.printf("OnRspQryPosition[%d]: InvestorID[%s] SecurityID[%s] HistoryPos[%d] TodayBSPos[%d] TodayPRPos[%d]\n",
-                    nRequestID, pPosition.getInvestorID(), pPosition.getSecurityID(),
-                    pPosition.getHistoryPos(), pPosition.getTodayBSPos(), pPosition.getTodayPRPos());
+
+            String exchange = ToraMapper.exchangeMapReverse.get(pPosition.getExchangeID());
+            Position position=new Position(pPosition.getSecurityID(),exchange, Enums.POS_DIRECTION.NET);
+            position.setSymbolName(pPosition.getSecurityName());
+            position.setYdPos(pPosition.getHistoryPos());
+            position.setYdFrozen(pPosition.getHistoryPosFrozen());
+            position.setTdPos(pPosition.getTodayBSPos()+pPosition.getTodayPRPos());
+            position.setTdFrozen(pPosition.getTodayBSPosFrozen()+pPosition.getTodayPRPosFrozen());
+            position.setAvgPrice(pPosition.getTotalPosCost());
+            position.setCommission(pPosition.getTodayCommission());
+            position.setTotalPos(pPosition.getCurrentPosition());
+
+            this.positionMap.put(position.getId(), position);
+            log.info("OnRspQryPosition:",position);
+
+            if(bIsLast){
+                log.info("OnRspQryPosition finish!");
+            }
+
         }
     }
 
@@ -327,28 +401,78 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
 
     public void OnRtnOrder(CTORATstpOrderField pOrder)
     {
-        System.out.printf("OnRtnOrder: InvestorID[%s] SecurityID[%s] OrderRef[%s] OrderLocalID[%s] LimitPrice[%.2f] VolumeTotalOriginal[%d] OrderSysID[%s] OrderStatus[%c]\n",
-                pOrder.getInvestorID(), pOrder.getSecurityID(), pOrder.getOrderRef(), pOrder.getOrderLocalID(),
-                pOrder.getLimitPrice(), pOrder.getVolumeTotalOriginal(), pOrder.getOrderSysID(),
-                pOrder.getOrderStatus());
+        if(pOrder==null && !this.orderMap.containsKey(pOrder.getOrderRef()))
+            return;
+        //更新报单
+        Order lastOrder = this.orderMap.get(pOrder.getOrderRef());
+        lastOrder.setLastTradedVolume(lastOrder.getTradedVolume());
+        lastOrder.setOrderSysID(pOrder.getOrderSysID());
+        lastOrder.setStatus(ToraMapper.statusMapReverse.getOrDefault(pOrder.getOrderStatus(), Enums.ORDER_STATUS.UNKNOWN));
+        lastOrder.setStatusMsg(pOrder.getStatusMsg());
+        lastOrder.setTradedVolume(pOrder.getVolumeTraded());
+        this.fastQueue.emitEvent(FastEvent.EV_ORDER,lastOrder);
+
+        //更新持仓(报单前需要确保仓位存在)
+        int curTradedVolume = lastOrder.getTradedVolume()- lastOrder.getLastTradedVolume();
+        if(curTradedVolume>0 && lastOrder.getDirection() == Enums.TRADE_DIRECTION.BUY ){
+            Position pos = this.positionMap.get(lastOrder.getSymbol()+"-"+ Enums.POS_DIRECTION.NET);
+            if(pos!=null){
+                pos.setTdPos(pos.getTdPos()+curTradedVolume);
+                this.fastQueue.emitEvent(FastEvent.EV_POSITION,pos);
+            }else{
+                log.error("order[{}] 找不到对应的持仓",lastOrder.getOrderRef());
+            }
+        }
+        if(curTradedVolume>0 && lastOrder.getDirection() == Enums.TRADE_DIRECTION.SELL ){
+            Position pos = this.positionMap.get(lastOrder.getSymbol()+"-"+ Enums.POS_DIRECTION.NET);
+            if(pos!=null){
+                //优先平昨(部分券运行平今)
+                int left = pos.getYdPos()-curTradedVolume;
+                pos.setYdPos(left>=0?left:0);
+                if(left<0)
+                    pos.setTdPos(pos.getTdPos()+left);
+                this.fastQueue.emitEvent(FastEvent.EV_POSITION,pos);
+            }else{
+                log.error("order[{}] 找不到对应的持仓",lastOrder.getOrderRef());
+            }
+        }
+
+        log.info("OnRtnOrder: orderRef:{} orderSysId:{}  traded:{}/{}  status:{} msg:{}",
+                lastOrder.getOrderRef(),lastOrder.getOrderSysID(),lastOrder.getTotalVolume(),lastOrder.getTotalVolume(),lastOrder.getStatus(),lastOrder.getStatusMsg());
     }
 
     public void OnRtnTrade(CTORATstpTradeField pTrade)
     {
-        System.out.printf("OnRtnTrade: TradeID[%s] InvestorID[%s] SecurityID[%s] OrderRef[%s] OrderLocalID[%s] Price[%.2f] Volume[%d]\n",
-                pTrade.getTradeID(), pTrade.getInvestorID(), pTrade.getSecurityID(),
-                pTrade.getOrderRef(), pTrade.getOrderLocalID(), pTrade.getPrice(), pTrade.getVolume());
+        if(pTrade==null)
+            return;
+        Trade trade =new Trade();
+        trade.setTradeID(pTrade.getTradeID());
+        trade.setTradingDay(pTrade.getTradingDay());
+        trade.setOffset(Enums.OFFSET.NONE);
+        trade.setDirection(ToraMapper.directionMapReverse.get(pTrade.getDirection()));
+        trade.setSymbol(pTrade.getSecurityID());
+        trade.setExchange(ToraMapper.exchangeMapReverse.get(pTrade.getExchangeID()));
+        trade.setPrice(pTrade.getPrice());
+        trade.setVolume(pTrade.getVolume());
+        trade.setTradeDate(pTrade.getTradeDate());
+        trade.setTradeTime(pTrade.getTradeTime());
+        trade.setOrderRef(pTrade.getOrderRef()+"");
+        trade.setOrderSysID(pTrade.getOrderSysID());
+        this.acct.getTradeList().put(trade.getTradeID(),trade);
+        this.fastQueue.emitEvent(FastEvent.EV_TRADE,trade);
+        log.info("OnRtnTrade:{}",trade);
+
     }
 
     public void OnRspOrderAction(CTORATstpInputOrderActionField pInputOrderActionField, CTORATstpRspInfoField pRspInfo, int nRequestID)
     {
         if (pRspInfo.getErrorID() == 0)
         {
-            System.out.printf("OnRspOrderAction: OK! [%d]\n", nRequestID);
+            log.info("OnRspOrderAction: OK! [{}]\n", nRequestID);
         }
         else
         {
-            System.out.printf("OnRspOrderAction: Error! [%d] [%d] [%s]\n", nRequestID, pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
+            log.error("OnRspOrderAction: Error! [{}] [{}] [{}]", nRequestID, pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
         }
     }
 }

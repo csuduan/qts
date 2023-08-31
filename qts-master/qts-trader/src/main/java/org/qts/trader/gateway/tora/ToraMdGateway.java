@@ -2,14 +2,14 @@ package org.qts.trader.gateway.tora;
 
 import com.tora.xmdapi.*;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FileUtils;
 import org.qts.common.disruptor.FastQueue;
 import org.qts.common.entity.MdInfo;
 import org.qts.common.entity.acct.AcctDetail;
+import org.qts.common.utils.SpringUtils;
 import org.qts.trader.gateway.MdGateway;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,9 +17,15 @@ import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
 public class ToraMdGateway extends CTORATstpXMdSpi implements MdGateway {
+    private static String basePath;
     static {
         try {
-            System.loadLibrary("javaxmdapi");
+            //System.loadLibrary("thostmduserapi_wrap");
+            basePath = SpringUtils.getContext().getEnvironment().getProperty("base.path");
+            if(!StringUtils.hasLength(basePath))
+                throw new RuntimeException("can not find apiPath");
+            //System.loadLibrary("ctp/thosttraderapi_wrap");
+            System.load(basePath+"/lib/tora/libjavaxmdapi.so");
         } catch (Exception e) {
             log.error("加载库失败!", e);
         }
@@ -34,7 +40,6 @@ public class ToraMdGateway extends CTORATstpXMdSpi implements MdGateway {
     protected FastQueue fastQueue;
 
     private CTORATstpXMdApi mdApi = null;
-    private HashSet<String> subscribedSymbols = new HashSet<>();
     private HashMap<String, Integer> preTickVolumeMap = new HashMap<>();
     private ScheduledExecutorService scheduler;
 
@@ -53,10 +58,22 @@ public class ToraMdGateway extends CTORATstpXMdSpi implements MdGateway {
 
     private void setConnected(boolean connected) {
         this.isConnected = connected;
+        log.info("set isConnected to :",connected);
     }
-    @Override
-    public  void subscribe(String symbol) {
 
+    @Override
+    public void subscribe(List<String> symbols) {
+        if(CollectionUtils.isEmpty(symbols))
+            return;
+        if(!isConnected()){
+            log.warn(mdName + "无法订阅行情,行情服务器尚未连接成功");
+            return;
+        }
+
+        int ret = mdApi.SubscribeMarketData(symbols.toArray(new String[0]), xmdapi.getTORA_TSTP_EXD_SZSE());
+        if(ret!=0){
+            log.error("SubscribeMarketData fail ,ret={}",ret);
+        }
     }
 
     @Override
@@ -67,7 +84,7 @@ public class ToraMdGateway extends CTORATstpXMdSpi implements MdGateway {
 
         scheduler.submit(() -> {
             try {
-                log.info("td start connect...");
+                log.info("Md start connect...");
                 this.connectAsync();
                 //10s后若连接失败，则自动关闭
                 Thread.sleep(10000);
@@ -119,11 +136,6 @@ public class ToraMdGateway extends CTORATstpXMdSpi implements MdGateway {
     }
 
     @Override
-    public List<String> getSubscribedSymbols() {
-        return null;
-    }
-
-    @Override
     public boolean isConnected() {
         return this.isRunning && this.isConnected;
     }
@@ -150,192 +162,37 @@ public class ToraMdGateway extends CTORATstpXMdSpi implements MdGateway {
     {
         if (pRspInfo.getErrorID() == 0)
         {
-            System.out.printf("login success!\n");
-
-            String arr[] = {"000001"};
-            int ret = mdApi.SubscribeMarketData(arr, xmdapi.getTORA_TSTP_EXD_SZSE());
-            if (ret != 0)
-            {
-                System.out.printf("SubscribeMarketData fail, ret[%d]\n", ret);
-            }
-
-            String arr2[] = {"300760"};
-            ret = mdApi.SubscribeSimplifyMarketData(arr2, xmdapi.getTORA_TSTP_EXD_SZSE());
-            if (ret != 0)
-            {
-                System.out.printf("SubscribeSimplifyMarketData fail, ret[%d]\n", ret);
-            }
-
-            String arr3[] = {"600004"};
-            ret = mdApi.SubscribeSecurityStatus(arr3, xmdapi.getTORA_TSTP_EXD_SSE());
-            if (ret != 0)
-            {
-                System.out.printf("SubscribeSecurityStatus fail, ret[%d]\n", ret);
-            }
-
-            ret = mdApi.SubscribeMarketStatus(xmdapi.getTORA_TSTP_EXD_SSE());
-            if (ret != 0)
-            {
-                System.out.printf("SubscribeMarketStatus fail, ret[%d]\n", ret);
-            }
-
-            CTORATstpInquiryMarketDataField a = new CTORATstpInquiryMarketDataField();
-            a.setExchangeID(xmdapi.getTORA_TSTP_EXD_SZSE());
-            a.setSecurityID("000002");
-            ret = mdApi.ReqInquiryMarketDataMirror(a,++m_request_id);
-            if (ret != 0)
-            {
-                System.out.printf("ReqInquiryMarketDataMirror fail, ret[%d]\n", ret);
-            }
-
-            String arr5[] = {"688002"};
-            ret = mdApi.SubscribePHMarketData(arr5, xmdapi.getTORA_TSTP_EXD_SSE());
-            if (ret != 0)
-            {
-                System.out.printf("SubscribePHMarketData fail, ret[%d]\n", ret);
-            }
-
-            String arr4[] = {"000002"};
-            ret = mdApi.SubscribeSpecialMarketData(arr4, xmdapi.getTORA_TSTP_EXD_SZSE());
-            if (ret != 0)
-            {
-                System.out.printf("SubscribeSpecialMarketData fail, ret[%d]\n", ret);
-            }
-
-// 			����Ϊ��������
-            String arr6[] = {"600036"};
-            ret = mdApi.SubscribeRapidMarketData(arr6, xmdapi.getTORA_TSTP_EXD_SSE());
-            if (ret != 0)
-            {
-                System.out.printf("SubscribeRapidMarketData fail, ret[%d]\n", ret);
-            }
-
-//			ret = mdApi.SubscribeFundsFlowMarketData(arr6, xmdapi.getTORA_TSTP_EXD_SSE());
-//			if (ret != 0)
-//			{
-//				System.out.printf("SubscribeFundsFlowMarketData fail, ret[%d]\n", ret);
-//			}
-
-            CTORATstpInquiryMarketDataField b = new CTORATstpInquiryMarketDataField();
-            b.setExchangeID(xmdapi.getTORA_TSTP_EXD_SSE());
-            b.setSecurityID("688002");
-            ret = mdApi.ReqInquiryPHMarketDataMirror(b,++m_request_id);
-            if (ret != 0)
-            {
-                System.out.printf("ReqInquiryPHMarketDataMirror fail, ret[%d]\n", ret);
-            }
-
-            CTORATstpInquirySpecialMarketDataField c = new CTORATstpInquirySpecialMarketDataField();
-            c.setExchangeID(xmdapi.getTORA_TSTP_EXD_SZSE());
-            c.setSecurityID("000002");
-            ret = mdApi.ReqInquirySpecialMarketDataMirror(c,++m_request_id);
-            if (ret != 0)
-            {
-                System.out.printf("ReqInquirySpecialMarketDataMirror fail, ret[%d]\n", ret);
-            }
-
-            ret = mdApi.UnSubscribeMarketData(arr, xmdapi.getTORA_TSTP_EXD_SZSE());
-            if (ret != 0)
-            {
-                System.out.printf("UnSubscribeMarketData fail, ret[%d]\n", ret);
-            }
-
-            ret = mdApi.UnSubscribeSimplifyMarketData(arr2, xmdapi.getTORA_TSTP_EXD_SZSE());
-            if (ret != 0)
-            {
-                System.out.printf("UnSubscribeSimplifyMarketData fail, ret[%d]\n", ret);
-            }
-
-            ret = mdApi.UnSubscribeSecurityStatus(arr3, xmdapi.getTORA_TSTP_EXD_SZSE());
-            if (ret != 0)
-            {
-                System.out.printf("UnSubscribeSecurityStatus fail, ret[%d]\n", ret);
-            }
-
-            ret = mdApi.UnSubscribeMarketStatus(xmdapi.getTORA_TSTP_EXD_SSE());
-            if (ret != 0)
-            {
-                System.out.printf("UnSubscribeMarketStatus fail, ret[%d]\n", ret);
-            }
-
-            ret = mdApi.UnSubscribePHMarketData(arr5, xmdapi.getTORA_TSTP_EXD_SSE());
-            if (ret != 0)
-            {
-                System.out.printf("UnSubscribePHMarketData fail, ret[%d]\n", ret);
-            }
-
-            ret = mdApi.UnSubscribeSpecialMarketData(arr4, xmdapi.getTORA_TSTP_EXD_SZSE());
-            if (ret != 0)
-            {
-                System.out.printf("UnSubscribeSpecialMarketData fail, ret[%d]\n", ret);
-            }
-
-            ret = mdApi.UnSubscribeRapidMarketData(arr6, xmdapi.getTORA_TSTP_EXD_SSE());
-            if (ret != 0)
-            {
-                System.out.printf("UnSubscribeRapidMarketData fail, ret[%d]\n", ret);
-            }
-
-//			ret = mdApi.UnSubscribeFundsFlowMarketData(arr6, xmdapi.getTORA_TSTP_EXD_SSE());
-//			if (ret != 0)
-//			{
-//				System.out.printf("UnSubscribeFundsFlowMarketData fail, ret[%d]\n", ret);
-//			}
-
+            this.setConnected(true);
+            log.info("OnRspUserLogin");
+            //重新订阅行情
+            this.subscribe(this.acct.getSubList().stream().toList());
         }
         else
         {
-            System.out.printf("login fail, error_id[%d], error_msg[%s]\n", pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
+            log.error("OnRspUserLogin fail, error_id[{}], error_msg[{}]", pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
         }
     }
 
     public void OnRspSubMarketData(CTORATstpSpecificSecurityField pSpecificSecurityField, CTORATstpRspInfoField pRspInfo)
     {
-        if (pRspInfo.getErrorID() == 0)
+        if (pRspInfo.getErrorID() != 0)
         {
-            System.out.printf("OnRspSubMarketData success!\n");
-        }
-        else
-        {
-            System.out.printf("OnRspSubMarketData fail, error_id[%d] error_msg[%s]\n", pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
+            log.error("OnRspSubMarketData fail, error_id[{}] error_msg[{}]", pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
         }
     }
 
     public void OnRspUnSubMarketData(CTORATstpSpecificSecurityField pSpecificSecurityField, CTORATstpRspInfoField pRspInfo)
     {
-        if (pRspInfo.getErrorID() == 0)
-        {
-            System.out.printf("OnRspUnSubMarketData success!\n");
-        }
-        else
-        {
-            System.out.printf("OnRspUnSubMarketData fail, error_id[%d] error_msg[%s]\n", pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
-        }
     }
 
     public void OnRspSubSimplifyMarketData(CTORATstpSpecificSecurityField pSpecificSecurityField, CTORATstpRspInfoField pRspInfo)
     {
-        if (pRspInfo.getErrorID() == 0)
+        if (pRspInfo.getErrorID() != 0)
         {
-            System.out.printf("OnRspSubSimplifyMarketData success!\n");
-        }
-        else
-        {
-            System.out.printf("OnRspSubSimplifyMarketData fail, error_id[%d] error_msg[%s]\n", pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
+            log.error("OnRspSubSimplifyMarketData fail, error_id[{}] error_msg[{}]", pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
         }
     }
 
-    public void OnRspUnSubSimplifyMarketData(CTORATstpSpecificSecurityField pSpecificSecurityField, CTORATstpRspInfoField pRspInfo)
-    {
-        if (pRspInfo.getErrorID() == 0)
-        {
-            System.out.printf("OnRspUnSubSimplifyMarketData success!\n");
-        }
-        else
-        {
-            System.out.printf("OnRspUnSubSimplifyMarketData fail, error_id[%d] error_msg[%s]\n", pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
-        }
-    }
 
     public void OnRspSubSecurityStatus(CTORATstpSpecificSecurityField pSpecificSecurityField, CTORATstpRspInfoField pRspInfo)
     {
@@ -533,7 +390,7 @@ public class ToraMdGateway extends CTORATstpXMdSpi implements MdGateway {
 
     public void OnRtnMarketData(CTORATstpMarketDataField pMarketDataField)
     {
-        System.out.printf("OnRtnMarketData: ExchangeID[%c] SecurityID[%s] SecurityName[%s] UpperLimitPrice[%.3f] LowerLimitPrice[%.3f] LastPrice[%.3f] AskPrice1[%.3f] AskVolume1[%d] BidPrice1[%.3f] BidVolume1[%d] UpdateTime[%s]\n",
+        log.info("OnRtnMarketData: ExchangeID[{}] SecurityID[{}] SecurityName[{}] UpperLimitPrice[{}] LowerLimitPrice[{}] LastPrice[{}] AskPrice1[{}] AskVolume1[{}] BidPrice1[{}] BidVolume1[{}] UpdateTime[{}]",
                 pMarketDataField.getExchangeID(), pMarketDataField.getSecurityID(), pMarketDataField.getSecurityName(),
                 pMarketDataField.getUpperLimitPrice(), pMarketDataField.getLowerLimitPrice(), pMarketDataField.getLastPrice(),
                 pMarketDataField.getAskPrice1(), pMarketDataField.getAskVolume1(),
@@ -543,7 +400,7 @@ public class ToraMdGateway extends CTORATstpXMdSpi implements MdGateway {
 
     public void OnRtnSimplifyMarketData(CTORATstpSimplifyMarketDataField pSimplifyMarketDataField)
     {
-        System.out.printf("OnRtnSimplifyMarketData: ExchangeID[%c] SecurityID[%s] SecurityName[%s] UpperLimitPrice[%.3f] LowerLimitPrice[%.3f] LastPrice[%.3f] AskPrice1[%.3f] BidPrice1[%.3f] UpdateTime[%s]\n",
+        log.info("OnRtnSimplifyMarketData: ExchangeID[{}] SecurityID[{}] SecurityName[{}] UpperLimitPrice[{}] LowerLimitPrice[{}] LastPrice[{}] AskPrice1[{}] BidPrice1[{}] UpdateTime[{}]",
                 pSimplifyMarketDataField.getExchangeID(), pSimplifyMarketDataField.getSecurityID(), pSimplifyMarketDataField.getSecurityName(),
                 pSimplifyMarketDataField.getUpperLimitPrice(), pSimplifyMarketDataField.getLowerLimitPrice(), pSimplifyMarketDataField.getLastPrice(),
                 pSimplifyMarketDataField.getAskPrice1(),

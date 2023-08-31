@@ -7,7 +7,6 @@ import org.qts.common.disruptor.FastQueue;
 import org.qts.common.disruptor.event.FastEvent;
 import org.qts.common.entity.*;
 import org.qts.common.entity.acct.AcctDetail;
-import org.qts.common.entity.acct.AcctInfo;
 import org.qts.common.entity.config.AcctConf;
 import org.qts.common.entity.trade.*;
 import org.qts.common.rpc.tcp.server.MsgHandler;
@@ -18,7 +17,6 @@ import org.qts.trader.gateway.TdGateway;
 import org.qts.common.utils.BarGenerator;
 import org.qts.trader.gateway.GatwayFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -88,39 +86,32 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
     }
 
 
-    public void subContract(String symobl) {
-        this.mdGateway.subscribe(symobl);
+    public void subContract(List<String> symobls) {
+        this.acct.getSubList().addAll(symobls);
+        this.mdGateway.subscribe(symobls);
     }
 
     /**
      * 报单
      */
-    public void insertOrder(Order order) {
-        String exchange = acct.getContracts().get(order.getSymbol()).getExchange();
-        //补充报单信息
-        order.setExchange(exchange);
+    public void insertOrder(OrderInsertReq req) {
+        //TODO 自成交校验
+        Order order =new Order(req.getSymbol(),req.getOffset(),req.getDirection(), req.getVolume(), req.getPrice());
+        order.setExchange(req.getExchange());
         Tick lastTick = acct.getTicks().get(order.getSymbol());
         if (order.getPrice() == 0 && lastTick != null) {
-            //todo 以对手价报单
             order.setPrice(lastTick.getLastPrice());
         }
-        //todo 自成交校验
         this.tdGateway.insertOrder(order);
     }
 
     /**
-     * 撤单
+     * 撤单(可以撤外部保单)
      *
-     * @param orderRef
+     * @param
      */
-    public void cancelOrder(String orderRef) {
-        if (this.acct.getOrders().containsKey(orderRef)) {
-            Order order = this.acct.getOrders().get(orderRef);
-            //todo
-            CancelOrderReq cancelOrderReq = new CancelOrderReq();
-            cancelOrderReq.setOrderID(orderRef);
-            this.tdGateway.cancelOrder(cancelOrderReq);
-        }
+    public void cancelOrder(OrderCancelReq req) {
+        this.tdGateway.cancelOrder(req);
     }
 
 
@@ -240,8 +231,8 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
                 this.mdGateway.close();
             }
             case MD_SUBS -> {
-                List<String> contracts = req.getList(String.class);
-                contracts.forEach(x -> this.subContract(x));
+                List<String> symbols = req.getList(String.class);
+                this.subContract(symbols);
             }
             case PAUSE_OPEN -> {
                 CommReq data = req.getData(CommReq.class);
@@ -266,9 +257,19 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
             case QRY_ORDER -> {
                 rsp =req.buildResp(0, this.acct.getOrders().values());
             }
+            case  ORDER_INSERT -> {
+                OrderInsertReq orderInsertReq = req.getData(OrderInsertReq.class);
+                this.insertOrder(orderInsertReq);
+            }
+            case ORDER_CANCEL -> {
+                OrderCancelReq orderCancelReq = req.getData(OrderCancelReq.class);
+                this.cancelOrder(orderCancelReq);
+            }
 
             default -> {
-                log.warn("未处理的消息类型{}", req.getType());
+                log.warn("暂不支持此类型:{}", req.getType());
+                rsp.setCode(-1);
+                rsp.setRetMsg("暂不支持此类型");
             }
         }
         return rsp;

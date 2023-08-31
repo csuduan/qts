@@ -85,7 +85,7 @@ public interface Constant {
 	 String EXCHANGE_CZCE = "CZCE"; // 郑商所
 	 String EXCHANGE_DCE = "DCE"; // 大商所
 	 String EXCHANGE_INE = "INE"; // 国际能源交易中心
-	 String EXCHANGE_SEHK = "SEHK"; // 港交所
+	 String EXCHANGE_HK = "HK"; // 港交所
 	 String EXCHANGE_HKFE = "HKFE"; // 香港期货交易所
 	 String EXCHANGE_SGX = "SGX"; // 新加坡交易所
 	 String EXCHANGE_CME = "CME"; // 芝商所

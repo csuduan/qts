@@ -10,7 +10,7 @@ public class LoginInfo {
     private String brokerId;
     private String acctId;
 
-    private String userId;
+    private String userId;//投资者账号
     private String useName;
     private String password;
     private String authCode;
@@ -37,8 +37,11 @@ public class LoginInfo {
         this.tdType = acctConf.getTdType();
         var tmp1 = acctConf.getTdAddress().split("\\|");
         this.address = tmp1[0];
-        this.brokerId = tmp1[1];
-        this.appId = tmp1[2];
-        this.authCode = tmp1[3];
+        if(tmp1.length>=2){
+            this.brokerId = tmp1[1];
+            this.appId = tmp1[2];
+            this.authCode = tmp1[3];
+        }
+
     }
 }
