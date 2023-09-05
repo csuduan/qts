@@ -109,7 +109,8 @@ public interface Enums {
 
 
         //推送消息
-        ON_ACCT,
+        ON_ACCT,//账户基本信息
+        ON_DETAIL,//账户详情
         ON_POSITION,
         ON_TRADE,
         ON_ORDER,

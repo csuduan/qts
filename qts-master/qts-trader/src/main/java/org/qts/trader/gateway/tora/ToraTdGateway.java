@@ -80,6 +80,7 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
 
     private void setConnected(boolean status){
         this.isConnected = status;
+        this.acct.setTdStatus( status);
         log.info("set isConnected to :{}",this.isConnected);
     }
 

@@ -55,7 +55,8 @@ public class AcctManager {
     public AcctDetail getAcctDetail(String acctId){
         if(!this.acctInstanceMap.containsKey(acctId))
             throw  new BizException("账户不存在");
-        return acctInstanceMap.get(acctId).getAcct();
+        var acctInst=acctInstanceMap.get(acctId);
+        return acctInst.getAcct();
     }
 
     public Message request(String acctId, Message req){

@@ -11,6 +11,8 @@ import org.qts.common.entity.Response;
 import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.config.AcctConf;
 import org.qts.common.entity.acct.AcctInfo;
+import org.qts.common.entity.trade.OrderCancelReq;
+import org.qts.common.entity.trade.OrderInsertReq;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -59,21 +61,41 @@ public class AcctController {
     }
 
     @ApiOperation(value = "账户详情")
-    @GetMapping(value = "/inst/detail")
+    @GetMapping(value = "/detail")
     public Response<AcctDetail> getAcctDetail(String acctId){
         Response<AcctDetail> response=new Response<>();
         response.setData(acctService.getAcctDetail(acctId));
         return response;
     }
 
-    @ApiOperation(value = "发送通用命令")
-    @PostMapping(value = "/inst/common-cmd")
-    public Response<Message> sendCmd(@RequestParam String acctId, @RequestParam Enums.MSG_TYPE type, @RequestBody Map datas){
+    @ApiOperation(value = "账户操作")
+    @GetMapping(value = "/opera")
+    public Response<Message> sendCmd(@RequestParam String acctId, @RequestParam Enums.MSG_TYPE type){
         Response<Message> response=new Response<>();
-        Message req = new Message(type,datas);
+        Message req = new Message(type,null);
         response.setData(acctService.request(acctId,req));
         return response;
     }
+
+    @ApiOperation(value = "账户报单")
+    @PostMapping(value = "/order")
+    public Response<Message> orderInsert(@RequestParam String acctId,  @RequestBody OrderInsertReq insertReq){
+        Response<Message> response=new Response<>();
+        Message req = new Message(Enums.MSG_TYPE.ORDER_INSERT,insertReq);
+        response.setData(acctService.request(acctId,req));
+        return response;
+    }
+
+    @ApiOperation(value = "账户撤单")
+    @PostMapping(value = "/cancel")
+    public Response<Message> orderCancel(@RequestParam String acctId,  @RequestBody OrderCancelReq cancelReq){
+        Response<Message> response=new Response<>();
+        Message req = new Message(Enums.MSG_TYPE.ORDER_CANCEL,cancelReq);
+        response.setData(acctService.request(acctId,req));
+        return response;
+    }
+
+
 
 
 }

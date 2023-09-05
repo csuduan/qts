@@ -10,6 +10,10 @@ import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.acct.AcctInfo;
 import org.qts.common.entity.config.AcctConf;
 import org.qts.common.entity.event.MessageEvent;
+import org.qts.common.entity.trade.Order;
+import org.qts.common.entity.trade.Position;
+import org.qts.common.entity.trade.Tick;
+import org.qts.common.entity.trade.Trade;
 import org.qts.common.rpc.tcp.client.MsgHandler;
 import org.qts.common.rpc.tcp.client.TcpClient;
 import org.qts.common.utils.ProcessUtil;
@@ -104,6 +108,38 @@ public class AcctInst  implements MsgHandler {
 
     @Override
     public void onMessage(Message msg) {
+        switch (msg.getType()){
+            case ON_DETAIL -> {
+                AcctDetail acctDetail = msg.getData(AcctDetail.class);
+                if(acctDetail!=null){
+                    this.acct =acctDetail;
+                    log.info("更新账户明细,{}",this.acct.getId());
+                }
 
+            }
+            case ON_ACCT -> {
+                AcctInfo acctInfo = msg.getData(AcctInfo.class);
+                BeanUtils.copyProperties(this.acct,acctInfo);
+                log.info("更新账户信息,{}",this.acct.getId());
+            }
+            case ON_POSITION -> {
+                Position pos = msg.getData(Position.class);
+                this.acct.getPositions().put(pos.getId(),pos);
+            }
+            case ON_TRADE -> {
+                Trade trade = msg.getData(Trade.class);
+                this.acct.getTradeList().put(trade.getTradeID(),trade);
+            }
+            case ON_ORDER -> {
+                Order order = msg.getData(Order.class);
+                this.acct.getOrders().put(order.getOrderSysID(),order);
+                if(order.isFinished())
+                    this.acct.getOrders().remove(order.getOrderSysID());
+            }
+            case ON_TICK -> {
+                Tick tick = msg.getData(Tick.class);
+                this.acct.getTicks().put(tick.getSymbol(),tick);
+            }
+        }
     }
 }

@@ -39,6 +39,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         channelMap.put(channelId,ctx.channel());
         this.channelMap.put(channelId,ctx.channel());
         log.info("Channel[{}] active......,total connections:{}",channelId,this.channelMap.size());
+        msgHandler.onConnected();
     }
 
     @Override

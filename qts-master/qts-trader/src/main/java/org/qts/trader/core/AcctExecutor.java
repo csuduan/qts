@@ -275,6 +275,14 @@ public class AcctExecutor implements EventHandler<FastEvent>, MsgHandler {
         return rsp;
     }
 
+    @Override
+    public void onConnected() {
+        //新客户端连接，全量推送一次账户详情
+        Message msg=new Message(Enums.MSG_TYPE.ON_DETAIL,this.acct);
+        this.tcpServer.push(msg);
+    }
+
+
     @Scheduled(fixedRate = 30000)
     public void printAcct() {
         if(this.acct == null)

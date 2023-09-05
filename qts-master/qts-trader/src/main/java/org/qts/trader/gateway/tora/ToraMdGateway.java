@@ -58,7 +58,8 @@ public class ToraMdGateway extends CTORATstpXMdSpi implements MdGateway {
 
     private void setConnected(boolean connected) {
         this.isConnected = connected;
-        log.info("set isConnected to :",connected);
+        this.acct.setMdStatus( connected);
+        log.info("set isConnected to : {}",connected);
     }
 
     @Override

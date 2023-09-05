@@ -40,7 +40,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             String ping=JSON.toJSONString(pingMsg);
             ctx.channel().writeAndFlush(ping);
             //状态处理
-            //eventListener.onStatus(id,true);
         });
 
         //ctx.channel().writeAndFlush("ping");
