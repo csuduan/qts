@@ -1,0 +1,8 @@
+{
+  "server_port": 8084,
+  "log_path": "/opt/dev/qts/logs",
+  "db_url": "sqlite:////opt/dev/qts/qts.db",
+  "acct_list": [
+
+  ]
+}
