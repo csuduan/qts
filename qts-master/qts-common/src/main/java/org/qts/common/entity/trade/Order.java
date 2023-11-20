@@ -28,7 +28,6 @@ public class Order implements Serializable {
 	private double price; // 报单价格
 	private int totalVolume; // 报单总数量
 	private int tradedVolume; // 报单成交数量
-	private int lastTradedVolume = 0; // 上一次成交数量
 	private Enums.ORDER_STATUS status; // 报单状态
 	private String statusMsg;
 	private String tradingDay;
@@ -62,6 +61,17 @@ public class Order implements Serializable {
 			return true;
 		else
 			return false;
+	}
+
+	public Enums.POS_DIRECTION getPosDirection(){
+		if(offset == Enums.OFFSET.OPEN)
+			return direction == Enums.TRADE_DIRECTION.BUY?Enums.POS_DIRECTION.LONG:Enums.POS_DIRECTION.SHORT;
+		else
+			return direction == Enums.TRADE_DIRECTION.SELL?Enums.POS_DIRECTION.LONG:Enums.POS_DIRECTION.SHORT;
+	}
+
+	public boolean canCancel(){
+		return !isFinished() && !isCanceling();
 	}
 
 }

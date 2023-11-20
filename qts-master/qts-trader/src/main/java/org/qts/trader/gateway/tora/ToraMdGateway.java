@@ -3,9 +3,12 @@ package org.qts.trader.gateway.tora;
 import com.tora.xmdapi.*;
 import lombok.extern.slf4j.Slf4j;
 import org.qts.common.disruptor.FastQueue;
+import org.qts.common.disruptor.event.FastEvent;
 import org.qts.common.entity.MdInfo;
 import org.qts.common.entity.acct.AcctDetail;
+import org.qts.common.entity.trade.Tick;
 import org.qts.common.utils.SpringUtils;
+import org.qts.trader.core.AcctInst;
 import org.qts.trader.gateway.MdGateway;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -13,6 +16,7 @@ import org.springframework.util.StringUtils;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
@@ -41,16 +45,14 @@ public class ToraMdGateway extends CTORATstpXMdSpi implements MdGateway {
 
     private CTORATstpXMdApi mdApi = null;
     private HashMap<String, Integer> preTickVolumeMap = new HashMap<>();
-    private ScheduledExecutorService scheduler;
-
+    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
 
     int m_request_id;
 
-    public ToraMdGateway(AcctDetail acctInfo) {
-        this.acct = acctInfo;
-        this.scheduler = acctInfo.getScheduler();
-        this.fastQueue = acctInfo.getFastQueue();
-        this.mdInfo = new MdInfo(acctInfo.getConf());
+    public ToraMdGateway(AcctInst acctInst) {
+        this.acct = acctInst.getAcctDetail();
+        this.fastQueue = acctInst.getFastQueue();
+        this.mdInfo = new MdInfo(acctInst.getAcctDetail().getConf());
         this.mdName = mdInfo.getId();
         log.info("md init ...");
         this.connect();
@@ -391,12 +393,49 @@ public class ToraMdGateway extends CTORATstpXMdSpi implements MdGateway {
 
     public void OnRtnMarketData(CTORATstpMarketDataField pMarketDataField)
     {
-        log.info("OnRtnMarketData: ExchangeID[{}] SecurityID[{}] SecurityName[{}] UpperLimitPrice[{}] LowerLimitPrice[{}] LastPrice[{}] AskPrice1[{}] AskVolume1[{}] BidPrice1[{}] BidVolume1[{}] UpdateTime[{}]",
-                pMarketDataField.getExchangeID(), pMarketDataField.getSecurityID(), pMarketDataField.getSecurityName(),
-                pMarketDataField.getUpperLimitPrice(), pMarketDataField.getLowerLimitPrice(), pMarketDataField.getLastPrice(),
+        log.info("Tick  {}  {}  lp:{} ap:{} av:{} bp:{} bv:{} ",
+                pMarketDataField.getUpdateTime(), pMarketDataField.getSecurityID(),
+                pMarketDataField.getLastPrice(),
                 pMarketDataField.getAskPrice1(), pMarketDataField.getAskVolume1(),
-                pMarketDataField.getBidPrice1(), pMarketDataField.getBidVolume1(),
-                pMarketDataField.getUpdateTime());
+                pMarketDataField.getBidPrice1(), pMarketDataField.getBidVolume1());
+        Tick  tick = new Tick();
+        tick.setSymbol(pMarketDataField.getSecurityID());
+        tick.setExchange(ToraMapper.exchangeMapReverse.get(pMarketDataField.getExchangeID()));
+        tick.setTradingDay(pMarketDataField.getTradingDay());
+        tick.setUpdateTime(pMarketDataField.getUpdateTime());
+        tick.setTimes(Long.parseLong(pMarketDataField.getTradingDay()+pMarketDataField.getUpdateTime()));
+        tick.setLastPrice(pMarketDataField.getLastPrice());
+        tick.setVolume(pMarketDataField.getVolume());
+        tick.setOpenInterest(pMarketDataField.getOpenInterest());
+        tick.setPreClosePrice(pMarketDataField.getPreClosePrice());
+        tick.setOpenPrice(pMarketDataField.getOpenPrice());
+        tick.setHighPrice(pMarketDataField.getHighestPrice());
+        tick.setLowPrice(pMarketDataField.getLowestPrice());
+        tick.setUpperLimit(pMarketDataField.getUpperLimitPrice());
+        tick.setLowerLimit(pMarketDataField.getLowerLimitPrice());
+        tick.setBidPrice1(pMarketDataField.getBidPrice1());
+        tick.setBidPrice2(pMarketDataField.getBidPrice2());
+        tick.setBidPrice3(pMarketDataField.getBidPrice3());
+        tick.setBidPrice4(pMarketDataField.getBidPrice4());
+        tick.setBidPrice5(pMarketDataField.getBidPrice5());
+        tick.setAskPrice1(pMarketDataField.getAskPrice1());
+        tick.setAskPrice2(pMarketDataField.getAskPrice2());
+        tick.setAskPrice3(pMarketDataField.getAskPrice3());
+        tick.setAskPrice4(pMarketDataField.getAskPrice4());
+        tick.setAskPrice5(pMarketDataField.getAskPrice5());
+        tick.setBidVolume1(pMarketDataField.getBidVolume1());
+        tick.setBidVolume2(pMarketDataField.getBidVolume2());
+        tick.setBidVolume3(pMarketDataField.getBidVolume3());
+        tick.setBidVolume4(pMarketDataField.getBidVolume4());
+        tick.setBidVolume5(pMarketDataField.getBidVolume5());
+        tick.setAskVolume1(pMarketDataField.getAskVolume1());
+        tick.setAskVolume2(pMarketDataField.getAskVolume2());
+        tick.setAskVolume3(pMarketDataField.getAskVolume3());
+        tick.setAskVolume4(pMarketDataField.getAskVolume4());
+        tick.setAskVolume5(pMarketDataField.getAskVolume5());
+
+        this.acct.getTicks().put(tick.getSymbol(),tick);
+        this.fastQueue.emitEvent(FastEvent.EV_TICK,tick);
     }
 
     public void OnRtnSimplifyMarketData(CTORATstpSimplifyMarketDataField pSimplifyMarketDataField)

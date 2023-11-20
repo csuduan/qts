@@ -10,6 +10,7 @@ import org.qts.common.entity.MdInfo;
 import org.qts.common.entity.acct.AcctDetail;
 import org.qts.common.entity.trade.Tick;
 import org.qts.common.utils.SpringUtils;
+import org.qts.trader.core.AcctInst;
 import org.qts.trader.gateway.MdGateway;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -20,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
@@ -48,14 +50,13 @@ public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
 
     private CThostFtdcMdApi mdApi = null;
     private HashMap<String, Integer> preTickVolumeMap = new HashMap<>();
-    private ScheduledExecutorService scheduler;
+    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
 
 
-    public CtpMdGateway(AcctDetail acctInst) {
-        this.acct = acctInst;
-        this.scheduler = acctInst.getScheduler();
+    public CtpMdGateway(AcctInst acctInst) {
+        this.acct = acctInst.getAcctDetail();
         this.fastQueue = acctInst.getFastQueue();
-        this.mdInfo = new MdInfo(acctInst.getConf());
+        this.mdInfo = new MdInfo(acctInst.getAcctDetail().getConf());
         this.mdName = mdInfo.getId();
         log.info("md init ...");
         this.connect();
@@ -274,20 +275,19 @@ public class CtpMdGateway extends CThostFtdcMdSpi implements MdGateway {
             tickData.setSymbol(symbol);
             tickData.setExchange(pDepthMarketData.getExchangeID());
             tickData.setTradingDay(tradingDay);
-            tickData.setActionDay(pDepthMarketData.getActionDay());
-            tickData.setActionTime(datetIime);
-            tickData.setStatus(0);
+            //tickData.setActionDay(pDepthMarketData.getActionDay());
+            //tickData.setActionTime(datetIime);
             tickData.setLastPrice(pDepthMarketData.getLastPrice());
             tickData.setVolume(pDepthMarketData.getVolume());
 
             Integer lastVolume = 0;
-            if (preTickVolumeMap.containsKey(symbol)) {
-                lastVolume = tickData.getVolume() - preTickVolumeMap.get(symbol);
-            } else {
-                lastVolume = tickData.getVolume();
-            }
+//            if (preTickVolumeMap.containsKey(symbol)) {
+//                lastVolume = tickData.getVolume() - preTickVolumeMap.get(symbol);
+//            } else {
+//                lastVolume = tickData.getVolume();
+//            }
             tickData.setLastVolume(lastVolume);
-            preTickVolumeMap.put(symbol, tickData.getVolume());
+            //preTickVolumeMap.put(symbol, tickData.getVolume());
             tickData.setOpenInterest(pDepthMarketData.getOpenInterest());
             tickData.setPreOpenInterest((long) pDepthMarketData.getPreOpenInterest());
             tickData.setPreClosePrice(pDepthMarketData.getPreClosePrice());

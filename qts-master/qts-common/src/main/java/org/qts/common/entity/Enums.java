@@ -23,8 +23,7 @@ public interface Enums {
     enum POS_DIRECTION {
         LONG,
         SHORT,
-        NET,
-        NONE,
+        NET
     }
 
     //交易方向
@@ -37,7 +36,7 @@ public interface Enums {
     //交易类型
     enum OFFSET{
         OPEN,
-        CLOSE,
+        CLOSE,//优先平昨
         CLOSETD,
         CLOSEYD,
         NONE,
@@ -99,7 +98,7 @@ public interface Enums {
         PAUSE_CLOSE,
         ORDER_INSERT,
         ORDER_CANCEL,
-        QRY_ACCT,
+        QRY_ACCT,//查询账户详情
         QRY_POSITION,
         QRY_TRADE,
         QRY_ORDER,

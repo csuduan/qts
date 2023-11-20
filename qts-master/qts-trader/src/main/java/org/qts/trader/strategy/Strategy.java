@@ -1,6 +1,8 @@
 package org.qts.trader.strategy;
 
 import org.qts.common.entity.trade.*;
+import org.qts.trader.core.AcctInst;
+import org.qts.trader.core.StrategyEngine;
 
 import java.util.Map;
 
@@ -12,16 +14,21 @@ public interface Strategy {
 	/**
 	 * 初始化
 	 */
-	void init();
+	void init(StrategyEngine strategyEngine,StrategySetting strategySetting);
+	/**
+	 * 销毁
+	 */
+	void destroy();
+
 	/**
 	 * 暂停开仓
 	 */
-	void pauseOpen();
+	void pauseOpen(boolean enable);
 
 	/**
 	 * 暂停平仓
 	 */
-	void pasueClose();
+	void pasueClose(boolean enable);
 
 	/**
 	 * 启动交易
@@ -33,10 +40,7 @@ public interface Strategy {
 	 */
 	void stopTrading();
 
-	/**
-	 * 销毁
-	 */
-	void destroy();
+
 
 	/**
 	 * 是否处于交易状态

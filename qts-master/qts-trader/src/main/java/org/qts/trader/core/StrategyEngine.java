@@ -2,12 +2,13 @@ package org.qts.trader.core;
 
 import lombok.extern.slf4j.Slf4j;
 import org.qts.common.entity.trade.*;
-import org.qts.common.utils.ProcessUtil;
 import org.qts.trader.strategy.Strategy;
 import org.qts.trader.strategy.StrategySetting;
+import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,7 +21,11 @@ public class StrategyEngine {
     private Map<String,Strategy> strategyOrderMap =new HashMap<>();
     //策略订阅合约列表
     private Map<String, Set<Strategy>> subsMap = new HashMap<>();
+    private AcctInst acctInst;
 
+    public  StrategyEngine(AcctInst acctInst){
+        this.acctInst = acctInst;
+    }
 
     public void createStrategy(StrategySetting strategySetting) {
         try {
@@ -31,7 +36,7 @@ public class StrategyEngine {
             Class<?> clazz = Class.forName(strategySetting.getClassName());
             Constructor<?> c = clazz.getConstructor(AcctExecutor.class,StrategySetting.class);
             Strategy strategy = (Strategy) c.newInstance(this, strategySetting);
-            strategy.init();
+            strategy.init(this,strategySetting);
             this.strategyMap.put(strategySetting.getStrategyId(),strategy);
             log.info("创建策略{}成功",strategySetting.getStrategyId());
         }catch (Exception ex){
@@ -72,4 +77,22 @@ public class StrategyEngine {
                 log.error("onOrder error",ex);
             }
     }
+
+    public void subs(List<String> symbols){
+        this.acctInst.subContract(symbols);
+    }
+
+    public void insertOrder(Order order){
+        this.acctInst.insertOrder(order);
+    }
+
+    public void cancel(Order order){
+        String sysId = order.getOrderSysID();
+        if(StringUtils.hasLength(sysId) && order.canCancel()){
+            OrderCancelReq req=new OrderCancelReq();
+            req.setOrderSysID(sysId);
+            this.acctInst.cancelOrder(req);
+        }
+    }
+
 }

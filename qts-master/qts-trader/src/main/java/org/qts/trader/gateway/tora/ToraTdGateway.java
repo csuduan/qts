@@ -14,10 +14,13 @@ import org.qts.common.entity.trade.Order;
 import org.qts.common.entity.trade.Position;
 import org.qts.common.entity.trade.Trade;
 import org.qts.common.utils.SpringUtils;
+import org.qts.trader.core.AcctInst;
 import org.qts.trader.gateway.TdGateway;
 
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.ScheduledExecutorService;
@@ -61,15 +64,15 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
     private int frontID = 0; // 前置机编号
     private int sessionID = 0; // 会话编号
 
-    private Map<String, Position> positionMap = new HashMap<>();
+    private List<Position> positonBuffer = new ArrayList<>();
     private Map<String, Contract> contractMap = new HashMap<>();
+    //挂单列表
     private Map<String, Order> orderMap = new HashMap<>();
 
-    public ToraTdGateway(AcctDetail acctInfo){
-        this.acct = acctInfo;
-        this.scheduler = acctInfo.getScheduler();
-        this.fastQueue = acctInfo.getFastQueue();
-        this.loginInfo = new LoginInfo(acctInfo.getConf());
+    public ToraTdGateway(AcctInst acctInst){
+        this.acct = acctInst.getAcctDetail();
+        this.fastQueue = acctInst.getFastQueue();
+        this.loginInfo = new LoginInfo(acctInst.getAcctDetail().getConf());
         log.info("td init ...");
         this.connect();
     }
@@ -226,10 +229,12 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
     }
     @Override
     public void qryPosition(){
+        //为保证持仓查询准备，请先暂停交易，再查询
         if (!this.isConnected()) {
             log.warn("接口未连接,无法查询持仓");
             return;
         }
+        this.positonBuffer.clear();
         CTORATstpQryPositionField qry_position_field = new CTORATstpQryPositionField();
         qry_position_field.setInvestorID(loginInfo.getUserId());
         int ret = tdApi.ReqQryPosition(qry_position_field, reqID.incrementAndGet());
@@ -255,7 +260,6 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
             log.warn("td is released!");
             return;
         }
-
 
         CTORATstpReqUserLoginField req_user_login_field = new CTORATstpReqUserLoginField();
         req_user_login_field.setLogInAccount(loginInfo.getUserId());
@@ -358,9 +362,8 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
     {
         if (pPosition != null)
         {
-
-            String exchange = ToraMapper.exchangeMapReverse.get(pPosition.getExchangeID());
-            Position position=new Position(pPosition.getSecurityID(),exchange, Enums.POS_DIRECTION.NET);
+            Position position=new Position(pPosition.getSecurityID(), Enums.POS_DIRECTION.LONG);
+            position.setExchange(ToraMapper.exchangeMapReverse.get(pPosition.getExchangeID()));
             position.setSymbolName(pPosition.getSecurityName());
             position.setYdPos(pPosition.getHistoryPos());
             position.setYdFrozen(pPosition.getHistoryPosFrozen());
@@ -370,11 +373,12 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
             position.setCommission(pPosition.getTodayCommission());
             position.setTotalPos(pPosition.getCurrentPosition());
 
-            this.positionMap.put(position.getId(), position);
+            positonBuffer.add(position);
             log.info("OnRspQryPosition:",position);
-
             if(bIsLast){
                 log.info("OnRspQryPosition finish!");
+                positonBuffer.forEach(x->this.acct.getPositions().put(position.getId(),position));
+                positonBuffer.clear();
             }
 
         }
@@ -395,6 +399,12 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
     {
         if (pRspInfo.getErrorID() != 0)
         {
+            String orderRef = pInputOrderField.getOrderRef()+"";
+            if (this.orderMap.containsKey(orderRef)){
+                Order order = this.orderMap.get(orderRef);
+                order.setStatus(Enums.ORDER_STATUS.ERROR);
+                this.updateOrder(order);
+            }
             log.error("OnRspOrderInsert: Error! [%d] [{}] [{}]", nRequestID, pRspInfo.getErrorID(), pRspInfo.getErrorMsg());
         }
 
@@ -406,40 +416,21 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
             return;
         //更新报单
         Order lastOrder = this.orderMap.get(pOrder.getOrderRef());
-        lastOrder.setLastTradedVolume(lastOrder.getTradedVolume());
         lastOrder.setOrderSysID(pOrder.getOrderSysID());
         lastOrder.setStatus(ToraMapper.statusMapReverse.getOrDefault(pOrder.getOrderStatus(), Enums.ORDER_STATUS.UNKNOWN));
         lastOrder.setStatusMsg(pOrder.getStatusMsg());
         lastOrder.setTradedVolume(pOrder.getVolumeTraded());
+        this.updateOrder(lastOrder);
+        log.info("OnRtnOrder: {}", lastOrder);
+
+    }
+
+    private void updateOrder(Order lastOrder){
+        //更新账户持仓
+        this.acct.onOrder(lastOrder);
         this.fastQueue.emitEvent(FastEvent.EV_ORDER,lastOrder);
-
-        //更新持仓(报单前需要确保仓位存在)
-        int curTradedVolume = lastOrder.getTradedVolume()- lastOrder.getLastTradedVolume();
-        if(curTradedVolume>0 && lastOrder.getDirection() == Enums.TRADE_DIRECTION.BUY ){
-            Position pos = this.positionMap.get(lastOrder.getSymbol()+"-"+ Enums.POS_DIRECTION.NET);
-            if(pos!=null){
-                pos.setTdPos(pos.getTdPos()+curTradedVolume);
-                this.fastQueue.emitEvent(FastEvent.EV_POSITION,pos);
-            }else{
-                log.error("order[{}] 找不到对应的持仓",lastOrder.getOrderRef());
-            }
-        }
-        if(curTradedVolume>0 && lastOrder.getDirection() == Enums.TRADE_DIRECTION.SELL ){
-            Position pos = this.positionMap.get(lastOrder.getSymbol()+"-"+ Enums.POS_DIRECTION.NET);
-            if(pos!=null){
-                //优先平昨(部分券运行平今)
-                int left = pos.getYdPos()-curTradedVolume;
-                pos.setYdPos(left>=0?left:0);
-                if(left<0)
-                    pos.setTdPos(pos.getTdPos()+left);
-                this.fastQueue.emitEvent(FastEvent.EV_POSITION,pos);
-            }else{
-                log.error("order[{}] 找不到对应的持仓",lastOrder.getOrderRef());
-            }
-        }
-
-        log.info("OnRtnOrder: orderRef:{} orderSysId:{}  traded:{}/{}  status:{} msg:{}",
-                lastOrder.getOrderRef(),lastOrder.getOrderSysID(),lastOrder.getTotalVolume(),lastOrder.getTotalVolume(),lastOrder.getStatus(),lastOrder.getStatusMsg());
+        if(lastOrder.isFinished())
+            this.orderMap.remove(lastOrder.getOrderRef());
     }
 
     public void OnRtnTrade(CTORATstpTradeField pTrade)
@@ -459,7 +450,7 @@ public class ToraTdGateway extends  CTORATstpTraderSpi implements TdGateway {
         trade.setTradeTime(pTrade.getTradeTime());
         trade.setOrderRef(pTrade.getOrderRef()+"");
         trade.setOrderSysID(pTrade.getOrderSysID());
-        this.acct.getTradeList().put(trade.getTradeID(),trade);
+        this.acct.onTrade(trade);
         this.fastQueue.emitEvent(FastEvent.EV_TRADE,trade);
         log.info("OnRtnTrade:{}",trade);
 

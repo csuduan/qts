@@ -22,6 +22,7 @@ import org.qts.common.entity.trade.Position;
 import org.qts.common.entity.trade.Trade;
 import lombok.extern.slf4j.Slf4j;
 import org.qts.common.utils.SpringUtils;
+import org.qts.trader.core.AcctInst;
 import org.qts.trader.gateway.TdGateway;
 import org.springframework.util.StringUtils;
 
@@ -69,11 +70,11 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
     private Map<String, Order> orderMap = new HashMap<>();
 
 
-    public CtpTdGateway(AcctDetail acctInst) {
-        this.acct = acctInst;
-        this.scheduler = acctInst.getScheduler();
+    public CtpTdGateway(AcctInst acctInst) {
+        this.acct = acctInst.getAcctDetail();
+        //this.scheduler = acctInst.getScheduler();
         this.fastQueue = acctInst.getFastQueue();
-        this.loginInfo = new LoginInfo(acctInst.getConf());
+        this.loginInfo = new LoginInfo(this.acct.getConf());
         this.tdName = loginInfo.getUserId();
         log.info("td init ...");
         this.connect();
@@ -558,22 +559,20 @@ public class CtpTdGateway extends CThostFtdcTraderSpi implements TdGateway {
             return;
         }
         String symbol = pInvestorPosition.getInstrumentID();
+        var posDir =CtpMapper.posiDirectionMapReverse.getOrDefault(pInvestorPosition.getPosiDirection(), Enums.POS_DIRECTION.LONG);
 
         // 获取持仓缓存
-        String posName = symbol + "-" + pInvestorPosition.getPosiDirection();
+        String posName = symbol  + posDir;
 
         Position position;
         if (positionMap.containsKey(posName)) {
             position = positionMap.get(posName);
         } else {
-            position = new Position();
+            position = new Position(symbol,posDir);
             positionMap.put(posName, position);
             position.setSymbol(symbol);
             position.setExchange(this.contractMap.get(symbol).getExchange());
             position.setMultiple(this.contractMap.get(symbol).getMultiple());
-
-            position.setDirection(
-                    CtpMapper.posiDirectionMapReverse.getOrDefault(pInvestorPosition.getPosiDirection(), Enums.POS_DIRECTION.NONE));
 
         }
 
