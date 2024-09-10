@@ -1,26 +1,29 @@
-from flask import Flask, render_template
+import os,sys
+import nest_asyncio
+from fastapi_offline import FastAPIOffline
+from fastapi import WebSocket
+import uvicorn
+from router import sys_router,acct_router
+
 from flask_socketio import SocketIO,emit
 from utils import configs
 
-from controller import sys_app,acct_app
 from core import acct_mgr
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app)
+app_id = configs['app_id']
+app = FastAPIOffline()
+app.include_router(sys_router.router,prefix=f"/{app_id}/v1/sys",tags=['系统管理'])
+app.include_router(acct_router.router,prefix=f"/{app_id}/v1/acct",tags=['账户管理'])
 
 
-app.register_blueprint(sys_app, url_prefix='/qts/v1/sys')
-app.register_blueprint(acct_app, url_prefix='/qts/v1/acct')
 acct_mgr.start_all()
-@app.route('/')
-def hello_world():  # put application's code here
-    return 'qts admin!'
 
-@socketio.on('message')
-def handle_message(data):
-    print(f"Received message: {data}")
-    emit('response', f"Server received: {data}")
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await websocket.receive_text()
+        await websocket.send_text(f"Message received: {data}")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',port=configs['server_port'],debug=True)
+    uvicorn.run(app,host='0.0.0.0',port=configs['server_port'])

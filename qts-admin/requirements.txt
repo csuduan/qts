@@ -2,3 +2,7 @@ cachetools
 APScheduler
 Flask-SocketIO
 sqlalchemy
+fastapi
+fastapi-offline
+nest_asyncio
+gunicorn

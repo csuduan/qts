@@ -1,8 +1,138 @@
 {
+  "app_id": "qts",
   "server_port": 8084,
   "log_path": "/opt/dev/qts/logs",
   "db_url": "sqlite:////opt/dev/qts/qts.db",
   "acct_list": [
 
+  ],
+  "routers": [
+    {
+      "path": "/system",
+      "meta": {
+        "icon": "ep:set-up",
+        "title": "系统",
+        "rank": 2
+      },
+      "children": [
+        {
+          "path": "/system/user",
+          "meta": {
+            "title": "用户管理"
+          },
+          "children": [
+            {
+              "path": "/system/user/user/index",
+              "name": "user",
+              "meta": {
+                "title": "用户"
+              }
+            },
+            {
+              "path": "/system/user/role/index",
+              "name": "role",
+              "meta": {
+                "title": "角色"
+              }
+            }
+         ]
+        },
+        {
+          "path": "/system/permission",
+          "meta": {
+            "title": "权限管理"
+          },
+          "children": [
+            {
+              "path": "/system/permission/page/index",
+              "name": "permissionPage",
+              "meta": {
+                "title": "页面权限"
+              }
+            },
+            {
+              "path": "/system/permission/button/index",
+              "name": "permissionButton",
+              "meta": {
+                "title": "按钮权限"
+              }
+            }
+          ]
+        },
+        {
+          "path": "/system/job/index",
+          "name": "job",
+          "meta": {
+            "title": "任务管理"
+          }
+        },
+        {
+          "path": "/system/ref",
+          "meta": {
+            "title": "参考"
+          },
+          "children": [
+            {
+              "path": "/system/ref/doc",
+              "name": "https://pure-admin.github.io/pure-admin-doc",
+              "meta": {
+                "title": "官方文档"
+              }
+            },
+            {
+              "path": "/system/ref/icone",
+              "name": "https://icones.js.org/",
+              "meta": {
+                "title": "图标大全"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/acct",
+      "redirect": "/acct/view/index",
+      "meta": {
+        "icon": "ep:data-line",
+        "title": "账户",
+        "rank": 3
+      },
+      "children": [
+        {
+          "path": "/acct/view/index",
+          "name": "view",
+          "meta": {
+            "title": "账户视图"
+          }
+        },
+        {
+          "path": "/acct/view/detail",
+          "name": "viewDetail",
+          "meta": {
+            "title": "",
+            "showLink": false,
+            "keepAlive": true,
+            "dynamicLevel": 3,
+            "refreshRedirect": "/acct/view/index"
+
+          }
+        },
+        {
+          "path": "/acct/trade/index",
+          "name": "trade",
+          "meta": {
+            "title": "账户交易"
+          }
+        },
+        {
+          "path": "/acct/config/index",
+          "name": "trade",
+          "meta": {
+            "title": "账户配置"
+          }
+        }
+      ]
+    }
   ]
 }
