@@ -12,11 +12,11 @@ from core import acct_mgr
 
 app_id = configs['app_id']
 app = FastAPIOffline()
-app.include_router(sys_router.router,prefix=f"/{app_id}/v1/sys",tags=['系统管理'])
-app.include_router(acct_router.router,prefix=f"/{app_id}/v1/acct",tags=['账户管理'])
+app.include_router(sys_router.router,prefix=f"/{app_id}",tags=['系统管理'])
+app.include_router(acct_router.router,prefix=f"/{app_id}",tags=['账户管理'])
 
 
-acct_mgr.start_all()
+#acct_mgr.start_all()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

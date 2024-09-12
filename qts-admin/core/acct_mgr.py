@@ -1,30 +1,26 @@
+from .acct_inst import AcctInst
 from utils import get_logger
-from utils.rpc import TcpClient
 
 logger = get_logger(__name__)
 
+'''
+账户管理器
+'''
 class AcctMgr(object):
     def __init__(self,acct_configs):
-        self.acct_clients={}
+        logger.info("init acct_mgr...")
         self.acct_configs = acct_configs
+        self.acct_insts ={}
+        for acct_id in self.acct_configs:
+            self.create_acct_inst(self.acct_configs[acct_id])
 
-    def start_all(self):
-        for acctId in self.acct_configs:
-            self.start_client(acctId)
-    def start_client(self,acctId):
-        if acctId not in self.acct_clients:
-            config = self.acct_configs[acctId]
-            #todo
-            # acct_Client = TcpClient(config['host'],config['port'])
-            # acct_Client.connect()
-            # self.acct_clients[acctId]=acct_Client
+    def create_acct_inst(self,config):
+        acct_inst = AcctInst(config)
+        self.acct_insts[config['acct_id']] = acct_inst
+        logger.error(f'create acct_inst:{config['acct_id']}')
 
-    def send_to_client(self,acctId,msg):
-        if acctId in self.acct_clients and self.acct_clients[acctId].is_connected():
-            acct_Client = self.acct_clients[acctId]
-            acct_Client.send_msg(msg)
-        else:
-            logger.error("acctId not exist")
+    def get_acct_inst(self,acct_id):
+        return self.acct_insts[acct_id]
 
 
 

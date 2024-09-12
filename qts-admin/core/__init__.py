@@ -6,6 +6,7 @@ logger = get_logger(__name__)
 
 logger.info("start admin_mgr")
 
-acct_configs = get_acct_configs()
+#acct_configs = get_acct_configs()
+acct_configs={}
 acct_mgr = AcctMgr(acct_configs)
 
