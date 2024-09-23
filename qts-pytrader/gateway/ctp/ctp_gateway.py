@@ -2,9 +2,21 @@ import sys
 from datetime import datetime
 from time import sleep
 from pathlib import Path
+from config import get_setting
+from zoneinfo import ZoneInfo
+from .api_loader import load_library_dynamic,load_api
 
-from core.event import EventEngine
-from ..model.constant import (
+#from openctp_ctp import tdapi as TdApi
+#from openctp_ctp import tdapi as MdApi
+#ctp = load_library_dynamic('ctp',None)
+#MdApi = ctp.mdapi
+#TdApi = ctp.tdapi
+
+TdApi,MdApi = load_api('ctp')
+from .base_gateway import BaseGateway
+
+from core.event.event import EventEngine
+from model.constant import (
     Direction,
     Offset,
     Exchange,
@@ -13,8 +25,7 @@ from ..model.constant import (
     Status,
     OptionType
 )
-from vnpy.trader.gateway import BaseGateway
-from vnpy.trader.object import (
+from model.object import (
     TickData,
     OrderData,
     TradeData,
@@ -24,78 +35,42 @@ from vnpy.trader.object import (
     OrderRequest,
     CancelRequest,
     SubscribeRequest,
+    AcctConf
 )
-from vnpy.trader.utility import get_folder_path, ZoneInfo
-from vnpy.trader.event import EVENT_TIMER
-
-from ..api import (
-    MdApi,
-    TdApi,
-    THOST_FTDC_OST_NoTradeQueueing,
-    THOST_FTDC_OST_PartTradedQueueing,
-    THOST_FTDC_OST_AllTraded,
-    THOST_FTDC_OST_Canceled,
-    THOST_FTDC_OST_Unknown,
-    THOST_FTDC_D_Buy,
-    THOST_FTDC_D_Sell,
-    THOST_FTDC_PD_Long,
-    THOST_FTDC_PD_Short,
-    THOST_FTDC_OPT_LimitPrice,
-    THOST_FTDC_OPT_AnyPrice,
-    THOST_FTDC_OF_Open,
-    THOST_FTDC_OFEN_Close,
-    THOST_FTDC_OFEN_CloseYesterday,
-    THOST_FTDC_OFEN_CloseToday,
-    THOST_FTDC_PC_Futures,
-    THOST_FTDC_PC_Options,
-    THOST_FTDC_PC_SpotOption,
-    THOST_FTDC_PC_Combination,
-    THOST_FTDC_CP_CallOptions,
-    THOST_FTDC_CP_PutOptions,
-    THOST_FTDC_HF_Speculation,
-    THOST_FTDC_CC_Immediately,
-    THOST_FTDC_FCC_NotForceClose,
-    THOST_FTDC_TC_GFD,
-    THOST_FTDC_VC_AV,
-    THOST_FTDC_TC_IOC,
-    THOST_FTDC_VC_CV,
-    THOST_FTDC_AF_Delete
-)
-
 
 # 委托状态映射
 STATUS_CTP2VT: dict[str, Status] = {
-    THOST_FTDC_OST_NoTradeQueueing: Status.NOTTRADED,
-    THOST_FTDC_OST_PartTradedQueueing: Status.PARTTRADED,
-    THOST_FTDC_OST_AllTraded: Status.ALLTRADED,
-    THOST_FTDC_OST_Canceled: Status.CANCELLED,
-    THOST_FTDC_OST_Unknown: Status.SUBMITTING
+    TdApi.THOST_FTDC_OST_NoTradeQueueing: Status.NOTTRADED,
+    TdApi.THOST_FTDC_OST_PartTradedQueueing: Status.PARTTRADED,
+    TdApi.THOST_FTDC_OST_AllTraded: Status.ALLTRADED,
+    TdApi.THOST_FTDC_OST_Canceled: Status.CANCELLED,
+    TdApi.THOST_FTDC_OST_Unknown: Status.SUBMITTING,
 }
 
 # 多空方向映射
 DIRECTION_VT2CTP: dict[Direction, str] = {
-    Direction.LONG: THOST_FTDC_D_Buy,
-    Direction.SHORT: THOST_FTDC_D_Sell
+    Direction.LONG: TdApi.THOST_FTDC_D_Buy,
+    Direction.SHORT: TdApi.THOST_FTDC_D_Sell
 }
 DIRECTION_CTP2VT: dict[str, Direction] = {v: k for k, v in DIRECTION_VT2CTP.items()}
-DIRECTION_CTP2VT[THOST_FTDC_PD_Long] = Direction.LONG
-DIRECTION_CTP2VT[THOST_FTDC_PD_Short] = Direction.SHORT
+DIRECTION_CTP2VT[TdApi.THOST_FTDC_PD_Long] = Direction.LONG
+DIRECTION_CTP2VT[TdApi.THOST_FTDC_PD_Short] = Direction.SHORT
 
 # 委托类型映射
 ORDERTYPE_VT2CTP: dict[OrderType, tuple] = {
-    OrderType.LIMIT: (THOST_FTDC_OPT_LimitPrice, THOST_FTDC_TC_GFD, THOST_FTDC_VC_AV),
-    OrderType.MARKET: (THOST_FTDC_OPT_AnyPrice, THOST_FTDC_TC_GFD, THOST_FTDC_VC_AV),
-    OrderType.FAK: (THOST_FTDC_OPT_LimitPrice, THOST_FTDC_TC_IOC, THOST_FTDC_VC_AV),
-    OrderType.FOK: (THOST_FTDC_OPT_LimitPrice, THOST_FTDC_TC_IOC, THOST_FTDC_VC_CV),
+    OrderType.LIMIT: (TdApi.THOST_FTDC_OPT_LimitPrice, TdApi.THOST_FTDC_TC_GFD, TdApi.THOST_FTDC_VC_AV),
+    OrderType.MARKET: (TdApi.THOST_FTDC_OPT_AnyPrice, TdApi.THOST_FTDC_TC_GFD, TdApi.THOST_FTDC_VC_AV),
+    OrderType.FAK: (TdApi.THOST_FTDC_OPT_LimitPrice, TdApi.THOST_FTDC_TC_IOC, TdApi.THOST_FTDC_VC_AV),
+    OrderType.FOK: (TdApi.THOST_FTDC_OPT_LimitPrice, TdApi.THOST_FTDC_TC_IOC, TdApi.THOST_FTDC_VC_CV),
 }
 ORDERTYPE_CTP2VT: dict[tuple, OrderType] = {v: k for k, v in ORDERTYPE_VT2CTP.items()}
 
 # 开平方向映射
 OFFSET_VT2CTP: dict[Offset, str] = {
-    Offset.OPEN: THOST_FTDC_OF_Open,
-    Offset.CLOSE: THOST_FTDC_OFEN_Close,
-    Offset.CLOSETODAY: THOST_FTDC_OFEN_CloseToday,
-    Offset.CLOSEYESTERDAY: THOST_FTDC_OFEN_CloseYesterday,
+    Offset.OPEN: TdApi.THOST_FTDC_OF_Open,
+    Offset.CLOSE: TdApi.THOST_FTDC_OFEN_Close,
+    Offset.CLOSETODAY: TdApi.THOST_FTDC_OFEN_CloseToday,
+    Offset.CLOSEYESTERDAY: TdApi.THOST_FTDC_OFEN_CloseYesterday,
 }
 OFFSET_CTP2VT: dict[str, Offset] = {v: k for k, v in OFFSET_VT2CTP.items()}
 
@@ -111,16 +86,16 @@ EXCHANGE_CTP2VT: dict[str, Exchange] = {
 
 # 产品类型映射
 PRODUCT_CTP2VT: dict[str, Product] = {
-    THOST_FTDC_PC_Futures: Product.FUTURES,
-    THOST_FTDC_PC_Options: Product.OPTION,
-    THOST_FTDC_PC_SpotOption: Product.OPTION,
-    THOST_FTDC_PC_Combination: Product.SPREAD
+    TdApi.THOST_FTDC_PC_Futures: Product.FUTURES,
+    TdApi.THOST_FTDC_PC_Options: Product.OPTION,
+    TdApi.THOST_FTDC_PC_SpotOption: Product.OPTION,
+    TdApi.THOST_FTDC_PC_Combination: Product.SPREAD
 }
 
 # 期权类型映射
 OPTIONTYPE_CTP2VT: dict[str, OptionType] = {
-    THOST_FTDC_CP_CallOptions: OptionType.CALL,
-    THOST_FTDC_CP_PutOptions: OptionType.PUT
+    TdApi.THOST_FTDC_CP_CallOptions: OptionType.CALL,
+    TdApi.THOST_FTDC_CP_PutOptions: OptionType.PUT
 }
 
 # 其他常量
@@ -129,6 +104,13 @@ CHINA_TZ = ZoneInfo("Asia/Shanghai")       # 中国时区
 
 # 合约数据全局缓存字典
 symbol_contract_map: dict[str, ContractData] = {}
+
+def get_data_path(folder_name:str):
+    data_path = get_setting('data_path')
+    folder_path: Path = data_path.joinpath(folder_name)
+    if not folder_path.exists():
+        folder_path.mkdir()
+    return folder_path
 
 
 class CtpGateway(BaseGateway):
@@ -235,7 +217,7 @@ class CtpGateway(BaseGateway):
         """初始化查询任务"""
         self.count: int = 0
         self.query_functions: list = [self.query_account, self.query_position]
-        self.event_engine.register(EVENT_TIMER, self.process_timer_event)
+        #self.event_engine.register(EVENT_TIMER, self.process_timer_event)
 
 
 class CtpMdApi(MdApi):
@@ -367,7 +349,7 @@ class CtpMdApi(MdApi):
 
         # 禁止重复发起连接，会导致异常崩溃
         if not self.connect_status:
-            path: Path = get_folder_path(self.gateway_name.lower())
+            path: Path = get_data_path(self.gateway_name.lower())
             self.createFtdcMdApi((str(path) + "\\Md").encode("GBK"))
 
             self.registerFront(address)
@@ -401,32 +383,24 @@ class CtpMdApi(MdApi):
         """更新当前日期"""
         self.current_date = datetime.now().strftime("%Y%m%d")
 
-
-class CtpTdApi(TdApi):
+class CtpTdApi(TdApi.CThostFtdcTraderSpi):
     """"""
 
-    def __init__(self, gateway: CtpGateway) -> None:
+    def __init__(self,acct_conf:AcctConf, gateway: CtpGateway) -> None:
         """构造函数"""
         super().__init__()
 
         self.gateway: CtpGateway = gateway
         self.gateway_name: str = gateway.gateway_name
+        self.acct_conf = acct_conf
 
         self.reqid: int = 0
         self.order_ref: int = 0
 
-        self.connect_status: bool = False
-        self.login_status: bool = False
-        self.auth_status: bool = False
-        self.login_failed: bool = False
-        self.auth_failed: bool = False
+        self.connected: bool = False
+        self.logined: bool = False
         self.contract_inited: bool = False
 
-        self.userid: str = ""
-        self.password: str = ""
-        self.brokerid: str = ""
-        self.auth_code: str = ""
-        self.appid: str = ""
 
         self.frontid: int = 0
         self.sessionid: int = 0
@@ -435,21 +409,23 @@ class CtpTdApi(TdApi):
         self.positions: dict[str, PositionData] = {}
         self.sysid_orderid_map: dict[str, str] = {}
 
-    def onFrontConnected(self) -> None:
+        self.api: TdApi.CThostFtdcTraderApi = None
+
+    def OnFrontConnected(self) -> None:
         """服务器连接成功回报"""
         self.gateway.write_log("交易服务器连接成功")
 
-        if self.auth_code:
+        if self.acct_conf.auth:
             self.authenticate()
         else:
             self.login()
 
-    def onFrontDisconnected(self, reason: int) -> None:
+    def OnFrontDisconnected(self, reason: int) -> None:
         """服务器连接断开回报"""
-        self.login_status = False
+        self.logined = False
         self.gateway.write_log(f"交易服务器连接断开，原因{reason}")
 
-    def onRspAuthenticate(self, data: dict, error: dict, reqid: int, last: bool) -> None:
+    def OnRspAuthenticate(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """用户授权验证回报"""
         if not error['ErrorID']:
             self.auth_status = True
@@ -462,12 +438,12 @@ class CtpTdApi(TdApi):
 
             self.gateway.write_error("交易服务器授权验证失败", error)
 
-    def onRspUserLogin(self, data: dict, error: dict, reqid: int, last: bool) -> None:
+    def OnRspUserLogin(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """用户登录请求回报"""
         if not error["ErrorID"]:
             self.frontid = data["FrontID"]
             self.sessionid = data["SessionID"]
-            self.login_status = True
+            self.logined = True
             self.gateway.write_log("交易服务器登录成功")
 
             # 自动确认结算单
@@ -482,7 +458,7 @@ class CtpTdApi(TdApi):
 
             self.gateway.write_error("交易服务器登录失败", error)
 
-    def onRspOrderInsert(self, data: dict, error: dict, reqid: int, last: bool) -> None:
+    def OnRspOrderInsert(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """委托下单失败回报"""
         order_ref: str = data["OrderRef"]
         orderid: str = f"{self.frontid}_{self.sessionid}_{order_ref}"
@@ -505,11 +481,11 @@ class CtpTdApi(TdApi):
 
         self.gateway.write_error("交易委托失败", error)
 
-    def onRspOrderAction(self, data: dict, error: dict, reqid: int, last: bool) -> None:
+    def OnRspOrderAction(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """委托撤单失败回报"""
         self.gateway.write_error("交易撤单失败", error)
 
-    def onRspSettlementInfoConfirm(self, data: dict, error: dict, reqid: int, last: bool) -> None:
+    def OnRspSettlementInfoConfirm(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """确认结算单回报"""
         self.gateway.write_log("结算信息确认成功")
 
@@ -523,7 +499,7 @@ class CtpTdApi(TdApi):
             else:
                 sleep(1)
 
-    def onRspQryInvestorPosition(self, data: dict, error: dict, reqid: int, last: bool) -> None:
+    def OnRspQryInvestorPosition(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """持仓查询回报"""
         if not data:
             return
@@ -580,7 +556,7 @@ class CtpTdApi(TdApi):
 
             self.positions.clear()
 
-    def onRspQryTradingAccount(self, data: dict, error: dict, reqid: int, last: bool) -> None:
+    def OnRspQryTradingAccount(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """资金查询回报"""
         if "AccountID" not in data:
             return
@@ -595,7 +571,7 @@ class CtpTdApi(TdApi):
 
         self.gateway.on_account(account)
 
-    def onRspQryInstrument(self, data: dict, error: dict, reqid: int, last: bool) -> None:
+    def OnRspQryInstrument(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """合约查询回报"""
         product: Product = PRODUCT_CTP2VT.get(data["ProductClass"], None)
         if product:
@@ -640,7 +616,7 @@ class CtpTdApi(TdApi):
                 self.onRtnTrade(data)
             self.trade_data.clear()
 
-    def onRtnOrder(self, data: dict) -> None:
+    def OnRtnOrder(self, data: dict) -> None:
         """委托更新推送"""
         if not self.contract_inited:
             self.order_data.append(data)
@@ -687,7 +663,7 @@ class CtpTdApi(TdApi):
 
         self.sysid_orderid_map[data["OrderSysID"]] = orderid
 
-    def onRtnTrade(self, data: dict) -> None:
+    def OnRtnTrade(self, data: dict) -> None:
         """成交数据推送"""
         if not self.contract_inited:
             self.trade_data.append(data)
@@ -717,49 +693,32 @@ class CtpTdApi(TdApi):
         self.gateway.on_trade(trade)
 
     def connect(
-            self,
-            address: str,
-            userid: str,
-            password: str,
-            brokerid: str,
-            auth_code: str,
-            appid: str
+            self
     ) -> None:
         """连接服务器"""
-        self.userid = userid
-        self.password = password
-        self.brokerid = brokerid
-        self.auth_code = auth_code
-        self.appid = appid
-
-        if not self.connect_status:
-            path: Path = get_folder_path(self.gateway_name.lower())
-            self.createFtdcTraderApi((str(path) + "\\Td").encode("GBK"))
-
-            self.subscribePrivateTopic(0)
-            self.subscribePublicTopic(0)
-
-            self.registerFront(address)
-            self.init()
-
-            self.connect_status = True
-        else:
-            self.authenticate()
+        if not self.connected:
+            path: Path = get_data_path(self.gateway_name.lower())
+            flow_path=(str(path) + "\\Td").encode("GBK")
+            self.api = TdApi.CThostFtdcTraderApi.CreateFtdcTraderApi(flow_path)
+            self.api.RegisterSpi(self)
+            self.api.RegisterFront(self.acct_conf.td_addr)
+            self.api.SubscribePrivateTopic(TdApi.THOST_TERT_QUICK)
+            self.api.SubscribePublicTopic(TdApi.THOST_TERT_QUICK)
+            self.api.Init()
+            self.connected = True
 
     def authenticate(self) -> None:
         """发起授权验证"""
-        if self.auth_failed:
-            return
 
-        ctp_req: dict = {
-            "UserID": self.userid,
-            "BrokerID": self.brokerid,
-            "AuthCode": self.auth_code,
-            "AppID": self.appid
-        }
+        auth_code,appid = self.acct_conf.auth.split(',')
+        req = TdApi.CThostFtdcReqAuthenticateField()
+        req.BrokerID = self.acct_conf.broker
+        req.UserID = self.acct_conf.user
+        req.AppID = auth_code
+        req.AuthCode = appid
 
         self.reqid += 1
-        self.reqAuthenticate(ctp_req, self.reqid)
+        self.api.ReqAuthenticate(req, self.reqid)
 
     def login(self) -> None:
         """用户登录"""
@@ -772,8 +731,13 @@ class CtpTdApi(TdApi):
             "BrokerID": self.brokerid
         }
 
+        req=TdApi.CThostFtdcReqUserLoginField()
+        req.BrokerID = self.acct_conf.broker
+        req.UserID = self.acct_conf.user
+        req.Password = self.acct_conf.pwd
+        req.UserProductInfo = self.acct_conf.product_info
         self.reqid += 1
-        self.reqUserLogin(ctp_req, self.reqid)
+        self.api.ReqUserLogin(ctp_req, self.reqid)
 
     def send_order(self, req: OrderRequest) -> str:
         """委托下单"""
@@ -802,9 +766,9 @@ class CtpTdApi(TdApi):
             "InvestorID": self.userid,
             "UserID": self.userid,
             "BrokerID": self.brokerid,
-            "CombHedgeFlag": THOST_FTDC_HF_Speculation,
-            "ContingentCondition": THOST_FTDC_CC_Immediately,
-            "ForceCloseReason": THOST_FTDC_FCC_NotForceClose,
+            "CombHedgeFlag": TdApi.THOST_FTDC_HF_Speculation,
+            "ContingentCondition": TdApi.THOST_FTDC_CC_Immediately,
+            "ForceCloseReason": TdApi.THOST_FTDC_FCC_NotForceClose,
             "IsAutoSuspend": 0,
             "TimeCondition": time_condition,
             "VolumeCondition": volume_condition,
@@ -833,7 +797,7 @@ class CtpTdApi(TdApi):
             "OrderRef": order_ref,
             "FrontID": int(frontid),
             "SessionID": int(sessionid),
-            "ActionFlag": THOST_FTDC_AF_Delete,
+            "ActionFlag": TdApi.THOST_FTDC_AF_Delete,
             "BrokerID": self.brokerid,
             "InvestorID": self.userid
         }
@@ -861,8 +825,10 @@ class CtpTdApi(TdApi):
 
     def close(self) -> None:
         """关闭连接"""
-        if self.connect_status:
-            self.exit()
+        if self.connected:
+            self.api.Release()
+            self.api = None
+            self.connected = False
 
 
 def adjust_price(price: float) -> float:

@@ -6,6 +6,16 @@ from time import sleep
 
 import asyncio
 
+class EventType(Empty):
+    EVENT_TICK = "e_tick."
+    EVENT_TRADE = "e_trade."
+    EVENT_ORDER = "e_order."
+    EVENT_POSITION = "e_position."
+    EVENT_ACCOUNT = "e_account."
+    EVENT_QUOTE = "e_quote."
+    EVENT_CONTRACT = "e_contract."
+    EVENT_LOG = "e_log"
+
 
 class Event:
     """
@@ -14,9 +24,9 @@ class Event:
     object which contains the real data.
     """
 
-    def __init__(self, type: str, data: Any = None) -> None:
+    def __init__(self, type: EventType, data: Any = None) -> None:
         """"""
-        self.type: str = type
+        self.type: EventType = type
         self.data: Any = data
 
 HandlerType: callable = Callable[[Event], None]
