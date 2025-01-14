@@ -1,7 +1,8 @@
 from fastapi import APIRouter,Request
 from pydantic import BaseModel,Extra
-from utils import log_utils,config_utils
+from utils import log_utils
 from common.resp import  resp_success
+from config import  get_setting
 
 logger = log_utils.get_logger(__name__)
 router = APIRouter(prefix='/v1/sys')
@@ -9,7 +10,16 @@ router = APIRouter(prefix='/v1/sys')
 
 @router.post('/user/login')
 async def lonin():
-    return resp_success('admin-token')
+    data={
+        'avatar':'https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif',
+        'username':'Admin',
+        'nickname':'Admin',
+        'roles':['admin'],
+        'permisions':[],
+        'accessToken': 'admin-token',
+        'refreshToken': 'admin-token'
+    }
+    return resp_success(data)
 
 
 @router.post('/user/logout')
@@ -32,7 +42,7 @@ async def get_router():
     获取动态路由表
     :return:
     '''
-    routers = config_utils.configs['routers']
+    routers = get_setting('routers')
     return resp_success(routers)
 
 @router.get('/jobs')

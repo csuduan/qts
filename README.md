@@ -15,13 +15,14 @@ Quick Trading Sysmtem(Qts)是一款支持多账户的量化交易系统。该系
 </p>
 
 
-* qts-trader    极速交易核心(C++)
-C++版交易程序，低延迟(tick2trade<5us)
-* qts-pytrader  常规交易核心(python)
-常规版本交易程序，一般延迟
 * qts-admin      管理中心
 支持管理多个交易核心
+* qts-trader  常规交易核心(python)
+常规版本交易程序，一般延迟
+
 * qts-web     [WEB客户端](https://github.com/csuduan/qts-web)
+* qts-ctrader    极速交易核心(C++)
+C++版交易程序，低延迟(tick2trade<5us)
 
 
 

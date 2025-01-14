@@ -14,6 +14,7 @@ def resp_success(data: Union[list, dict, str]):
         status_code=status.HTTP_200_OK,
         content={
             'code': 0,
+            'success': True,
             'message': 'success',
             'data': data
         }

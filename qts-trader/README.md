@@ -1,95 +1,72 @@
-**qts-trade  交易核心**
+## 概述
 
-## 安装
-## 环境安装
-1. 安装gcc
-```bash
-#下载并安装 centos-release-scl
-yum install --downloadonly --downloaddir=./centos-release-scl centos-release-scl
-rpm -ivh centos-release-scl/*.rpm
-#安装gcc开发工具
-#yum install --downloadonly --downloaddir=./devtoolset devtoolset-9-toolchain
-yum install --downloadonly --downloaddir=./devtoolset devtoolset-9
-rpm -ivh devtoolset/*.rpm --force
-
-#激活gcc
-scl enable devtoolset-9 bash
-echo "source /opt/rh/devtoolset-9/enable" >>/etc/profile
-
+## 环境准备
+1. 安装python及依赖包
+```zsh
+#安装conda
+略
+#创建虚拟环境
+conda create --name mypy python=3.8
+conda activate mypy
+#安装依赖包
+pip install -r requirements.txt
 ```
 
-centos7中libstdc++版本较老，需要手动更新
-```bash
-cp libstdc++.so.6.0.26  /lib64/libstdc++.so.6.0.26
-cd /lib64
-ln -s /lib64/libstdc++.so.6.0.26 /lib64/libstdc++.so.6
+2. 安装api(当前使用openapi)
+在api目录(默认/opt/data/api)安装api包,可以在config.py中设置
+```zsh
+#开发环境为了能有代码提示
+pip install openctp-ctp==6.6.7.\* -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host=pypi.tuna.tsinghua.edu.cn
 ```
 
-2. 安装cmake
-```bash
-#下载
-wget https://github.com/Kitware/CMake/releases/download/v3.18.2/cmake-3.18.2.tar.gz
-tar -zxvf cmake-3.18.2.tar.gz
-cd cmake-3.18.2
+## 参考
+* [zeromq](https://github.com/zeromq/pyzmq)
+* [openctp_python](https://github.com/openctp/openctp-ctp-python)
+* [ctpbee_api](https://github.com/ctpbee/ctpbee_api/tree/master)
+* [vnpy_ctp](https://github.com/vnpy/vnpy_ctp)
+* [Python-CTPAPI](https://github.com/nicai0609/Python-CTPAPI)
 
-#编译
-./bootstrap
-gmake && gmake install
-ln -s /usr/local/bin/cmake /usr/bin/
-cmake --version
+## 问题汇总
 
-```
+1. 字符集问题
 
-3. 三方依赖包
-* fmtlib
-```bash
-git clone https://github.com/fmtlib/fmt.git
-CMakeList.txt添加SET(BUILD_SHARED_LIBS ON)
-cmake .
-make && make install
+- Linux下安装后，需要安装中文字符集，否则导入时报错：
 
-```
-* libevent
-```bash
-wget https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz
-./configure -prefix=/usr/local/lib --disable-openssl 
-make & sudo make install
-```
+  ```text
+  >>> import openctp_ctp
+  terminate called after throwing an instance of 'std::runtime_error'
+  what():  locale::facet::_S_create_c_locale name not valid
+  Aborted
+  ```
 
-* sqlite3
-```bash
-yum install sqlite-devel
-sqlite3 -version
+  或
 
+  ```text
+  >>> import openctp_ctp
+  Aborted
+  ```
 
-```
+  需要安装 `GB18030` 字符集，这里提供 ubuntu/debian/centos 的方案：
 
-## 应用部署
-1. 编译
-```bash
-cd qts-trader
-mkdir cmake-build && cd cmake-build
-cmake ..
-make -j4
+  ```bash
+  # Ubuntu (20.04)
+  sudo apt-get install -y locales
+  sudo locale-gen zh_CN.GB18030
+  
+  # Debian (11)
+  sudo apt install locales-all
+  sudo localedef -c -f GB18030 -i zh_CN zh_CN.GB18030
+  
+  # CentOS (7)
+  sudo yum install -y kde-l10n-Chinese
+  sudo yum reinstall -y glibc-common
+  ```
 
-```
-2. 启动trade-core
-```bash
-./mts-master xxx
-```
-xxx为账户id
+- Mac下报错
 
-## 目录结构
-* conf     配置文件目录
-* depends  三方依赖项目(小项目直接引入代码，大项目编译发布到/usr/local/lib中)
-* lib      三方库
-* src      项目代码
+  ```text
+  Fatal Python error: config_get_locale_encoding: failed to get the locale encoding: nl_langinfo(CODESET) failed
+  Python runtime state: preinitialized
+  ```
 
-## 问题
-* 权限问题
-```shell
-sudo chmod 755 /sys/firmware/dmi/tables/smbios_entry_point
-sudo chmod 755 /dev/mem
-sudo chmod 755 /sys/firmware/dmi/tables/DMI
-
-```
+  设置 `export LANG="en_US.UTF-8"` 并使之生效
