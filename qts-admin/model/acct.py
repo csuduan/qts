@@ -1,24 +1,11 @@
 from dataclasses import dataclass
 from .constant import *
+from pydantic import BaseModel
+
+
 
 @dataclass
-class AcctInfo(object):
-    id: str
-    group: str
-    name: str
-
-    trading_day: str
-    td_status: str
-    md_status: str
-    balance: float
-    frozen: float
-    profit: float
-
-    def __post_init__(self) -> None:
-        self.available: float = self.balance - self.frozen
-
-@dataclass
-class AcctConf(object):
+class AcctConf():
     id: str
     group: str
     name: str
@@ -26,9 +13,34 @@ class AcctConf(object):
     td_addr: str
     md_addr: str
     enable: bool
+    port: int
+    req_address: str
+    pub_address: str
 
 @dataclass
-class Position(object):
+class AcctInfo():
+    id: str
+    group: str
+    name: str
+    enable: bool = False
+
+    conf: AcctConf = None
+
+    trading_day: str = None
+    td_status: str = False
+    md_status: str = False
+    balance: float = 0
+    frozen: float = 0
+    profit: float = 0
+    margin_pct: float = 0
+
+    
+    def __post_init__(self) -> None:
+        self.available: float = self.balance - self.frozen
+
+
+@dataclass
+class Position():
     id: str
     symbol: str
     exchange: Exchange

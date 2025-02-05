@@ -6,3 +6,4 @@ fastapi
 fastapi-offline
 nest_asyncio
 gunicorn
+psutil

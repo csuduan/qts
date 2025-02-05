@@ -42,3 +42,6 @@ node_modules
 
 hs_err*
 
+### python ###
+__pycache__
+

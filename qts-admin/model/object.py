@@ -2,7 +2,7 @@ import datetime
 from dataclasses import dataclass
 from typing import List
 
-from constant import *
+from .constant import *
 
 
 @dataclass

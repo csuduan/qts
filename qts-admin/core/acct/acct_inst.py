@@ -1,25 +1,35 @@
 from core.rpc import RpcClient, RpcHandler
 from core.rpc import MsgType
+from model.acct import  AcctConf,AcctInfo
+import subprocess
+import os
+import psutil
+
+
 
 
 class AcctInst(object):
     def __init__(self, config):
-        self.config = config
-        self.acct_id = config['id']
+        self.config: AcctConf = config
+        self.acct_id = config.id
         self.acct_client: RpcClient = None
-        self.acct_info = None
+        acct_info = AcctInfo(id=config.id,group=config.group,name=config.name,enable=config.enable,conf=config)
+        self.acct_info: AcctInfo = acct_info
         self.acct_detail = None
 
-    def start_client(self):
-        req_address = self.config['req_address']
-        pub_address = self.config['pub_address']
+
+    def start_inst(self):     
+        #连接账户进程
+        req_address = self.config.req_address
+        pub_address = self.config.pub_address
         self.acct_client = RpcClient()
         self.acct_client.register_handler(self.create_handler())
         self.acct_client.start(req_address, pub_address)
 
+    
 
 
-    def stop_client(self):
+    def stop_inst(self):
         self.acct_client.stop()
         self.acct_client = None
 
