@@ -1,10 +1,9 @@
 import time,datetime
 from fastapi import Request,Response
 from .resp import resp_error
-from utils import  log_utils
-from utils import  config_utils
+from qts.log import get_logger
 
-logger = log_utils.get_logger(__name__)
+logger = get_logger(__name__)
 
 async def resp_handler(request:Request,call_next):
 

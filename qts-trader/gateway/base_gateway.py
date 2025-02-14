@@ -1,14 +1,19 @@
+import os
+import pickle
+import datetime
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Callable
 from copy import copy
 
 from core.event.event import Event, EventEngine, EventType
+from config import get_setting
 
 from model.object import (
+    StatusData,
     TickData,
     OrderData,
     TradeData,
-    PositionData,
+    Position,
     AccountData,
     ContractData,
     LogData,
@@ -19,8 +24,9 @@ from model.object import (
     HistoryRequest,
     QuoteRequest,
     Exchange,
-    BarData, AcctConf
+    BarData
 )
+from model.object import AcctInfo
 
 
 class BaseGateway(ABC):
@@ -66,11 +72,14 @@ class BaseGateway(ABC):
     # Exchanges supported in the gateway.
     exchanges: List[Exchange] = []
 
-    def __init__(self, event_engine: EventEngine, acct_conf: AcctConf) -> None:
+    def __init__(self, event_engine: EventEngine, acct_info: AcctInfo) -> None:
         """"""
         self.event_engine: EventEngine = event_engine
-        self.acct_conf: AcctConf = acct_conf
-        self.gateway_name: str = acct_conf['id']
+        self.acct_info: AcctInfo = acct_info
+        self.gateway_name: str = acct_info.id
+        self.contracts_map: dict[str, ContractData] = {}
+        self.__load_cache()
+
 
     def on_event(self, type: EventType, data: Any = None) -> None:
         """
@@ -79,8 +88,15 @@ class BaseGateway(ABC):
         event: Event = Event(type, data)
         self.event_engine.put(event)
 
-    def on_status(self, status: dict):
-        self.on_event(EventType.Event_STATUS, status)
+    def on_status(self,status:StatusData) -> None:
+        """
+        Status event push.
+        """
+        if status.type == "td":
+            self.acct_info.td_status = status.status
+        elif status.type == "md":
+            self.acct_info.md_status = status.status
+        self.on_event(EventType.EVENT_STATUS, status)
 
     def on_tick(self, tick: TickData) -> None:
         """
@@ -103,18 +119,22 @@ class BaseGateway(ABC):
         """
         self.on_event(EventType.EVENT_ORDER, order)
 
-    def on_position(self, position: PositionData) -> None:
+    def on_positions(self, positions: List[Position]) -> None:
         """
         Position event push.
         Position event of a specific vt_symbol is also pushed.
         """
-        self.on_event(EventType.EVENT_POSITION, position)
+        self.on_event(EventType.EVENT_POSITIONS, positions)
+    
 
     def on_account(self, account: AccountData) -> None:
         """
         Account event push.
         Account event of a specific vt_accountid is also pushed.
         """
+        self.acct_info.balance = account.balance
+        self.acct_info.frozen = account.frozen
+        #self.acct_info.available = account.available
         self.on_event(EventType.EVENT_ACCOUNT, account)
 
     def on_quote(self, quote: QuoteData) -> None:
@@ -129,6 +149,7 @@ class BaseGateway(ABC):
         Contract event push.
         """
         self.on_event(EventType.EVENT_CONTRACT, contracts)
+        self.__write_cache()
 
     @abstractmethod
     def connect(self) -> None:
@@ -153,7 +174,7 @@ class BaseGateway(ABC):
         pass
 
     @abstractmethod
-    def close(self) -> None:
+    def disconnect(self) -> None:
         """
         Close gateway connection.
         """
@@ -244,6 +265,25 @@ class BaseGateway(ABC):
         """
         return self.default_setting
 
+    def __load_cache(self):
+        #加载合约缓存
+        data_path = get_setting('data_path')
+        contracts_path = os.path.join(data_path, 'contracts.pkl')
+        if os.path.exists(contracts_path):
+            with open(contracts_path, 'rb') as f:
+                data = pickle.load(f)
+                contracts_map: dict[str, ContractData] = data['contracts']
+                contracts_date: str = data['date']
+                if contracts_date == datetime.date.today() and contracts_map is not None:
+                    # 当日缓存过合约不信，则直接加载
+                    self.contracts_map.clear()
+                    self.contracts_map.update(contracts_map)
+    
+    def __write_cache(self):
+        data_path = get_setting('data_path')
+        contracts_path = os.path.join(data_path, 'contracts.pkl')
+        with open(contracts_path, 'wb') as f:
+            pickle.dump({'contracts': self.contracts_map, 'date': datetime.date.today()}, f)
 
 class LocalOrderManager:
     """
@@ -366,3 +406,7 @@ class LocalOrderManager:
 
         req: CancelRequest = self.cancel_request_buf.pop(local_orderid)
         self.gateway.cancel_order(req)
+
+
+    
+

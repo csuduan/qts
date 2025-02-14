@@ -1,10 +1,10 @@
+import datetime
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Extra
-from utils import log_utils
 from common.resp import resp_success
 
-from core.acct import acct_mgr
-from model.acct import Position
+from core import acct_mgr
+from qts.model.object import Position,AcctOpType
 from model.constant import Exchange, Direction
 
 router = APIRouter(prefix='/v1/acct')
@@ -47,25 +47,15 @@ async def get_acct_list():
     list = acct_mgr.get_acct_infos()
     return resp_success(list)
 
-@router.get('/inst/info')
-async def get_acct_detail(acct_id: str):
-    '''
-    返回账户实例信息
-    :param acct_id: 账户编号
-    :return:
-    '''
-    info = acct_mgr.get_acct_info(acct_id).acct_info
-    return resp_success(info)
-
 
 @router.get('/inst/detail')
-async def get_acct_detail(acct_id: str):
+async def get_acct_detail(acct_id: str,timestamp: str):
     '''
     返回账户实例详情
     :param acct_id: 账户编号
     :return:
     '''
-    detail = {}
+    detail = acct_mgr.get_acct_detail(acct_id,timestamp)
 
     return resp_success(detail)
 
@@ -78,8 +68,7 @@ async def get_acct_positions(acct_id: str):
     :param acct_id: 账户编号
     :return:
     '''
-    positions = {}
-
+    positions = acct_mgr.get_acct_inst(acct_id).get_positions()
     return resp_success(positions)
 
 @router.get('/inst/orders')
@@ -89,37 +78,39 @@ async def get_acct_orders(acct_id: str):
     :param acct_id: 账户编号
     :return:
     '''
-    orders = {}
+    orders = acct_mgr.get_acct_inst(acct_id).get_orders()
     return resp_success(orders)
 
-@router.get('/inst/ticks')
-async def get_acct_ticks(acct_id: str):
+@router.get('/inst/quotes')
+async def get_acct_ticks(acct_id: str,timestamp: str):
     '''
     返回账户行情
     :param acct_id: 账户编号
     :return:
     '''
-    ticks = {}
+    ticks = acct_mgr.get_acct_inst(acct_id).get_quotes(timestamp)
     return resp_success(ticks)
 
+@router.get('/inst/trades')
+async def get_acct_trades(acct_id: str):
+    '''
+    返回账户成交
+    :param acct_id: 账户编号
+    :return:
+    '''
+    trades = acct_mgr.get_acct_inst(acct_id).get_trades()
+    return resp_success(trades)
 
-@router.post('/inst/start')
-async def start_acct():
-    pass
+@router.get('/inst/operate')
+async def disconnect_acct(acct_id: str,op_type: AcctOpType):
+    acct_inst = acct_mgr.get_acct_inst(acct_id)
+    if not acct_inst:
+        raise Exception(f"账户实例不存在: {acct_id}")
 
+    if op_type == AcctOpType.CONNECT:
+        acct_inst.connect()
+    elif op_type == AcctOpType.DISCONNECT:
+        acct_inst.disconnect()
 
-@router.post('/inst/stop')
-async def stop_acct():
-    pass
+    return resp_success()
 
-
-@router.post('/inst/connect')
-async def connect_acct(acct_id: str):
-    acct_mgr.get_acct_inst(acct_id).connect()
-    pass
-
-
-@router.post('/inst/disconnect')
-async def disconnect_acct(acct_id: str):
-    acct_mgr.get_acct_inst(acct_id).disconnect()
-    pass

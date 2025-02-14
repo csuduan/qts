@@ -1,10 +1,10 @@
 from fastapi import APIRouter,Request
 from pydantic import BaseModel,Extra
-from utils import log_utils
+from qts.log import get_logger
 from common.resp import  resp_success
 from config import  get_setting
 
-logger = log_utils.get_logger(__name__)
+logger = get_logger(__name__)
 router = APIRouter(prefix='/v1/sys')
 
 

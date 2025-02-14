@@ -9,11 +9,11 @@ import asyncio
 
 
 class EventType(Enum):
-    Event_STATUS= "e_status"
+    EVENT_STATUS= "e_status"
     EVENT_TICK = "e_tick"
     EVENT_TRADE = "e_trade"
     EVENT_ORDER = "e_order"
-    EVENT_POSITION = "e_position"
+    EVENT_POSITIONS = "e_positions"
     EVENT_ACCOUNT = "e_account"
     EVENT_QUOTE = "e_quote"
     EVENT_CONTRACT = "e_contract"

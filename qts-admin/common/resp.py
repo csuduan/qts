@@ -1,10 +1,10 @@
 from fastapi import status
 from fastapi.responses import JSONResponse
 from typing import Union
-from .biz_exception import  BizException
+from qts.model.exception import BizException
 
 
-def resp_success(data):
+def resp_success(data=None):
     '''
     成功响应
     :param data:

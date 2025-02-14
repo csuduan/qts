@@ -1,12 +1,16 @@
 from datetime import datetime
 
 from config import get_setting
-from .ctp_api import CtpMdApi, CtpTdApi
+from .ctp_td_api import CtpTdApi
+from .ctp_md_api import CtpMdApi
 
 from ..base_gateway import BaseGateway
 from .lib import  *
 
 from core.event.event import EventEngine
+from model.object import AcctInfo, SubscribeRequest, OrderRequest, CancelRequest
+
+from qts.log import logger_utils
 
 class CtpGateway(BaseGateway):
     """
@@ -18,23 +22,24 @@ class CtpGateway(BaseGateway):
 
     exchanges: list[str] = list(EXCHANGE_CTP2VT.values())
 
-    def __init__(self, event_engine: EventEngine, acct_conf :AcctConf) -> None:
+    def __init__(self, event_engine: EventEngine, acct_info :AcctInfo) -> None:
         """构造函数"""
-        super().__init__(event_engine, acct_conf)
+        super().__init__(event_engine, acct_info)
 
         self.td_api: "CtpTdApi" = CtpTdApi(self)
         self.md_api: "CtpMdApi" = CtpMdApi(self)
 
-        contracts_map = get_setting('contracts')
-        if contracts_map is not None:
-            for k,v in contracts_map.items():
-                symbol_contract_map[k] = v
-
-
+         
     def connect(self) -> None:
+        '''连接接口'''
         self.td_api.connect()
         self.md_api.connect()
         self.init_query()
+
+    def disconnect(self) -> None:
+        """断开接口"""
+        self.td_api.close()
+        self.md_api.close()
 
     def subscribe(self, req: SubscribeRequest) -> None:
         """订阅行情"""
@@ -56,10 +61,7 @@ class CtpGateway(BaseGateway):
         """查询持仓"""
         self.td_api.query_position()
 
-    def close(self) -> None:
-        """关闭接口"""
-        self.td_api.close()
-        self.md_api.close()
+
 
 
     def process_timer_event(self, event) -> None:
@@ -80,3 +82,6 @@ class CtpGateway(BaseGateway):
         self.count: int = 0
         self.query_functions: list = [self.query_account, self.query_position]
         #self.event_engine.register(EVENT_TIMER, self.process_timer_event)
+
+
+    

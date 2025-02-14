@@ -1,56 +1,32 @@
 {
   "acct_confs": [
     {
-      "id": "sim",
-      "group": "sim",
-      "broker": "9999",
-      "auth": "simnow_client_test|0000000000000000",
-      "tdAddress": "tcp://180.168.146.187:10201",
-      "tdType": "CTP",
-      "user": "048997",
-      "pwd": "csuduan@2024",
+      "id": "DQ",
+      "group": "测试",
+      "name": "SIM-DQ",
       "enable": false,
-      "mdAddress": "tcp://180.168.146.187:10211",
-      "mdType": "CTP",
-      "subList": "ag2410,SR411,a2411"
+      "user": "048997|csuduan@2024",
+      "broker":"9999",
+      "auth":"simnow_client_test:0000000000000000",
+      "td_addr": "CTP15|tcp://180.168.146.187:10201",
+      "md_addr": "CTP15|tcp://180.168.146.187:10211",
+      "req_address": "tcp://127.0.0.1:4001",
+      "pub_address": "tcp://127.0.0.1:5001",
+      "tcp_port": 6001
     },
     {
-      "id": "sim24",
-      "group": "sim",
-      "broker": "9999",
-      "auth": "simnow_client_test|0000000000000000",
-      "tdAddress": "tcp://180.168.146.187:10130",
-      "tdType": "CTP",
-      "user": "048997",
-      "pwd": "csuduan@2024",
-      "enable": false,
-      "mdAddress": "tcp://180.168.146.187:10131",
-      "mdType": "CTP",
-      "subList": "ag2203,ni2203"
-    },
-    {
-      "id": "ost",
-      "group": "sim",
-      "tdAddress": "tcp://47.100.124.2:8888",
-      "tdType": "OST",
-      "user": "00122899",
-      "pwd": "123456",
+      "id": "DQ24",
+      "group": "测试",
+      "name": "SIM-DQ-24",
       "enable": true,
-      "mdAddress": "tcp://47.100.124.2:33008",
-      "mdType": "OST",
-      "subList": "600000,600958,000001,000002"
-    },
-    {
-      "id": "ost-sh",
-      "group": "Real",
-      "tdAddress": "tcp://47.100.124.2:8888",
-      "tdType": "OST",
-      "user": "00122899",
-      "pwd": "123456",
-      "enable": true,
-      "mdAddress": "TI:233.57.1.104:37104:eth0,TR:233.57.1.103.37103:eth1",
-      "mdType": "EFH",
-      "subList": "600000,600958"
+      "user": "048997|csuduan@2024",
+      "broker":"9999",
+      "auth":"simnow_client_test:0000000000000000",
+      "td_addr": "CTP15|tcp://180.168.146.187:10130",
+      "md_addr": "CTP15|tcp://180.168.146.187:10131",
+      "req_address": "tcp://127.0.0.1:4002",
+      "pub_address": "tcp://127.0.0.1:5002",
+      "tcp_port": 6002
     }
   ]
 }

@@ -3,17 +3,9 @@ from openctp_ctp.thosttraderapi import *
 from openctp_ctp.thostmduserapi import *
 from zoneinfo import ZoneInfo
 
+from model.object import AcctInfo
 from model.object import (
-    TickData,
-    OrderData,
-    TradeData,
-    PositionData,
-    AccountData,
     ContractData,
-    OrderRequest,
-    CancelRequest,
-    SubscribeRequest,
-    AcctConf
 )
 
 from model.constant import (
@@ -80,11 +72,6 @@ PRODUCT_CTP2VT = {
 MAX_FLOAT = sys.float_info.max                  # 浮点数极限值
 CHINA_TZ = ZoneInfo("Asia/Shanghai")       # 中国时区
 
-symbol_exchange_map = {}
-symbol_name_map = {}
-symbol_size_map = {}
-# 合约数据全局缓存字典
-symbol_contract_map: dict[str, ContractData] = {}
 
 # 期权类型映射
 OPTIONTYPE_CTP2VT: dict[str, OptionType] = {
