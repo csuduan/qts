@@ -3,12 +3,12 @@ from qts.model.object import  AcctConf,AcctInfo,Position,TickData
 import subprocess
 import os
 import psutil
+import json
 import datetime
 from typing import Any, List,Dict
 from qts.tcp.client import TcpClient
 from qts.model.message import MsgHandler,MsgType,Message
-from qts.model.object import TradeData,TickData
-from model.object import AcctDetail
+from qts.model.object import TradeData,TickData,AcctDetail,OrderData,OrderRequest,Exchange
 
 from qts.log import get_logger
 
@@ -19,12 +19,13 @@ class AcctInst(object):
         self.config: AcctConf = config
         self.acct_id = config.id
         self.acct_client: TcpClient = None
-        acct_info = AcctInfo(id=config.id,group=config.group,name=config.name,enable=config.enable,conf=config)
+        acct_info = AcctInfo(id=config.id,group=config.group,name=config.name,enable=config.enable,status=False,conf=config)
         self.acct_info: AcctInfo = acct_info
         self.acct_detail: AcctDetail = AcctDetail(acct_info=acct_info)
         self.tick_map: Dict[str,TickData] ={}
         self.tick_timestamp=""
-        self.ws_callback = None
+        self.inst_status = False
+        self.ws_callback = ws_callback
 
 
     def start_inst(self):   
@@ -40,16 +41,24 @@ class AcctInst(object):
         self.acct_client.stop()
         self.acct_client = None
 
+    def get_status(self):
+        return self.acct_client and self.acct_client.is_connected()
+
     def connect(self):
         self.acct_client.request(Message(MsgType.CONNECT))
 
     def disconnect(self):
         self.acct_client.request(Message(MsgType.DISCONNECT))
 
+    def subscribe(self,symbol:str):
+        self.acct_client.request(Message(MsgType.SUBSCRIBE,data={'symbol':symbol}))
+
     def close(self):
         self.acct_client.request(Message(MsgType.CLOSE))
     
     def _push_handler(self,data:Message):
+        if data.type != MsgType.ON_TICK:
+            log.info(f"{self.acct_id}收到同步消息:{data.type}")
         handler = self.push_handler.get_handler(data.type)
         if handler:
             handler(data.data)
@@ -66,14 +75,17 @@ class AcctInst(object):
         pass
 
     def get_trades(self):
-        self.acct_client.request(Message(MsgType.GET_TRADES))
-        pass
+        rsp:Message = self.acct_client.request(Message(MsgType.GET_TRADES))
+        if rsp.code != 0:
+            raise Exception(rsp.data)
+        return rsp.data
 
     def get_acct_info(self)->AcctInfo:
         rsp:Message = self.acct_client.request(Message(MsgType.GET_ACCT_INFO))
         if rsp.code != 0:
             raise Exception(rsp.data)
         return rsp.data
+
     
     def get_quotes(self,timestamp:str)->List[TickData]:
         result = []
@@ -89,15 +101,15 @@ class AcctInst(object):
             return {}
     
     def _fetch_acct_info(self):
-        self.acct_detail.acct_info = self.get_acct_info()
-        self.acct_detail.positions = self.get_positions()
-        self.acct_detail.trades = self.get_trades()
-        self.acct_detail.orders = self.get_orders()
-        self.acct_detail.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        rsp:Message = self.acct_client.request(Message(MsgType.GET_ACCT_DETAIL))
+        if rsp.code != 0:
+            raise Exception(rsp.data)
+        self.acct_detail = rsp.data
+        self.acct_info = self.acct_detail.acct_info
         log.info(f"同步账户信息{self.acct_id}成功")
         
 
-    def send_order(self, order):
+    def send_order(self, order:OrderRequest):
         self.acct_client.request(Message(MsgType.SEND_ORDER, order))
         pass
 
@@ -105,53 +117,75 @@ class AcctInst(object):
         self.acct_client.request(Message(MsgType.CANCEL_ORDER, orderid))
         pass
 
-    def send_ws_msg(self,type:str,msg:Any):
+    def send_ws_msg(self,type:str,json_msg:Any):
         if self.ws_callback:
-            self.ws_callback({"type":type,"data":msg})
+            self.ws_callback({"type":type,"acct_id":self.acct_id,"data":json_msg})
 
 
     def create_handler(self):
         topic_handler = MsgHandler()
 
-        @topic_handler.register(MsgType.ON_READY)
-        def on_acct(data):
-            #self.acct_detail.acct_info = data
-            #self.acct_detail.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            #log.info(f"同步账户信息{self.acct_id}成功")
+        @topic_handler.register(MsgType.ON_CONNECTED)
+        def on_connect(data):
             self._fetch_acct_info();
-            self.send_ws_msg("on_acct",self.acct_detail)
+            self.send_ws_msg("on_acct",json.loads(self.acct_info.json()))
+
+        @topic_handler.register(MsgType.ON_READY)
+        def on_ready(data:AcctDetail):
+            self.acct_detail = data
+            self.acct_detail.acct_info = data.acct_info
+            self.acct_detail.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.send_ws_msg("on_acct_detail",json.loads(self.acct_detail.json()))
+
+        @topic_handler.register(MsgType.ON_ACCT_INFO)
+        def on_acct_info(data:AcctInfo):
+            self.acct_info=data
+            self.acct_detail.acct_info = data
+            self.acct_detail.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.send_ws_msg("on_acct",json.loads(data.json()))
 
         @topic_handler.register(MsgType.ON_TICK)
         def on_tick(data:TickData):
             self.tick_map[data.symbol] = data
             data.localtime = datetime.datetime.now().strftime("%Y%m%d %H:%M:%S")
-            self.send_ws_msg("on_tick",data)
+            self.send_ws_msg("on_tick",json.loads(data.json()))
 
 
         @topic_handler.register(MsgType.ON_ORDER)
-        def on_order(data):
-            pass
+        def on_order(data:OrderData):
+            self.acct_detail.order_map[data.order_ref] = data
+            if data.deleted:
+                self.acct_detail.order_map.pop(data.order_ref,None)
+            
+            self.send_ws_msg("on_order",json.loads(data.json()))
+
+        @topic_handler.register(MsgType.ON_POSITIONS)
+        def on_positions(data:dict[str,Position]):
+            self.acct_detail.position_map=data
+            self.acct_detail.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            #self.send_ws_msg("on_positions",json.loads(self.acct_detail.json()))
 
         @topic_handler.register(MsgType.ON_POSITION)
-        def on_position(data):
-            self.acct_detail.positions = data
+        def on_position(data:Position):
+            self.acct_detail.position_map[data.id] = data
             self.acct_detail.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            pass
+            self.send_ws_msg("on_position",json.loads(data.json()))
+            log.info(f"on_position:{data}")
 
+        @topic_handler.register(MsgType.ON_TRADES)
+        def on_trades(data:dict[str,TradeData]):
+            # Update or add trade data
+            self.acct_detail.trade_map = data
+            self.acct_detail.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            #self.send_ws_msg("on_trades",json.loads(data.json()))
+            log.info(f"on_trades:{data}")
 
         @topic_handler.register(MsgType.ON_TRADE)
         def on_trade(data:TradeData):
             # Update or add trade data
-            found = False
-            for i, trade in enumerate(self.acct_detail.trades):
-                if trade.id == data.id:
-                    self.acct_detail.trades[i] = data
-                    found = True
-                    break
-            
-            if not found:
-                self.acct_detail.trades.append(data)
+            self.acct_detail.trade_map[data.id] = data
             self.acct_detail.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            pass
+            self.send_ws_msg("on_trade",json.loads(data.json()))
+            log.info(f"on_trade:{data}")
 
         return topic_handler

@@ -4,7 +4,10 @@ from .acct_inst import AcctInst
 from qts.log import get_logger    
 from config import get_setting
 from qts.model.object import  AcctConf,AcctInfo
+from qts.model.constant import EnumEncoder
 from fastapi import WebSocket
+import asyncio
+
 
 log = get_logger(__name__)
 
@@ -60,18 +63,32 @@ class AcctMgr(object):
 
     def get_acct_infos(self) -> List[AcctInfo]:
         list=[]
-        for acctId in self.acct_insts.keys():      
-            list.append(self.acct_insts[acctId].acct_info)
+        for acctId in self.acct_insts.keys(): 
+            inst = self.acct_insts[acctId]
+            #查询状态
+            inst.acct_info.status = inst.get_status()   
+            list.append(inst.acct_info)
         return list
     def get_acct_inst(self, acct_id) -> AcctInst:
         return self.acct_insts[acct_id]
     
+    def get_all_insts(self) -> List[AcctInst]:
+        return list(self.acct_insts.values())
+    
 
-    def _ws_push(self,msg):
+    def _ws_push(self,json_msg):
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            # 如果没有事件循环，创建一个新的
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
         for ws in self.active_websockets:
             try:
                 #ws.send_text(json.dumps(msg))
-                ws.send_json(msg)
-            except:
+                loop.run_until_complete(ws.send_json(json_msg))
+
+            except Exception as e:
+                log.error(f"ws push error:{e}")
                 self.active_websockets.remove(ws)
 

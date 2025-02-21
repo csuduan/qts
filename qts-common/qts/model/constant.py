@@ -1,11 +1,15 @@
 """
 General constant enums used in the trading platform.
 """
-
+import json
 from enum import Enum
 from qts.tcp.constants import MsgType
 
-
+class EnumEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Enum):
+            return obj.value  # 默认返回枚举的值
+        return super().default(obj)
 
 def _(str)->str:
     return str
@@ -14,20 +18,26 @@ class Direction(Enum):
     """
     Direction of order/trade/position.
     """
-    LONG = _("多")
-    SHORT = _("空")
-    NET = _("净")
+    BUY = _("BUY")
+    SELL = _("SELL")
 
+class PosDirection(Enum):
+    """
+    Direction of order/trade/position.
+    """
+    LONG = _("LONG")
+    SHORT = _("SHORT")
+    NET = _("NET")
 
 class Offset(Enum):
     """
     Offset of order/trade.
     """
     NONE = ""
-    OPEN = _("开")
-    CLOSE = _("平")
-    CLOSETODAY = _("平今")
-    CLOSEYESTERDAY = _("平昨")
+    OPEN = _("OPEN")
+    CLOSE = _("CLOSE")
+    CLOSETODAY = _("CLOSETODAY")
+    CLOSEYESTERDAY = _("CLOSEYESTERDAY")
 
 
 class Status(Enum):
@@ -64,9 +74,7 @@ class OrderType(Enum):
     """
     Order type.
     """
-    LIMIT = _("限价")
-    MARKET = _("市价")
-    STOP = "STOP"
+    NOR = "Nor"
     FAK = "FAK"
     FOK = "FOK"
     RFQ = _("询价")
@@ -136,7 +144,8 @@ class Exchange(Enum):
     IBKRATS = "IBKRATS"     # Paper Trading Exchange of IB
 
     # Special Function
-    LOCAL = "LOCAL"         # For local generated data
+    LOCAL = "LOCAL" 
+    NONE = ""        # For local generated data
 
 
 class Currency(Enum):

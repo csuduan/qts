@@ -1,18 +1,14 @@
 from datetime import datetime
 from dataclasses import dataclass,field
 from .constant import *
-from typing import List
+from typing import List,Dict
+from pydantic import BaseModel
 
 ACTIVE_STATUSES = set([Status.SUBMITTING, Status.NOTTRADED, Status.PARTTRADED])
 
 
-@dataclass
-class BaseData:
-    extra: dict = field(default=None, init=False)
 
-
-@dataclass
-class AcctConf():
+class AcctConf(BaseModel):
     id: str
     group: str
     name: str
@@ -28,18 +24,18 @@ class AcctConf():
     tcp_port: int = 6000
 
 
-@dataclass
-class AcctInfo():
+class AcctInfo(BaseModel):
     id: str
     group: str
     name: str
     enable: bool = False
+    status: bool = True  #账户状态
 
     conf: AcctConf = None
 
     trading_day: str = None
-    td_status: str = False
-    md_status: str = False
+    td_status: bool = False
+    md_status: bool = False
     balance: float = 0
     frozen: float = 0
     margin_rate: float = 0
@@ -48,23 +44,21 @@ class AcctInfo():
     close_profit: float = 0
 
 
-    
-    def __post_init__(self) -> None:
-        self.available: float = self.balance - self.frozen
 
 
-@dataclass
-class Position():
-    id: str
+
+#@dataclass
+class Position(BaseModel):
+    id: str  #symbol-direction
     symbol: str
     exchange: Exchange
-    direction: Direction
+    direction: PosDirection
 
     volume: int = 0
     yd_volume: int = 0
     td_volume: int =0
     yestday_volume: int =0  #昨日持仓量
-    frozen: int = 0
+    frozen: int = 0  #>0开仓冻结，<0平仓冻结
     available: int = 0
 
 
@@ -79,24 +73,20 @@ class Position():
 
 
 
-    def __post_init__(self) -> None:
-        """"""
-        self.std_symbol: str = f"{self.symbol}.{self.exchange.value}"
-        self.id: str = f"{self.std_symbol}-{self.direction.value}"
 
-
-@dataclass
-class TradeData():
+class TradeData(BaseModel):
     id: str
     symbol: str
     exchange: Exchange
+    trading_day: str
 
     direction: Direction = None
     offset: Offset = Offset.NONE
     price: float = 0
-    volume: float = 0
-    time: datetime = None
+    volume: int = 0
+    time: str = None
     order_ref: str = None
+    fee: float = 0
 
 
     def __post_init__(self) -> None:
@@ -105,29 +95,40 @@ class TradeData():
 
 
 
-@dataclass
-class OrderData():
+class OrderData(BaseModel):
+    #两张组合ExchangeID + OrderSysID，FrontID + SessionID + OrderRef
     order_ref: str
     symbol: str
     exchange: Exchange
     order_sys_id: str
 
-    type: OrderType = OrderType.LIMIT
-    direction: Direction = None
+    type: OrderType = OrderType.NOR
+    direction: Direction = Direction.BUY
     offset: Offset = Offset.NONE
     price: float = 0
-    volume: float = 0
-    traded: float = 0
+    volume: int = 0
+    traded: int = 0
     status: Status = Status.SUBMITTING
-    time: datetime = None
+    status_msg: str = ""
+    trading_day: str = None
+    time: str = None
 
-    def __post_init__(self) -> None:
+    updatetimes: datetime = None
+    deleted: bool = False
+
+    def get_std_symbol(self) -> None:
         """"""
-        self.vt_symbol: str = f"{self.symbol}.{self.exchange.value}"
+        return f"{self.symbol}.{self.exchange.value}"
+
+    def is_active(self) -> bool:
+        """
+        Check if the order is active.
+        """
+        return self.status in ACTIVE_STATUSES
 
 
-@dataclass
-class TickData(BaseData):
+#@dataclass
+class TickData(BaseModel):
     """
     Tick data contains information about:
         * last trade in market
@@ -177,15 +178,16 @@ class TickData(BaseData):
     ask_volume_4: float = 0
     ask_volume_5: float = 0
 
-    localtime: datetime = None
+    localtime: str = None
 
     def __post_init__(self) -> None:
         """"""
         self.std_symbol: str = f"{self.symbol}.{self.exchange.value}"
 
 
-@dataclass
-class BarData(BaseData):
+
+
+class BarData(BaseModel):
     """
     Candlestick bar data of a certain trading period.
     """
@@ -214,8 +216,19 @@ class BarData(BaseData):
         return self.status in ACTIVE_STATUSES
     
 
-@dataclass
-class ContractData(BaseData):
+class ProductData(BaseModel):
+    """
+    Product data contains basic information about each product traded.
+    """
+
+    name: str
+    product: Product
+    exchange: Exchange
+
+    multiple: int
+    pricetick: float
+#@dataclass
+class ContractData(BaseModel):
     """
     Contract data contains basic information about each contract traded.
     """
@@ -244,7 +257,50 @@ class ContractData(BaseData):
         """"""
         self.vt_symbol: str = f"{self.symbol}.{self.exchange.value}"
 
-@dataclass
-class StatusData():
+class StatusData(BaseModel):
     type:str
     status:bool
+    trading_day:str = None
+    order_ref:int = 0
+
+
+class OrderCancel(BaseModel):
+    order_ref: str
+    symbol: str
+    exchange: Exchange
+
+class OrderRequest(BaseModel):
+    symbol: str
+    exchange: Exchange = Exchange.NONE
+    offset: Offset = Offset.OPEN
+    direction: Direction = Direction.BUY
+    type: OrderType = OrderType.NOR
+    volume: float = 0
+    price: float = 0
+
+class SubscribeRequest(BaseModel):
+    symbol: str
+    exchange: Exchange = Exchange.NONE
+
+class AccountData(BaseModel):
+    """
+    Account data contains information about balance, frozen and
+    available.
+    """
+    accountid: str
+    balance: float = 0
+    available: float = 0
+    frozen: float = 0
+
+    margin_rate: float = 0
+    hold_profit: float = 0
+    close_profit: float = 0
+
+class AcctDetail(BaseModel):
+    acct_info: AcctInfo
+    position_map: Dict[str,Position] = {}
+    trade_map: Dict[str,TradeData] = {}
+    order_map: Dict[str,OrderData] = {} #挂单队列
+    tick_map: Dict[str,TickData] = {}
+    contracts_map: Dict[str, ContractData] = {}
+    timestamp: str = ""

@@ -1,12 +1,12 @@
 from core.event.event import EventEngine
-from model.object import AcctConf,AcctInfo
+from qts.model.object import AcctDetail
 from .base_gateway import BaseGateway
 from .ctp.ctp_gateway import  CtpGateway
 
 
-def create_gateway(type:str,event_engine: EventEngine, acct_info :AcctInfo) -> BaseGateway:
+def create_gateway(type:str, acct_detail: AcctDetail ) -> BaseGateway:
     """创建接口"""
     if type == "ctp":
-        return CtpGateway(event_engine,acct_info)
+        return CtpGateway(acct_detail)
     else:
         return None

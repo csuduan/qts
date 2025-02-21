@@ -4,7 +4,7 @@
       "id": "DQ",
       "group": "测试",
       "name": "SIM-DQ",
-      "enable": false,
+      "enable": true,
       "user": "048997|csuduan@2024",
       "broker":"9999",
       "auth":"simnow_client_test:0000000000000000",

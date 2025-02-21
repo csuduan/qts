@@ -1,269 +1,158 @@
 import os
 import pickle
 import datetime
+import threading
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Callable
 from copy import copy
 
-from core.event.event import Event, EventEngine, EventType
+from core.event.event import Event
 from config import get_setting
 
-from model.object import (
-    StatusData,
-    TickData,
-    OrderData,
-    TradeData,
-    Position,
-    AccountData,
-    ContractData,
-    LogData,
-    QuoteData,
-    OrderRequest,
-    CancelRequest,
-    SubscribeRequest,
-    HistoryRequest,
-    QuoteRequest,
-    Exchange,
-    BarData
-)
-from model.object import AcctInfo
+from qts.model.constant import *
+from qts.model.object import *
+from qts.model.message import MsgType
+from core.event import event_engine
+from .utils import get_pos_direction
+
+from qts.log import get_logger
+log = get_logger(__name__)
 
 
-class BaseGateway(ABC):
-    """
-    Abstract gateway class for creating gateways connection
-    to different trading systems.
-
-    # How to implement a gateway:
-
-    ---
-    ## Basics
-    A gateway should satisfies:
-    * this class should be thread-safe:
-        * all methods should be thread-safe
-        * no mutable shared properties between objects.
-    * all methods should be non-blocked
-    * satisfies all requirements written in docstring for every method and callbacks.
-    * automatically reconnect if connection lost.
-
-    ---
-    ## methods must implements:
-    all @abstractmethod
-
-    ---
-    ## callbacks must response manually:
-    * on_tick
-    * on_trade
-    * on_order
-    * on_position
-    * on_account
-    * on_contract
-
-    All the XxxData passed to callback should be constant, which means that
-        the object should not be modified after passing to on_xxxx.
-    So if you use a cache to store reference of data, use copy.copy to create a new object
-    before passing that data into on_xxxx
-
-    """
-
+class BaseGateway(ABC):   
     # Default name for the gateway.
     default_name: str = ""
-
     # Exchanges supported in the gateway.
     exchanges: List[Exchange] = []
 
-    def __init__(self, event_engine: EventEngine, acct_info: AcctInfo) -> None:
-        """"""
-        self.event_engine: EventEngine = event_engine
-        self.acct_info: AcctInfo = acct_info
-        self.gateway_name: str = acct_info.id
-        self.contracts_map: dict[str, ContractData] = {}
+    def __init__(self, acct_detail: AcctDetail) -> None:
+        self.acct_detail: AcctDetail = acct_detail
+        self.gateway_name: str = self.acct_detail.acct_info.id
+        self.order_ref:int = 1
         self.__load_cache()
 
 
-    def on_event(self, type: EventType, data: Any = None) -> None:
-        """
-        General event push.
-        """
+    def trig_event(self, type: MsgType, data: Any = None) -> None:
         event: Event = Event(type, data)
-        self.event_engine.put(event)
+        event_engine.put(event)
+
+    def on_ready(self) -> None:
+        self.trig_event(MsgType.ON_READY,self.acct_detail)
 
     def on_status(self,status:StatusData) -> None:
-        """
-        Status event push.
-        """
         if status.type == "td":
-            self.acct_info.td_status = status.status
+            self.acct_detail.acct_info.td_status = status.status
         elif status.type == "md":
-            self.acct_info.md_status = status.status
-        self.on_event(EventType.EVENT_STATUS, status)
+            self.acct_detail.acct_info.md_status = status.status
+        if status.trading_day is not None:
+            self.acct_detail.acct_info.trading_day = status.trading_day
+        if status.order_ref >0  :
+            self.order_ref = status.order_ref
+        self.trig_event(MsgType.ON_ACCT_INFO, self.acct_detail.acct_info)
 
     def on_tick(self, tick: TickData) -> None:
-        """
-        Tick event push.
-        Tick event of a specific vt_symbol is also pushed.
-        """
-        self.on_event(EventType.EVENT_TICK, tick)
+        self.acct_detail.tick_map[tick.symbol] = tick
+        self.trig_event(MsgType.ON_TICK, tick)
 
     def on_trade(self, trade: TradeData) -> None:
-        """
-        Trade event push.
-        Trade event of a specific vt_symbol is also pushed.
-        """
-        self.on_event(EventType.EVENT_TRADE, trade)
+        #需要根据trade.symbol 找到对应的position，然后更新position的持仓
+        self.acct_detail.trade_map[trade.id] = trade
+        pos :Position = self.get_position(trade.symbol,trade.offset,trade.direction,trade.exchange)
+        #更新持仓
+        if pos.frozen !=0:
+            #解除冻结
+            pos.frozen -= trade.volume if trade.offset == Offset.OPEN else -trade.volume
+        #更新持仓
+        if trade.offset == Offset.OPEN:
+            pos.td_volume += trade.volume
+            pos.volume += trade.volume
+        elif trade.offset == Offset.CLOSETODAY:
+            pos.td_volume -= trade.volume
+            pos.volume -= trade.volume
+        else:
+            #优先平昨
+            yd = min(trade.volume,pos.yd_volume)
+            td = trade.volume - yd
+            pos.yd_volume -= yd
+            pos.td_volume -= td
+            pos.volume -= trade.volume
+
+        log.info(f"成交回报: {trade.order_ref} {trade.symbol} {trade.offset.value}  {trade.direction.value} {trade.volume}  trade_id:{trade.id}")           
+        self.trig_event(MsgType.ON_TRADE, trade)
+        self.trig_event(MsgType.ON_POSITION,pos)
 
     def on_order(self, order: OrderData) -> None:
-        """
-        Order event push.
-        Order event of a specific vt_orderid is also pushed.
-        """
-        self.on_event(EventType.EVENT_ORDER, order)
+        #暂不处理非本应用发起的报单回报
+        if order.order_ref not in self.acct_detail.order_map:
+            return
 
-    def on_positions(self, positions: List[Position]) -> None:
-        """
-        Position event push.
-        Position event of a specific vt_symbol is also pushed.
-        """
-        self.on_event(EventType.EVENT_POSITIONS, positions)
+        if order.status == Status.CANCELLED:
+            pos = self.get_position(order.symbol,order.offset,order.direction,order.exchange)
+            #解除冻结
+            untraded = order.volume-order.traded
+            pos.frozen -= untraded if order.offset == Offset.OPEN else -untraded
+        if not order.is_active():
+            order.deleted = True
+            self.acct_detail.order_map.pop(order.order_ref,None)
+
+        log.info(f"报单回报: {order.order_ref} {order.symbol} {order.offset.value}  {order.direction.value} {order.traded}/{order.volume}  {order.status_msg} sys_id:{order.order_sys_id}")           
+        self.trig_event(MsgType.ON_ORDER, order)
+
+    def on_positions(self, positions:dict[str,Position]) -> None:
+        self.acct_detail.position_map.clear()
+        self.acct_detail.position_map.update(positions)
+        self.trig_event(MsgType.ON_POSITIONS, positions)
+
+    def on_trades(self, trades: List[TradeData]) -> None:
+        self.acct_detail.trade_map.clear()
+        for trade in trades:
+            self.acct_detail.trade_map[trade.id] = trade
+        self.trig_event(MsgType.ON_TRADES, trades)
     
 
     def on_account(self, account: AccountData) -> None:
-        """
-        Account event push.
-        Account event of a specific vt_accountid is also pushed.
-        """
-        self.acct_info.balance = account.balance
-        self.acct_info.frozen = account.frozen
-        #self.acct_info.available = account.available
-        self.on_event(EventType.EVENT_ACCOUNT, account)
+        self.acct_detail.acct_info.balance = account.balance
+        self.acct_detail.acct_info.frozen = account.frozen
+        self.trig_event(MsgType.ON_ACCT_INFO, account)
 
-    def on_quote(self, quote: QuoteData) -> None:
-        """
-        Quote event push.
-        Quote event of a specific vt_symbol is also pushed.
-        """
-        self.on_event(EventType.EVENT_QUOTE, quote)
-
-    def on_contract(self, contracts: List[ContractData]) -> None:
-        """
-        Contract event push.
-        """
-        self.on_event(EventType.EVENT_CONTRACT, contracts)
+    def on_contracts(self, contracts: dict[str,ContractData]) -> None:
+        self.acct_detail.contracts_map.update(contracts)
+        self.trig_event(MsgType.ON_CONTRACTS, contracts)
         self.__write_cache()
 
     @abstractmethod
     def connect(self) -> None:
-        """
-        Start gateway connection.
-
-        to implement this method, you must:
-        * connect to server if necessary
-        * log connected if all necessary connection is established
-        * do the following query and response corresponding on_xxxx and write_log
-            * contracts : on_contract
-            * account asset : on_account
-            * account holding: on_position
-            * orders of account: on_order
-            * trades of account: on_trade
-        * if any of query above is failed,  write log.
-
-        future plan:
-        response callback/change status instead of write_log
-
-        """
         pass
 
     @abstractmethod
     def disconnect(self) -> None:
-        """
-        Close gateway connection.
-        """
         pass
 
     @abstractmethod
     def subscribe(self, req: SubscribeRequest) -> None:
-        """
-        Subscribe tick data update.
-        """
         pass
 
     @abstractmethod
-    def send_order(self, req: OrderRequest) -> str:
-        """
-        Send a new order to server.
-
-        implementation should finish the tasks blow:
-        * create an OrderData from req using OrderRequest.create_order_data
-        * assign a unique(gateway instance scope) id to OrderData.orderid
-        * send request to server
-            * if request is sent, OrderData.status should be set to Status.SUBMITTING
-            * if request is failed to sent, OrderData.status should be set to Status.REJECTED
-        * response on_order:
-        * return vt_orderid
-
-        :return str vt_orderid for created OrderData
-        """
+    def create_order(self,req: OrderRequest) -> OrderData:
         pass
 
     @abstractmethod
-    def cancel_order(self, req: CancelRequest) -> None:
-        """
-        Cancel an existing order.
-        implementation should finish the tasks blow:
-        * send request to server
-        """
-        pass
-
-    def send_quote(self, req: QuoteRequest) -> str:
-        """
-        Send a new two-sided quote to server.
-
-        implementation should finish the tasks blow:
-        * create an QuoteData from req using QuoteRequest.create_quote_data
-        * assign a unique(gateway instance scope) id to QuoteData.quoteid
-        * send request to server
-            * if request is sent, QuoteData.status should be set to Status.SUBMITTING
-            * if request is failed to sent, QuoteData.status should be set to Status.REJECTED
-        * response on_quote:
-        * return vt_quoteid
-
-        :return str vt_quoteid for created QuoteData
-        """
-        return ""
-
-    def cancel_quote(self, req: CancelRequest) -> None:
-        """
-        Cancel an existing quote.
-        implementation should finish the tasks blow:
-        * send request to server
-        """
+    def send_order(self, req: OrderData) -> str:
         pass
 
     @abstractmethod
-    def query_account(self) -> None:
-        """
-        Query account balance.
-        """
+    def cancel_order(self, req: OrderCancel) -> None:
         pass
 
-    @abstractmethod
-    def query_position(self) -> None:
-        """
-        Query holding positions.
-        """
-        pass
-
-    def query_history(self, req: HistoryRequest) -> List[BarData]:
-        """
-        Query bar history data.
-        """
-        pass
 
     def get_default_setting(self) -> Dict[str, Any]:
-        """
-        Return default setting dict.
-        """
         return self.default_setting
+    
+    def get_contract(self, symbol: str) -> ContractData:
+        return self.acct_detail.contracts_map.get(symbol, None)
+    
+    def get_contracts_map(self) -> Dict[str, ContractData]:
+        return self.acct_detail.contracts_map
 
     def __load_cache(self):
         #加载合约缓存
@@ -274,138 +163,35 @@ class BaseGateway(ABC):
                 data = pickle.load(f)
                 contracts_map: dict[str, ContractData] = data['contracts']
                 contracts_date: str = data['date']
-                if contracts_date == datetime.date.today() and contracts_map is not None:
+                if contracts_date == datetime.today().date() and contracts_map is not None:
                     # 当日缓存过合约不信，则直接加载
-                    self.contracts_map.clear()
-                    self.contracts_map.update(contracts_map)
+                    self.acct_detail.contracts_map.clear()
+                    self.acct_detail.contracts_map.update(contracts_map)
     
     def __write_cache(self):
         data_path = get_setting('data_path')
         contracts_path = os.path.join(data_path, 'contracts.pkl')
         with open(contracts_path, 'wb') as f:
-            pickle.dump({'contracts': self.contracts_map, 'date': datetime.date.today()}, f)
+            pickle.dump({'contracts': self.acct_detail.contracts_map, 'date': datetime.today().date()}, f)
 
-class LocalOrderManager:
-    """
-    Management tool to support use local order id for trading.
-    """
-
-    def __init__(self, gateway: BaseGateway, order_prefix: str = "") -> None:
-        """"""
-        self.gateway: BaseGateway = gateway
-
-        # For generating local orderid
-        self.order_prefix: str = order_prefix
-        self.order_count: int = 0
-        self.orders: Dict[str, OrderData] = {}  # local_orderid: order
-
-        # Map between local and system orderid
-        self.local_sys_orderid_map: Dict[str, str] = {}
-        self.sys_local_orderid_map: Dict[str, str] = {}
-
-        # Push order data buf
-        self.push_data_buf: Dict[str, Dict] = {}  # sys_orderid: data
-
-        # Callback for processing push order data
-        self.push_data_callback: Callable = None
-
-        # Cancel request buf
-        self.cancel_request_buf: Dict[str, CancelRequest] = {}  # local_orderid: req
-
-        # Hook cancel order function
-        self._cancel_order: Callable = gateway.cancel_order
-        gateway.cancel_order = self.cancel_order
-
-    def new_local_orderid(self) -> str:
+    def get_position(self,symbol:str,offset:Offset,direction:Direction,exchange:Exchange) -> Position:
+        """获取持仓"""
+        pos_direction = get_pos_direction(offset,direction)
+        pos_id = f"{symbol}-{pos_direction.value}"
+        if pos_id not in self.acct_detail.position_map:
+            self.acct_detail.position_map[pos_id] = Position(id=pos_id,symbol=symbol,direction=pos_direction,exchange=exchange)
+        return self.acct_detail.position_map[pos_id]
+    
+    def next_order_ref(self) -> int:
         """
-        Generate a new local orderid.
+        线程安全地获取下一个order_ref
         """
-        self.order_count += 1
-        local_orderid: str = self.order_prefix + str(self.order_count).rjust(8, "0")
-        return local_orderid
+        with threading.Lock():
+            self.order_ref += 1
+            return self.order_ref
+    
 
-    def get_local_orderid(self, sys_orderid: str) -> str:
-        """
-        Get local orderid with sys orderid.
-        """
-        local_orderid: str = self.sys_local_orderid_map.get(sys_orderid, "")
 
-        if not local_orderid:
-            local_orderid = self.new_local_orderid()
-            self.update_orderid_map(local_orderid, sys_orderid)
-
-        return local_orderid
-
-    def get_sys_orderid(self, local_orderid: str) -> str:
-        """
-        Get sys orderid with local orderid.
-        """
-        sys_orderid: str = self.local_sys_orderid_map.get(local_orderid, "")
-        return sys_orderid
-
-    def update_orderid_map(self, local_orderid: str, sys_orderid: str) -> None:
-        """
-        Update orderid map.
-        """
-        self.sys_local_orderid_map[sys_orderid] = local_orderid
-        self.local_sys_orderid_map[local_orderid] = sys_orderid
-
-        self.check_cancel_request(local_orderid)
-        self.check_push_data(sys_orderid)
-
-    def check_push_data(self, sys_orderid: str) -> None:
-        """
-        Check if any order push data waiting.
-        """
-        if sys_orderid not in self.push_data_buf:
-            return
-
-        data: dict = self.push_data_buf.pop(sys_orderid)
-        if self.push_data_callback:
-            self.push_data_callback(data)
-
-    def add_push_data(self, sys_orderid: str, data: dict) -> None:
-        """
-        Add push data into buf.
-        """
-        self.push_data_buf[sys_orderid] = data
-
-    def get_order_with_sys_orderid(self, sys_orderid: str) -> Optional[OrderData]:
-        """"""
-        local_orderid: str = self.sys_local_orderid_map.get(sys_orderid, None)
-        if not local_orderid:
-            return None
-        else:
-            return self.get_order_with_local_orderid(local_orderid)
-
-    def get_order_with_local_orderid(self, local_orderid: str) -> OrderData:
-        """"""
-        order: OrderData = self.orders[local_orderid]
-        return copy(order)
-
-    def on_order(self, order: OrderData) -> None:
-        """
-        Keep an order buf before pushing it to gateway.
-        """
-        self.orders[order.orderid] = copy(order)
-        self.gateway.on_order(order)
-
-    def cancel_order(self, req: CancelRequest) -> None:
-        """"""
-        sys_orderid: str = self.get_sys_orderid(req.orderid)
-        if not sys_orderid:
-            self.cancel_request_buf[req.orderid] = req
-            return
-
-        self._cancel_order(req)
-
-    def check_cancel_request(self, local_orderid: str) -> None:
-        """"""
-        if local_orderid not in self.cancel_request_buf:
-            return
-
-        req: CancelRequest = self.cancel_request_buf.pop(local_orderid)
-        self.gateway.cancel_order(req)
 
 
     

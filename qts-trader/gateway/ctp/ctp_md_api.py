@@ -7,13 +7,14 @@ from time import sleep
 from typing import Dict
 
 from config import get_setting
-from qts.log import logger_utils
+from qts.model.object import *
+from qts.model.constant import *
+from qts.log import get_logger
 
 from ..base_gateway import BaseGateway
-from model.object import AcctInfo, SubscribeRequest,ContractData,Exchange,TickData,StatusData
 from .lib import *
 
-log = logger_utils.get_logger(__name__)
+log = get_logger(__name__)
 
 
 class CtpMdApi(CThostFtdcMdSpi):
@@ -24,7 +25,7 @@ class CtpMdApi(CThostFtdcMdSpi):
         super().__init__()
 
         self.gateway: BaseGateway = gateway
-        self.acct_info: AcctInfo= gateway.acct_info
+        self.acct_conf: AcctConf= gateway.acct_detail.acct_info.conf
         self.gateway_name: str = gateway.gateway_name
 
         self.reqid: int = 0
@@ -33,7 +34,7 @@ class CtpMdApi(CThostFtdcMdSpi):
         self.login_status: bool = False
         self.subscribed: set = set()
 
-        __,self.address = self.acct_info.conf.md_addr.split('|')
+        __,self.address = self.acct_conf.md_addr.split('|')
 
         self.current_date: str = datetime.now().strftime("%Y%m%d")
 
@@ -95,7 +96,7 @@ class CtpMdApi(CThostFtdcMdSpi):
 
         # 过滤还没有收到合约数据前的行情推送
         symbol: str = data.InstrumentID
-        contract: ContractData = self.gateway.contracts_map.get(symbol, None)
+        contract: ContractData = self.gateway.get_contract(symbol)
         if not contract:
             return
 

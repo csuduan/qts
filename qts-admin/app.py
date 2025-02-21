@@ -32,6 +32,10 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         # Send initial connection message
         await websocket.send_json({"type": "on_connect"})
+
+        # 发送初始账户信息
+        for inst in acct_mgr.get_all_insts():
+            await websocket.send_json({"type": "on_acct_detail","acct_id":inst.acct_id, "data": json.loads(inst.acct_detail.json())})
         
         while True:
             data = await websocket.receive_text()

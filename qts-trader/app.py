@@ -8,8 +8,7 @@ from qts.log import logger_utils
 
 from core.acct_inst import AcctInst
 from core.admin_engine import admin_engine
-from model.object import  ContractData
-from model.object import AcctConf
+from qts.model.object import  ContractData,AcctConf
 from qts.tcp.server import TcpServer
 
 

@@ -129,7 +129,8 @@ class Connection:
             log.info(f"Conn[{self._conn_type.name}] connected to {self._host}:{self._port}")
             
         except Exception as e:
-            log.error(f"Connect error: {e}")
+            if self._connected:
+                log.error(f"Connect error: {e}")
             self._disconnect()
     
     def _disconnect(self):

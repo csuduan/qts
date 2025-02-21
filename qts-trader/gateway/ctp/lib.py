@@ -2,14 +2,14 @@ import sys
 from openctp_ctp.thosttraderapi import *
 from openctp_ctp.thostmduserapi import *
 from zoneinfo import ZoneInfo
-
-from model.object import AcctInfo
-from model.object import (
-    ContractData,
-)
-
-from model.constant import (
+ 
+from qts.model.object import (
+        ContractData,
+        AcctInfo
+    )
+from qts.model.constant import (
     Direction,
+    PosDirection,
     Offset,
     Exchange,
     OrderType,
@@ -17,8 +17,6 @@ from model.constant import (
     Status,
     OptionType
 )
-from model.object import ContractData
-
 STATUS_CTP2VT = {
     THOST_FTDC_OAS_Submitted: Status.SUBMITTING,
     THOST_FTDC_OAS_Accepted: Status.SUBMITTING,
@@ -30,19 +28,19 @@ STATUS_CTP2VT = {
 }
 
 DIRECTION_VT2CTP = {
-    Direction.LONG: THOST_FTDC_D_Buy,
-    Direction.SHORT: THOST_FTDC_D_Sell
+    Direction.BUY: THOST_FTDC_D_Buy,
+    Direction.SELL: THOST_FTDC_D_Sell
 }
 
 DIRECTION_CTP2VT = {v: k for k, v in DIRECTION_VT2CTP.items()}
-DIRECTION_CTP2VT[THOST_FTDC_PD_Long] = Direction.LONG
-DIRECTION_CTP2VT[THOST_FTDC_PD_Short] = Direction.SHORT
 
-ORDERTYPE_VT2CTP = {
-    OrderType.LIMIT: THOST_FTDC_OPT_LimitPrice,
-    OrderType.MARKET: THOST_FTDC_OPT_AnyPrice,
-}
-ORDERTYPE_CTP2VT = {v: k for k, v in ORDERTYPE_VT2CTP.items()}
+POS_DIRECTION_VT2CTP = {
+    PosDirection.LONG: THOST_FTDC_PD_Long,
+    PosDirection.SHORT: THOST_FTDC_PD_Short
+}   
+POS_DIRECTION_CTP2VT = {v: k for k, v in POS_DIRECTION_VT2CTP.items()}
+
+
 
 OFFSET_VT2CTP = {
     Offset.OPEN: THOST_FTDC_OF_Open,
@@ -78,3 +76,5 @@ OPTIONTYPE_CTP2VT: dict[str, OptionType] = {
     THOST_FTDC_CP_CallOptions: OptionType.CALL,
     THOST_FTDC_CP_PutOptions: OptionType.PUT
 }
+
+

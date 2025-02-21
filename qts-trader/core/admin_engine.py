@@ -3,7 +3,7 @@ from core.acct_inst import AcctInst
 from qts.log import logger_utils
 from qts.tcp.server import TcpServer
 from qts.model.message import MsgType,MsgHandler,Message
-from qts.model.object import Position, TradeData, OrderData,AcctInfo,TickData
+from qts.model.object import Position, TradeData, OrderData,AcctInfo,TickData,SubscribeRequest,OrderRequest
 
 from enum import Enum
 from typing import TypeVar, Callable,List
@@ -42,41 +42,55 @@ class AdminHandler:
             self.acct_inst.gateway.disconnect()
             return True
         
+        @msg_handler.register(MsgType.SUBSCRIBE)
+        def handle_subscribe(req) -> bool:
+            symbol = req.get("symbol")
+            sub_req = SubscribeRequest(symbol=symbol)
+            self.acct_inst.gateway.subscribe(sub_req)
+            return True
+        
         @msg_handler.register(MsgType.GET_ACCT_INFO)
         def get_acct_info(req) -> AcctInfo:
             acct_info = self.acct_inst.acct_info
             return acct_info
+        
+        @msg_handler.register(MsgType.GET_ACCT_DETAIL)
+        def get_acct_detail(req) -> AcctInfo:
+            acct_info = self.acct_inst.acct_detail
+            return acct_info
 
         @msg_handler.register(MsgType.GET_POSITIONS)
         def get_positions(req) -> List[Position]:
-            positions = list(self.acct_inst.position_map.values())
+            positions = list(self.acct_inst.acct_detail.position_map.values())
             return positions
 
 
         @msg_handler.register(MsgType.GET_TRADES)
         def get_trades(req) -> List[TradeData]:
-            trades = list(self.acct_inst.trade_map.values())
+            trades = list(self.acct_inst.acct_detail.trade_map.values())
             return trades
 
 
         @msg_handler.register(MsgType.GET_ORDERS)
         def get_orders(req) -> List[OrderData]:
-            orders = list(self.acct_inst.order_map.values())
+            orders = list(self.acct_inst.acct_detail.order_map.values())
             return orders
 
         @msg_handler.register(MsgType.GET_QUOTES)
         def get_quotes(req) -> List[TickData]:
-            quotes = list(self.acct_inst.quote_map.values())
+            quotes = list(self.acct_inst.acct_detail.quote_map.values())
             return quotes
 
         @msg_handler.register(MsgType.SEND_ORDER)
-        def send_order(req) -> bool:
-            pass
+        def insert_order(req:OrderRequest) -> bool:
+            order = self.acct_inst.gateway.create_order(req)
+            self.acct_inst.gateway.send_order(order)
+            return True
 
 
         @msg_handler.register(MsgType.CANCEL_ORDER)
         def cancel_order(req) -> bool:
-            pass
+            return True
 
         return msg_handler
 
@@ -101,6 +115,6 @@ class AdminEngine:
 
     def _on_new_client(self):
         #每次有新客户端连接，则主动一次就绪消息
-        self.acct_inst.push_msg(MsgType.ON_READY,{})
+        self.acct_inst.push_msg(MsgType.ON_CONNECTED,{})
           
 admin_engine = AdminEngine()

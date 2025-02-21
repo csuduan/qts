@@ -7,19 +7,7 @@ from time import sleep
 
 import asyncio
 
-
-class EventType(Enum):
-    EVENT_STATUS= "e_status"
-    EVENT_TICK = "e_tick"
-    EVENT_TRADE = "e_trade"
-    EVENT_ORDER = "e_order"
-    EVENT_POSITIONS = "e_positions"
-    EVENT_ACCOUNT = "e_account"
-    EVENT_QUOTE = "e_quote"
-    EVENT_CONTRACT = "e_contract"
-    EVENT_LOG = "e_log"
-
-
+from qts.model.message import MsgType
 class Event:
     """
     Event object consists of a type string which is used
@@ -27,34 +15,14 @@ class Event:
     object which contains the real data.
     """
 
-    def __init__(self, type: EventType, data: Any = None) -> None:
+    def __init__(self, type: MsgType, data: Any = None) -> None:
         """"""
-        self.type: EventType = type
+        self.type: MsgType = type
         self.data: Any = data
 
 
-HandlerType: callable = Callable[[Event], None]
+HandlerType = Callable[[Event], None]
 
-
-# class EventManager:
-#     def __init__(self):
-#         self._events: Dict[str, List[Callable[..., asyncio.Future]]] = {}
-#
-#     def subscribe(self, event_type: str, handler: Callable[..., asyncio.Future]):
-#         if event_type not in self._events:
-#             self._events[event_type] = []
-#         self._events[event_type].append(handler)
-#
-#     def unsubscribe(self, event_type: str, handler: Callable[..., asyncio.Future]):
-#         if event_type in self._events:
-#             self._events[event_type].remove(handler)
-#             if not self._events[event_type]:
-#                 del self._events[event_type]
-#
-#     async def dispatch(self, event: Event):
-#         if event.type in self._events:
-#             for handler in self._events[event.type]:
-#                 await handler(event.data)
 class EventEngine:
     """
     Event engine distributes event object based on its type
@@ -117,7 +85,7 @@ class EventEngine:
         """
         self._queue.put(event)
 
-    def register(self, type: EventType, handler: HandlerType) -> None:
+    def register(self, type: MsgType, handler: HandlerType ) -> None:
         """
         Register a new handler function for a specific event type. Every
         function can only be registered once for each event type.
@@ -126,7 +94,7 @@ class EventEngine:
         if handler not in handler_list:
             handler_list.append(handler)
 
-    def unregister(self, type: str, handler: HandlerType) -> None:
+    def unregister(self, type: str, handler: HandlerType ) -> None:
         """
         Unregister an existing handler function from event engine.
         """

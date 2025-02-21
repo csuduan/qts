@@ -38,10 +38,8 @@ class TcpClient:
         self._push_conn = Connection(self._host, self._port, self._handle_push_message,ConnType.PSH)
         self._push_conn.start()
         
- 
-
-        
         log.info("Client started with dual connections")
+
 
     def stop(self):
         """Stop both connections"""
@@ -49,6 +47,9 @@ class TcpClient:
             self._req_conn.stop()
         if self._push_conn:
             self._push_conn.stop()
+    
+    def is_connected(self):
+        return self._req_conn.is_connected() and self._push_conn.is_connected()
 
     def request(self, req: Any, timeout: float = REQUEST_TIMEOUT) -> Any:
         """Send request and wait for response using request connection"""
@@ -57,10 +58,10 @@ class TcpClient:
         
         try:
             rsp = self._req_conn.send_request(MsgType.REQUEST, req, timeout)
-            log.info(f"Request: {req} response: {rsp}")
+            log.info(f"request success!  : {req}")
             return rsp
         except Exception as e:
-            log.error(f"Request failed: {e}")
+            log.error(f"Request failed: {e},req:{req}")
             raise
 
     def send(self, data: Any):

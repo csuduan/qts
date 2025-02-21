@@ -11,24 +11,31 @@ class MsgType(Enum):
     GET_TRADES = "get_trades"
     GET_ORDERS = "get_orders"
     GET_ACCT_INFO = "get_acct_info"
-    GET_QUOTES = "get_quotes"
     GET_ACCT_DETAIL = "get_acct_detail"
+    GET_QUOTES = "get_quotes"
     SEND_ORDER = "send_order"
     CANCEL_ORDER = "cancel_order"
+    SUBSCRIBE = "subscribe"
 
+    ON_CONNECTED = "on_connected"
+    ON_READY = "on_ready"
+    ON_STATUS = "on_status"
     ON_TICK = "on_tick"
     ON_LOG = "on_log"
     ON_ORDER = "on_order"
     ON_POSITION = "on_position"
+    ON_POSITIONS = "on_positions"
     ON_TRADE = "on_trade"
+    ON_TRADES = "on_trades"
     ON_ACCT_INFO = "on_acct_info"
-    ON_READY = "on_ready"
+    ON_CONTRACTS = "on_contracts"
     
 @dataclass
 class Message():
     type: MsgType
-    code: int = 0 ;
     data: any = None;
+    code: int = 0 ;
+
 
 R = TypeVar('R')  # 返回值类型
 A1 = TypeVar('A1')  # 第一个参数类型

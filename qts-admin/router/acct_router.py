@@ -4,8 +4,8 @@ from pydantic import BaseModel, Extra
 from common.resp import resp_success
 
 from core import acct_mgr
-from qts.model.object import Position,AcctOpType
-from model.constant import Exchange, Direction
+from qts.model.object import *
+from qts.model.constant import Exchange, Direction
 
 router = APIRouter(prefix='/v1/acct')
 
@@ -39,7 +39,7 @@ async def get_configs(acct_id: str):
 
 
 @router.get('/inst/list')
-async def get_acct_list():
+async def get_inst_list():
     '''
     返回账户实例列表
     :return:
@@ -89,7 +89,8 @@ async def get_acct_ticks(acct_id: str,timestamp: str):
     :return:
     '''
     ticks = acct_mgr.get_acct_inst(acct_id).get_quotes(timestamp)
-    return resp_success(ticks)
+    resp = resp_success(ticks)
+    return resp
 
 @router.get('/inst/trades')
 async def get_acct_trades(acct_id: str):
@@ -111,6 +112,22 @@ async def disconnect_acct(acct_id: str,op_type: AcctOpType):
         acct_inst.connect()
     elif op_type == AcctOpType.DISCONNECT:
         acct_inst.disconnect()
-
     return resp_success()
 
+@router.post('/inst/subscribe')
+async def sub_contract(data:dict):
+    acct_id = data.get('acct_id')
+    symbol = data.get('symbol')
+    acct_inst = acct_mgr.get_acct_inst(acct_id)
+    if not acct_inst:
+        raise Exception(f"账户实例不存在: {acct_id}")
+    acct_inst.subscribe(symbol)
+    return resp_success()
+
+@router.post('/inst/order')
+async def send_order(acct_id:str,data:OrderRequest):
+    acct_inst = acct_mgr.get_acct_inst(acct_id)
+    if not acct_inst:
+        raise Exception(f"账户实例不存在: {acct_id}")
+    acct_inst.send_order(data)
+    return resp_success()
