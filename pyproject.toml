@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "qts"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "cachetools",
+    "APScheduler",
+    "Flask-SocketIO",
+    "sqlalchemy",
+    "fastapi",
+    "fastapi-offline",
+    "nest_asyncio",
+    "gunicorn",
+    "psutil",
+    "qts",
+    "pyzmq==26.2.0.*"
+]
+
+[tool.setuptools]
+packages.find = {where = ["qts"]}
+
+[tool.poetry]
+name = "qts"
+version = "0.1.0"

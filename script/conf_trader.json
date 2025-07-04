@@ -1,0 +1,36 @@
+{
+  "app_name": "pytrader",
+  "api_path": "/opt/qts/api",
+  "data_path": "/opt/qts/data",
+  "log_path": "/opt/qts/log",
+  "acct_confs": [
+    {
+      "id": "DQ",
+      "group": "测试",
+      "name": "SIM-DQ",
+      "enable": false,
+      "user": "048997|csuduan@2024",
+      "broker":"9999",
+      "auth":"simnow_client_test:0000000000000000",
+      "td_addr": "CTP15|tcp://180.168.146.187:10201",
+      "md_addr": "CTP15|tcp://180.168.146.187:10211",
+      "req_address": "tcp://127.0.0.1:4001",
+      "pub_address": "tcp://127.0.0.1:5001",
+      "tcp_port": 6001
+    },
+    {
+      "id": "DQ24",
+      "group": "测试",
+      "name": "SIM-DQ-24",
+      "enable": true,
+      "user": "048997|csuduan@2024",
+      "broker":"9999",
+      "auth":"simnow_client_test:0000000000000000",
+      "td_addr": "CTP15|tcp://180.168.146.187:10130",
+      "md_addr": "CTP15|tcp://180.168.146.187:10131",
+      "req_address": "tcp://127.0.0.1:4002",
+      "pub_address": "tcp://127.0.0.1:5002",
+      "tcp_port": 6002
+    }
+  ]
+}
