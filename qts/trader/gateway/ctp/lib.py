@@ -3,11 +3,11 @@ from openctp_ctp.thosttraderapi import *
 from openctp_ctp.thostmduserapi import *
 from zoneinfo import ZoneInfo
  
-from qts.model.object import (
+from qts.common.model.object import (
         ContractData,
         AcctInfo
     )
-from qts.model.constant import (
+from qts.common.model.constant import (
     Direction,
     PosDirection,
     Offset,

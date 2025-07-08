@@ -6,7 +6,7 @@ from .ctp_md_api import CtpMdApi
 from ..base_gateway import BaseGateway
 from .lib import  *
 
-from core.event.event import EventEngine
+from qts.common.event import EventEngine
 
 from qts.common.model.object import *
 from qts.common.model.constant import *

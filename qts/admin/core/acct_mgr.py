@@ -6,6 +6,7 @@ from qts.common.config import config
 from qts.common.log import get_logger
 from qts.common.model.object import  AcctConf,AcctInfo
 from qts.common.model.constant import EnumEncoder
+from qts.common.dao import conf_dao
 from fastapi import WebSocket
 import asyncio
 
@@ -15,31 +16,23 @@ log = get_logger(__name__)
 '''
 账户管理器
 '''
-
-
-
 class AcctMgr(object):
     def __init__(self):
-        self.acct_configs = None
         self.acct_insts: Dict[str, AcctInst] = {}
         self.active_websockets: List[WebSocket] = []
 
 
     def start(self) :
         log.info("start acct mgr")
-        self.acct_configs = config.get_config("acct_list")
-        for acct_conf in self.acct_configs:
-            conf: AcctConf = AcctConf(**acct_conf)
-            self.create_acct_inst(conf)
-            if conf.enable:
-                self.start_inst(conf.id)
-        
-
-
-    def create_acct_inst(self, config):
+        acct_configs:List[AcctConf] = conf_dao.get_acct_configs()
+        for acct_conf in acct_configs:
+            self.create_inst(acct_conf)
+            if acct_conf.enable:
+                self.start_inst(acct_conf.id)
+    
+    def create_inst(self, config:AcctConf):
         acct_inst = AcctInst(config,self._ws_push)
         self.acct_insts[config.id] = acct_inst
-        #acct_inst.start_client()
         log.info(f'create acct_inst:{config.id}')
 
     def start_inst(self, acct_id):
@@ -59,8 +52,6 @@ class AcctMgr(object):
             return
         return self.acct_insts[acct_id].get_quotes(timestamp)
 
-    def get_acct_confs(self) -> List[AcctConf]:
-        return  config.get_config("acct_list")
 
     def get_acct_infos(self) -> List[AcctInfo]:
         list=[]

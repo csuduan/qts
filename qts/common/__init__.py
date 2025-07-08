@@ -1,13 +1,8 @@
 import os
 import json
-def init(config_file:str=None):
+def init(configs:dict):
     # 初始化配置
     from .config import config   
-    if os.path.exists(config_file):
-        with open(config_file, "r") as f:
-            configs = json.load(f)
-    else:
-        configs = {}  # 如果文件不存在，初始化空配置
     config.init(configs)
 
     # 初始化日志

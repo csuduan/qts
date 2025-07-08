@@ -1,5 +1,7 @@
 from datetime import datetime
 from dataclasses import dataclass,field
+
+from numpy import str_
 from .constant import *
 from typing import List,Dict
 from pydantic import BaseModel
@@ -9,20 +11,18 @@ ACTIVE_STATUSES = set([Status.SUBMITTING, Status.NOTTRADED, Status.PARTTRADED])
 
 
 class AcctConf(BaseModel):
-    id: str
-    group: str
-    name: str
-    user: str
-    broker:str
-    auth:str
-    td_addr: str
-    md_addr: str
-    enable: bool
-    req_address: str
-    pub_address: str
-    product_info: str= "qts"
-    tcp_port: int = 6000
-
+    id: str 
+    group: str 
+    name: str 
+    user: str 
+    pwd: str 
+    broker:str 
+    auth:str 
+    td_addr: str 
+    md_addr: str 
+    enable: bool 
+    rpc_addr: str
+    remark: str | None = None
 
 class AcctInfo(BaseModel):
     id: str

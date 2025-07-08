@@ -29,7 +29,8 @@ class CtpTdApi(CThostFtdcTraderSpi):
         self.gateway_name: str = gateway.gateway_name
 
         __,self.address= self.acct_conf.td_addr.split('|')
-        self.user,self.pwd = self.acct_conf.user.split('|')
+        self.user = self.acct_conf.user
+        self.pwd = self.acct_conf.pwd
         self.broker = self.acct_conf.broker
         self.auth = self.acct_conf.auth
 
@@ -559,7 +560,7 @@ def adjust_price(price: float) -> float:
 
 
 def get_data_path(folder_name: str):
-    data_path = get_setting('data_path')
+    data_path = config.get_config('data_path')
     folder_path = os.path.join(data_path, folder_name)
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)

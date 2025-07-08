@@ -6,10 +6,10 @@ from pathlib import Path
 from time import sleep
 from typing import Dict
 
-from config import get_setting
-from qts.model.object import *
-from qts.model.constant import *
-from qts.log import get_logger
+from qts.common.config import config
+from qts.common.model.object import *
+from qts.common.model.constant import *
+from qts.common.log import get_logger
 
 from ..base_gateway import BaseGateway
 from .lib import *
@@ -204,7 +204,7 @@ def adjust_price(price: float) -> float:
 
 
 def get_data_path(folder_name: str):
-    data_path = get_setting('data_path')
+    data_path = config.get_config('data_path')
     folder_path = os.path.join(data_path, folder_name)
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)

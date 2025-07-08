@@ -1,5 +1,4 @@
 from typing import Any
-from core.acct_inst import AcctInst
 from qts.common.log import logger_utils
 from qts.common.tcp.server import TcpServer
 from qts.common.model.message import MsgType,MsgHandler,Message
@@ -8,12 +7,13 @@ from qts.common.model.object import Position, TradeData, OrderData,AcctInfo,Tick
 from enum import Enum
 from typing import TypeVar, Callable,List
 
+
 log = logger_utils.get_logger(__name__)
 
-
-class AdminHandler:
-    def __init__(self,acct_inst:AcctInst):
-        self.acct_inst = acct_inst
+class RpcHandler:
+    def __init__(self,acct_inst):
+        from .acct_inst import AcctInst
+        self.acct_inst:AcctInst = acct_inst
         self.msg_handler = self.create_handler()
 
     def on_msg(self,req:Message)->Any:
@@ -93,28 +93,3 @@ class AdminHandler:
             return True
 
         return msg_handler
-
-
-
-class AdminEngine:
-    def __init__(self):
-        self.tcp_server = None
-        self.acct_inst = None
-
-    def start(self, tcp_port: int, acct_inst:AcctInst):
-        log.info(f"start admin engine, tcp_port:{tcp_port}")
-        self.acct_inst = acct_inst
-        admin_handler = AdminHandler(acct_inst)
-        self.tcp_server = TcpServer(port=tcp_port,req_handler=admin_handler.on_msg,new_client_callback=self._on_new_client)
-        self.tcp_server.start()
-
-        acct_inst.add_tcp_server(self.tcp_server)
-
-    def stop(self) -> None:
-        self.tcp_server.stop()
-
-    def _on_new_client(self):
-        #每次有新客户端连接，则主动一次就绪消息
-        self.acct_inst.push_msg(MsgType.ON_CONNECTED,{})
-          
-admin_engine = AdminEngine()

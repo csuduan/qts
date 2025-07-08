@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Callable
 from copy import copy
 
-from ..core.event import event_engine,Event
+from qts.common.event import event_engine,Event
 from qts.common.config import config
 
 from qts.common.model.constant import *

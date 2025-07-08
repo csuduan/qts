@@ -73,6 +73,6 @@ class LoggerUtils(object):
         console.setFormatter(formatter)
         logger.addHandler(console)
 
-        #self.handler.setFormatter(formatter)
-        #logger.addHandler(self.handler)
+        self.handler.setFormatter(formatter)
+        logger.addHandler(self.handler)
         return logger

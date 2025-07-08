@@ -14,8 +14,11 @@ from qts.common.log import get_logger
 
 log = get_logger(__name__)
 
+'''
+账户实例
+'''
 class AcctInst(object):
-    def __init__(self, config,ws_callback):
+    def __init__(self, config:AcctConf,ws_callback):
         self.config: AcctConf = config
         self.acct_id = config.id
         self.acct_client: TcpClient = None
@@ -27,15 +30,12 @@ class AcctInst(object):
         self.inst_status = False
         self.ws_callback = ws_callback
 
-
     def start_inst(self):   
         self.push_handler = self.create_handler()  
-        if self.config.enable:          
-            self.acct_client = TcpClient("127.0.0.1",self.config.tcp_port,self._push_handler)
+        if self.config.enable: 
+            tcp_port = self.config.rpc_addr.split(':')[2]         
+            self.acct_client = TcpClient("127.0.0.1",int(tcp_port),self._push_handler)
             self.acct_client.start()
-
-        
-
 
     def stop_inst(self):
         self.acct_client.stop()

@@ -1,20 +1,14 @@
 import asyncio
 import os,sys,signal,pickle,datetime
 from typing import List
-
 from qts.common.log import logger_utils
 from qts.common.config import config
 from qts.common.model.object import  ContractData,AcctConf
 from qts.common.tcp.server import TcpServer
-
+from qts.common.dao import conf_dao
 from .core.acct_inst import AcctInst
-from .core.admin_engine import admin_engine
-
 
 log = logger_utils.get_logger(__name__)
-
-
-
 
 def handle_exit(signum, frame):
     log.info("接收到退出信号，正在清理...")
@@ -29,16 +23,14 @@ def handle_exit(signum, frame):
     exit(0)
 
 async def main(acctId: str = None):
+    acct_conf = conf_dao.get_acct_config(acctId)
+    if acct_conf is None:
+        log.error(f"账户 {acctId} 不存在")
+        return       
+    log.info(f"启动账户: {acctId}")
 
-    acct_confs: List = config.get_config('acct_confs')
-    conf = next((conf for conf in acct_confs if conf['id'] == acctId), None)
-    log.info(f"启动账户: {conf['id']}")
-
-    acct_conf: AcctConf = AcctConf(**conf)
-    acct_inst = AcctInst()
-    acct_inst.start(acct_conf)
-    #trade_engine.start(acct_conf)
-    admin_engine.start(acct_conf.tcp_port,acct_inst)
+    acct_inst = AcctInst(acct_conf)
+    acct_inst.start()
     await asyncio.sleep(600)
 
 # 注册信号处理器

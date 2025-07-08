@@ -5,6 +5,7 @@ from qts.admin.core.resp import resp_success
 from qts.admin.core import acct_mgr
 from qts.common.model.object import *
 from qts.common.model.constant import Exchange, Direction
+from qts.common.dao import conf_dao
 
 router = APIRouter(prefix='/v1/acct')
 
@@ -15,16 +16,17 @@ async def get_configs():
     返回配置账户列表
     :return:
     '''
-    list = acct_mgr.get_acct_confs()
+    list = conf_dao.get_acct_configs()
     return resp_success(list)
 
 
-@router.put('/conf')
-async def get_configs(config):
+@router.post('/conf')
+async def get_configs(config:AcctConf):
     '''
     添加账户配置
     :return:
     '''
+    conf_dao.save_acct_config(config)
     return resp_success()
 
 
