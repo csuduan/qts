@@ -3,14 +3,14 @@ from sqlalchemy import Boolean, Column, Integer,text,String
 from sqlalchemy.ext.declarative import declarative_base
 
 from typing import List
-from qts.common.model.object import AcctConf
+from qts.common.object import AcctConf
 
 from .sqlite_session import session_scope
 import pandas as pd
 
 Base = declarative_base()
 class AcctConfPo(Base):
-    __tablename__ = 'CONF_ACCT'
+    __tablename__ = 'ACCT_CONF'
     
     id = Column(String, primary_key=True)
     name = Column(String)

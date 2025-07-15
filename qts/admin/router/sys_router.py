@@ -1,8 +1,7 @@
 from fastapi import APIRouter,Request
 from pydantic import BaseModel,Extra
-from qts.common.log import get_logger
+from qts.common import get_logger,get_config
 from qts.admin.core.resp import  resp_success
-from qts.common.config import config
 
 logger = get_logger(__name__)
 router = APIRouter(prefix='/v1/sys')
@@ -42,7 +41,7 @@ async def get_router():
     获取动态路由表
     :return:
     '''
-    routers = config.get_config('routers')
+    routers = get_config('routers')
     return resp_success(routers)
 
 @router.get('/jobs')

@@ -5,7 +5,7 @@ import time
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
-from qts.common.log import get_logger
+from qts.common import get_logger
 
 log = get_logger(__name__)
 

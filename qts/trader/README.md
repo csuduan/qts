@@ -2,16 +2,6 @@
 
 ## 环境准备
 1. 安装python及依赖包
-```zsh
-#安装conda
-略
-#创建虚拟环境
-conda create --name mypy python=3.8
-conda activate mypy
-#安装依赖包
-pip install -r requirements.txt
-```
-
 2. 安装api(当前使用openapi)
 在api目录(默认/opt/data/api)安装api包,可以在config.py中设置
 ```zsh

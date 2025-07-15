@@ -3,5 +3,6 @@
   "api_path": "/opt/qts/api",
   "data_path": "/opt/qts/data",
   "db_url": "sqlite:////opt/dev/qts-new/qts/qts.db",
-  "log_path": "/opt/qts/log"
+  "log_path": "/opt/qts/log",
+  "save_tick": true
 }

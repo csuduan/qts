@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-
-from gateway.api_loader import load_library_dynamic
-#
-from openctp_ctp import mdapi
-#ctp = load_library_dynamic('ctp', "v6.7.2")
-#mdapi = ctp.mdapi
+from openctp_ctp import thostmduserapi as mdapi # pip install mode
+# import thostmduserapi as mdapi # local mode
 
 
 class CMdImpl(mdapi.CThostFtdcMdSpi):
@@ -13,9 +9,8 @@ class CMdImpl(mdapi.CThostFtdcMdSpi):
         self.md_front = md_front
         self.api = None
 
-    def Run(self,flow_path):
-        self.api = mdapi.CThostFtdcMdApi.CreateFtdcMdApi(flow_path)
-        mdapi.CThostFtdcMdApi.GetApiVersion()
+    def Run(self):
+        self.api = mdapi.CThostFtdcMdApi.CreateFtdcMdApi()
         self.api.RegisterFront(self.md_front)
         self.api.RegisterSpi(self)
         self.api.Init()
@@ -36,7 +31,7 @@ class CMdImpl(mdapi.CThostFtdcMdSpi):
             return
         print(f"Login succeed.{pRspUserLogin.TradingDay}")
 
-        self.api.SubscribeMarketData(["au2406".encode('utf-8')], 1)
+        self.api.SubscribeMarketData(["au2508".encode('utf-8')], 1)
 
     def OnRtnDepthMarketData(self, pDepthMarketData: 'CThostFtdcDepthMarketDataField') -> "void":
         print(f"{pDepthMarketData.InstrumentID} - {pDepthMarketData.LastPrice} - {pDepthMarketData.Volume}")
@@ -49,6 +44,7 @@ class CMdImpl(mdapi.CThostFtdcMdSpi):
 
 
 if __name__ == '__main__':
-    md = CMdImpl("tcp://180.168.146.187:10211")
-    md.Run('/opt/data/ctp_con/demo_md')
+    md = CMdImpl("tcp://182.254.243.31:30011")
+    md.Run()
+
     input("Press enter key to exit.")

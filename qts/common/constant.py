@@ -1,9 +1,5 @@
-"""
-General constant enums used in the trading platform.
-"""
 import json
 from enum import Enum
-from qts.common.tcp.constants import MsgType
 
 class EnumEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -51,7 +47,7 @@ class Status(Enum):
     CANCELLED = _("已撤销")
     REJECTED = _("错单")
 
-class Product(Enum):
+class ProductType(Enum):
     """
     Product class.
     """

@@ -1,11 +1,11 @@
 from enum import IntEnum
 
-class MsgType(IntEnum):
+class HeadType(IntEnum):
     HEARTBEAT = 1
     REQUEST = 2
     RESPONSE = 3
     PUSH = 4
-    CONN_TYPE = 5  # 新增：连接类型消息
+    SUBS = 5
 
 class ConnType(IntEnum):
     REQ = 1  # 请求响应连接

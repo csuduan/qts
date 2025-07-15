@@ -1,7 +1,7 @@
 import importlib.util
 import os.path
 import sys
-from config import get_setting
+from qts.common import get_conf
 def load_library_dynamic(type:str, version: str):
     if type == 'ctp':
         if version == 'v6.6.7':
@@ -16,7 +16,7 @@ def load_library_dynamic(type:str, version: str):
 
     # Add the library path to sys.path
 
-    api_path = get_setting('api_path')
+    api_path = get_conf('api_path')
     path = os.path.join(api_path,lib_path)
     sys.path.insert(0, path)
 

@@ -1,20 +1,10 @@
-import os
-import queue
 import threading
 from datetime import datetime
-from pathlib import Path
 from time import sleep
-from typing import Dict
-
-from qts.common.config import config
-from qts.common.model.object import *
-from qts.common.model.constant import *
-from qts.common.log import get_logger
 
 from ..base_gateway import BaseGateway
-from .lib import *
-
-log = get_logger(__name__)
+from .base import *
+from openctp_ctp.thosttraderapi import *
 
 
 class CtpTdApi(CThostFtdcTraderSpi):
@@ -27,13 +17,11 @@ class CtpTdApi(CThostFtdcTraderSpi):
         self.gateway: BaseGateway = gateway
         self.acct_conf: AcctConf = gateway.acct_detail.acct_info.conf
         self.gateway_name: str = gateway.gateway_name
-
         __,self.address= self.acct_conf.td_addr.split('|')
         self.user = self.acct_conf.user
         self.pwd = self.acct_conf.pwd
         self.broker = self.acct_conf.broker
         self.auth = self.acct_conf.auth
-
         self.reqid: int = 0
         self.order_ref: int = 0
         self.connect_status: bool = False
@@ -41,14 +29,13 @@ class CtpTdApi(CThostFtdcTraderSpi):
         self.contract_inited: bool = False
         self.frontid: int = 0
         self.sessionid: int = 0
-        self._trade_data: list[dict] = []
-        self._positions: dict[str, Position] = {}
-        self._contract_map:dict[str,ContractData] = {}
-        self._ordering_map: dict[str, OrderData] = {}
-
+        self.trade_data: list[dict] = []
+        self.positions: dict[str, Position] = {}
+        self.contract_map:dict[str,ContractData] = {}
+        self.ordering_map: dict[str, OrderData] = {}
         self.api: CThostFtdcTraderApi = None
-
         self.semaphore = threading.Semaphore(1)
+        log.info(f"初始化交易接口,名称:{gateway.gateway_name}, 地址:{self.address}")
 
     @property
     def td_status(self):
@@ -69,8 +56,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
         self.gateway.on_status(StatusData(type="td",status=False))
         log.error(f"交易服务器连接断开，原因{reason}")
 
-    def OnRspAuthenticate(self, pRspAuthenticateField: "CThostFtdcRspAuthenticateField",
-                          pRspInfo: "CThostFtdcRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
+    def OnRspAuthenticate(self, pRspAuthenticateField: "CThostFtdcRspAuthenticateField", pRspInfo: "CThostFtdcRspInfoField", nRequestID: "int", bIsLast: "bool") -> None:
         """用户授权验证回报"""
         if pRspInfo is not None and pRspInfo.ErrorID != 0:
             log.error(f"交易服务器授权验证失败,{pRspInfo.ErrorMsg}")
@@ -79,8 +65,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
         log.info("交易服务器授权验证成功")
         self.login()
 
-    def OnRspUserLogin(self, pRspUserLogin: "CThostFtdcRspUserLoginField", pRspInfo: "CThostFtdcRspInfoField",
-                       nRequestID: "int", bIsLast: "bool") -> "void":
+    def OnRspUserLogin(self, pRspUserLogin: "CThostFtdcRspUserLoginField", pRspInfo: "CThostFtdcRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
         """用户登录请求回报"""
         if pRspInfo is not None and pRspInfo.ErrorID != 0:
             log.error(f"交易服务器登录失败,{pRspInfo.ErrorMsg}")
@@ -100,11 +85,9 @@ class CtpTdApi(CThostFtdcTraderSpi):
         # 异步发起查询
         threading.Thread(target=self.__run_query).start()
 
-    
-
     def OnRspOrderAction(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """委托撤单失败回报"""
-        self.gateway.write_error("交易撤单失败", error)
+        log.error(f"交易撤单失败:{error}")
 
     def OnRspSettlementInfoConfirm(self, pSettlementInfoConfirm: "CThostFtdcSettlementInfoConfirmField",
                                    pRspInfo: "CThostFtdcRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
@@ -119,6 +102,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
             log.error(f"查询持仓失败,{pRspInfo.ErrorMsg}")
             self.semaphore.release()
             return
+
         if pInvestorPosition:
             # 必须已经收到了合约信息后才能处理
             symbol: str = pInvestorPosition.InstrumentID
@@ -128,16 +112,22 @@ class CtpTdApi(CThostFtdcTraderSpi):
             if contract:
                 # 获取之前缓存的持仓数据缓存
                 key: str = f"{pInvestorPosition.InstrumentID}-{direction.value}"
-                position: Position = self._positions.get(key, None)
+                position: Position = self.positions.get(key, None)
                 if not position:
                     position = Position(
-                        id = key,
                         symbol=pInvestorPosition.InstrumentID,
                         exchange=contract.exchange,
                         direction=direction,
                     )
-                    self._positions[key] = position
+                    self.positions[key] = position
 
+                # # 对于上期所昨仓需要特殊处理
+                # if position.exchange in {Exchange.SHFE, Exchange.INE}:
+                #     if pInvestorPosition.YdPosition and not pInvestorPosition.TodayPosition:
+                #         position.yd_volume = pInvestorPosition.Position
+                # # 对于其他交易所昨仓的计算
+                # else:
+                #     position.yd_volume = pInvestorPosition.Position - pInvestorPosition.TodayPosition
                 # 获取合约的乘数信息
                 size: int = contract.multiple
 
@@ -168,9 +158,9 @@ class CtpTdApi(CThostFtdcTraderSpi):
                 
 
         if bIsLast:
-            self.gateway.on_positions(self._positions)
-            log.info(f"持仓信息查询成功,共{len(self._positions)}条")
-            self._positions.clear()
+            self.gateway.on_positions(self.positions)
+            log.info(f"持仓信息查询成功,共{len(self.positions)}条")
+            self.positions.clear()
             self.semaphore.release()
 
     def OnRspQryTradingAccount(self, pTradingAccount: "CThostFtdcTradingAccountField",
@@ -200,12 +190,19 @@ class CtpTdApi(CThostFtdcTraderSpi):
             log.error(f"查询产品失败,{pRspInfo.ErrorMsg}")
             self.semaphore.release()
             return
-
-        product: Product = PRODUCT_CTP2VT.get(pProduct.ProductClass, None)
+        product: ProductData = ProductData(
+            id = pProduct.ProductID,
+            name = pProduct.ProductName,
+            exchange = EXCHANGE_CTP2VT.get(pProduct.ExchangeID,None),
+            type = PRODUCT_CTP2VT.get(pProduct.ProductClass, None),
+            pricetick = pProduct.PriceTick,
+            multiple = pProduct.VolumeMultiple
+        )
         if product:
             self.gateway.on_product(product)
+        if bIsLast:
+            self.semaphore.release()
 
-        pass
 
     def OnRspQryInstrument(self, pInstrument: "CThostFtdcInstrumentField", pRspInfo: "CThostFtdcRspInfoField",
                            nRequestID: "int", bIsLast: "bool") -> "void":
@@ -215,7 +212,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
             self.semaphore.release()
             return
 
-        product: Product = PRODUCT_CTP2VT.get(pInstrument.ProductClass, None)
+        product: ProductType = PRODUCT_CTP2VT.get(pInstrument.ProductClass, None)
         if product:
             contract: ContractData = ContractData(
                 symbol=pInstrument.InstrumentID,
@@ -227,7 +224,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
             )
 
             # 期权相关
-            if contract.product == Product.OPTION:
+            if contract.product == ProductType.OPTION:
                 # 移除郑商所期权产品名称带有的C/P后缀
                 if contract.exchange == Exchange.CZCE:
                     contract.option_portfolio = pInstrument.ProductID[:-1]
@@ -243,13 +240,13 @@ class CtpTdApi(CThostFtdcTraderSpi):
 
             # self.gateway.on_contract(contract)()
             if len(contract.symbol) <= 10:
-                self._contract_map[contract.symbol] = contract
+                self.contract_map[contract.symbol] = contract
 
         if bIsLast:
             self.contract_inited = True
-            log.info(f"合约信息查询成功,共{len(self._contract_map)}条")
-            self.gateway.on_contracts(self._contract_map)
-            self._contract_map.clear()
+            log.info(f"合约信息查询成功,共{len(self.contract_map)}条")
+            self.gateway.on_contracts(self.contract_map)
+            self.contract_map.clear()
             self.semaphore.release()
 
     def OnRspQryTrade(self, pTrade: "CThostFtdcTradeField", pRspInfo: "CThostFtdcRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
@@ -275,13 +272,13 @@ class CtpTdApi(CThostFtdcTraderSpi):
                 volume=pTrade.Volume,
                 time=pTrade.TradeTime          
                 )
-            self._trade_data.append(trade)
+            self.trade_data.append(trade)
 
         if bIsLast:
             log.info(f"成交信息查询成功")
-            if len(self._trade_data) > 0:
-                self.gateway.on_trades(self._trade_data)
-                self._trade_data.clear()
+            if len(self.trade_data) > 0:
+                self.gateway.on_trades(self.trade_data)
+                self.trade_data.clear()
             self.semaphore.release()
         
 
@@ -296,14 +293,14 @@ class CtpTdApi(CThostFtdcTraderSpi):
         order_ref: str = pInputOrder.OrderRef
         log.error(f"报单失败回报 {order_ref} {pRspInfo.ErrorID} {pRspInfo.ErrorMsg}")
 
-        order: OrderData = self._ordering_map.get(order_ref,None)
+        order: OrderData = self.ordering_map.get(order_ref,None)
         if not order:
             log.error(f"报单失败回报 {order_ref} 找不到委托请求")
             return
         order.status = Status.REJECTED
         order.status_msg = pRspInfo.ErrorMsg
         order.updatetimes = datetime.now()
-        self._ordering_map.pop(order_ref,None)
+        self.ordering_map.pop(order_ref,None)
         self.gateway.on_order(order)
 
     def OnRtnOrder(self, pOrder: "CThostFtdcOrderField") -> "void":
@@ -316,7 +313,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
             log.error(f"收到不支持的委托状态，委托号：{order_ref}")
             return
         order_ref: str = pOrder.OrderRef
-        order: OrderData = self._ordering_map.get(order_ref,None)
+        order: OrderData = self.ordering_map.get(order_ref,None)
         if not order:
             log.error(f"报单回报 {order_ref} 找不到委托请求")
             return
@@ -326,7 +323,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
         order.traded = pOrder.VolumeTraded
         order.updatetimes = datetime.now()
         if not order.is_active():           
-            self._ordering_map.pop(order_ref,None)
+            self.ordering_map.pop(order_ref,None)
         self.gateway.on_order(order)
 
     def OnRtnTrade(self, pTrade: "CThostFtdcTradeField") -> None:
@@ -376,7 +373,6 @@ class CtpTdApi(CThostFtdcTraderSpi):
 
     def authenticate(self) -> None:
         """发起授权验证"""
-
         appid, auth_code = self.auth.split(':')
         req = CThostFtdcReqAuthenticateField()
         req.BrokerID = self.broker
@@ -384,8 +380,8 @@ class CtpTdApi(CThostFtdcTraderSpi):
         req.AppID = appid
         req.AuthCode = auth_code
 
-        self.reqid += 1
-        self.api.ReqAuthenticate(req, self.reqid)
+        ret = self.api.ReqAuthenticate(req, 0)
+        log.debug(f"ReqAuthenticate ret:{ret}")
 
     def login(self) -> None:
         """用户登录"""
@@ -443,7 +439,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
         if n:
             log.error(f"OrderRef:{req.order_ref} 委托请求发送失败，错误代码：{n}")
             return False
-        self._ordering_map[req.order_ref] = req
+        self.ordering_map[req.order_ref] = req
         return True
 
     def cancel_order(self, req: OrderCancel) -> None:
@@ -457,29 +453,57 @@ class CtpTdApi(CThostFtdcTraderSpi):
             "FrontID": int(frontid),
             "SessionID": int(sessionid),
             "ActionFlag": THOST_FTDC_AF_Delete,
-            "BrokerID": self.brokerid,
-            "InvestorID": self.userid
+            "BrokerID": self.broker,
+            "InvestorID": self.user
         }
 
         self.reqid += 1
-        self.reqOrderAction(ctp_req, self.reqid)
+        self.api.ReqOrderAction(ctp_req, self.reqid)
 
     def __run_query(self):
-        log.info("start query...")
-        self.query_settlement()
-        sleep(1)
-        self.query_account()
-        sleep(1)
-        self.query_contract()
-        sleep(1)
-        self.query_position()
-        sleep(1)
-        self.query_trades()
-        sleep(1)
+        # log.info(f"[1/6] 查询结算信息")
+        # self.query_settlement()
+        # sleep(1)
+        # log.info(f"[2/6] 查询账户信息")
+        # self.query_account()
+        # sleep(1)
+        # log.info(f"[3/6] 查询产品信息")
+        # self.query_product()
+        # sleep(1)
+        # log.info(f"[4/6] 查询合约信息")
+        # self.query_contract()
+        # sleep(1)
+        # log.info(f"[5/6] 查询持仓信息")
+        # self.query_position()
+        # sleep(1)
+        # log.info(f"[6/6] 查询成交信息")
+        # self.query_trades()
+        # sleep(1)
+        # self.semaphore.acquire()
+        # log.info("查询完成！")
+        # self.semaphore.release()
+        # self.gateway.on_ready()
+
+        self.query_functions: list = [
+            self.query_settlement, 
+            self.query_account, 
+            self.query_product, 
+            self.query_contract, 
+            self.query_position,
+            self.query_trades]
+
+        process: int = 0
+        for query_func in self.query_functions:
+            process +=1
+            #self.semaphore.acquire()
+            sleep(1)
+            log.info(f"查询进度:[{process}/{len(self.query_functions)}]")
+            query_func()
         self.semaphore.acquire()
-        log.info("finish query...")
+        log.info("查询完成！")
         self.semaphore.release()
         self.gateway.on_ready()
+
 
 
     def query_settlement(self):
@@ -508,14 +532,24 @@ class CtpTdApi(CThostFtdcTraderSpi):
             log.error(f"查询资金失败，错误代码：{ret}")
             self.semaphore.release()
 
+    def query_product(self) ->None:
+        if not self.td_status:
+            return
+        self.semaphore.acquire()
+        log.info("开始查询产品...")
+        req = CThostFtdcQryProductField()
+        ret = self.api.ReqQryProduct(req, self.next_reqid())
+        if ret != 0:
+            log.error(f"查询产品失败，错误代码：{ret}")
+            self.semaphore.release()
+    
     def query_contract(self) -> None:
         if not self.td_status:
             return
-    
+        log.info("开始查询合约...")
         if len(self.gateway.get_contracts_map()) > 0:
             return
         self.semaphore.acquire()
-        log.info("开始查询合约...")
         req = CThostFtdcQryInstrumentField()
         ret = self.api.ReqQryInstrument(req, self.next_reqid())
         if ret != 0:
@@ -528,7 +562,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
             return
 
         self.semaphore.acquire()
-        log.warn("开始查询持仓...")
+        log.info("开始查询持仓...")
 
         req = CThostFtdcQryInvestorPositionField()
         req.BrokerID = self.broker
@@ -552,16 +586,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
             log.error(f"查询成交失败，错误代码：{ret}")
             self.semaphore.release()
 
-def adjust_price(price: float) -> float:
-    """将异常的浮点数最大值（MAX_FLOAT）数据调整为0"""
-    if price == MAX_FLOAT:
-        price = 0
-    return price
+    def next_reqid(self)->int:
+        self.reqid +=1
+        return self.reqid
 
-
-def get_data_path(folder_name: str):
-    data_path = config.get_config('data_path')
-    folder_path = os.path.join(data_path, folder_name)
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    return folder_path

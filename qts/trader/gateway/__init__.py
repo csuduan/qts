@@ -1,4 +1,4 @@
-from qts.common.model.object import AcctDetail
+from qts.common.object import AcctDetail
 from .base_gateway import BaseGateway
 from .ctp.ctp_gateway import  CtpGateway
 

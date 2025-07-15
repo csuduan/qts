@@ -9,19 +9,18 @@ from fastapi.responses import JSONResponse
 from .router import sys_router,acct_router
 from .core import acct_mgr
 
-from qts.common.config import config
-from qts.common.log import  get_logger
+from qts.common import  get_config
+from qts.common import  get_logger
 log = get_logger(__name__)
 
 nest_asyncio.apply()
-app_name = config.get_config('app_name')
+app_name = get_config('app_name')
 app = FastAPIOffline()
 app.include_router(sys_router.router,prefix=f"/{app_name}",tags=['系统管理'])
 app.include_router(acct_router.router,prefix=f"/{app_name}",tags=['账户管理'])
 
 
 acct_mgr.start()
-
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

@@ -1,20 +1,7 @@
-import os
-import queue
-import threading
 from datetime import datetime
-from pathlib import Path
-from time import sleep
-from typing import Dict
-
-from qts.common.config import config
-from qts.common.model.object import *
-from qts.common.model.constant import *
-from qts.common.log import get_logger
-
 from ..base_gateway import BaseGateway
-from .lib import *
-
-log = get_logger(__name__)
+from .base import *
+from openctp_ctp.thostmduserapi import *
 
 
 class CtpMdApi(CThostFtdcMdSpi):
@@ -35,13 +22,10 @@ class CtpMdApi(CThostFtdcMdSpi):
         self.subscribed: set = set()
 
         __,self.address = self.acct_conf.md_addr.split('|')
-
         self.current_date: str = datetime.now().strftime("%Y%m%d")
-
         self.api: CThostFtdcMdApi = None
 
-        #for symbol in self.acct_conf['subList'].split(','):
-        #    self.subscribed.add(symbol)
+        log.info(f"初始化行情接口,名称:{gateway.gateway_name}, 地址:{self.address}")
 
     @property
     def md_status(self):
@@ -57,7 +41,6 @@ class CtpMdApi(CThostFtdcMdSpi):
         self.login_status = False
         self.gateway.on_status(StatusData(type="md",status=False))
         log.info(f"行情服务器连接断开，原因{reason}")
-        #self.gateway.on_status({'type': 'md', 'status': False})
 
     def OnRspUserLogin(self, pRspUserLogin: CThostFtdcRspUserLoginField, pRspInfo: CThostFtdcRspInfoField,
                        nRequestID: int, bIsLast: bool) -> "void":
@@ -68,13 +51,10 @@ class CtpMdApi(CThostFtdcMdSpi):
             self.login_status = True
             self.gateway.on_status(StatusData(type="md",status=True))
             self.trade_date = pRspUserLogin.TradingDay
-            log.info(f"行情服务器登录成功,{pRspUserLogin.TradingDay}", )
+            log.info(f"行情服务器登录成功,交易日:{pRspUserLogin.TradingDay}", )
 
-            # for symbol in self.subscribed:
-            #    self.api.SubscribeMarketData([symbol.encode('utf-8')], 1)
+            #订阅合约
             self.api.SubscribeMarketData([symbol.encode('utf-8') for symbol in self.subscribed], len(self.subscribed))
-
-            #self.gateway.on_status({'type': 'md', 'status': True})
 
     def OnRspError(self, error: dict, reqid: int, last: bool) -> None:
         """请求报错回报"""
@@ -156,7 +136,6 @@ class CtpMdApi(CThostFtdcMdSpi):
 
     def connect(self) -> None:
         """连接服务器"""
-
         # 禁止重复发起连接，会导致异常崩溃
         if not self.connect_status:
             log.info("开始连接行情服务器...")
@@ -176,7 +155,7 @@ class CtpMdApi(CThostFtdcMdSpi):
             self.connect_status = False
         self.login_status = False
         self.gateway.on_status(StatusData(type="md",status=False))
-        log.info("ctp md api closed")
+        log.info("行情接口关闭")
 
     def login(self) -> None:
         """用户登录"""
@@ -187,25 +166,10 @@ class CtpMdApi(CThostFtdcMdSpi):
     def subscribe(self, req: SubscribeRequest) -> None:
         """订阅行情"""
         if self.login_status:
-            self.api.SubscribeMarketData([req.symbol.encode('utf-8')], 1)
-        self.subscribed.add(req.symbol)
-
-
+            unSubs = [symbol for symbol in req.symbols if symbol not in self.subscribed]
+            self.api.SubscribeMarketData([symbol.encode('utf-8') for symbol in unSubs], len(unSubs))
+            self.subscribed.update(unSubs)
 
     def update_date(self) -> None:
         """更新当前日期"""
         self.current_date = datetime.now().strftime("%Y%m%d")
-
-def adjust_price(price: float) -> float:
-    """将异常的浮点数最大值（MAX_FLOAT）数据调整为0"""
-    if price == MAX_FLOAT:
-        price = 0
-    return price
-
-
-def get_data_path(folder_name: str):
-    data_path = config.get_config('data_path')
-    folder_path = os.path.join(data_path, folder_name)
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    return folder_path

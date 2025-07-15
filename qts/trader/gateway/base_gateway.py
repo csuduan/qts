@@ -7,14 +7,13 @@ from typing import Any, Dict, List, Optional, Callable
 from copy import copy
 
 from qts.common.event import event_engine,Event
-from qts.common.config import config
+from qts.common.constant import *
+from qts.common.object import *
+from qts.common.message import MsgType
+from qts.common import get_logger,get_config
 
-from qts.common.model.constant import *
-from qts.common.model.object import *
-from qts.common.model.message import MsgType
 from .utils import get_pos_direction
 
-from qts.common.log import get_logger
 log = get_logger(__name__)
 
 
@@ -118,6 +117,11 @@ class BaseGateway(ABC):
         self.acct_detail.contracts_map.update(contracts)
         self.trig_event(MsgType.ON_CONTRACTS, contracts)
         self.__write_cache()
+    
+    def on_product(self,product:ProductData)->None:
+        self.acct_detail.product_map[product.id] = product
+        pass
+
 
     @abstractmethod
     def connect(self) -> None:
@@ -155,7 +159,7 @@ class BaseGateway(ABC):
 
     def __load_cache(self):
         #加载合约缓存
-        data_path = config.get_config('data_path')
+        data_path = get_config('data_path')
         contracts_path = os.path.join(data_path, 'contracts.pkl')
         if os.path.exists(contracts_path):
             with open(contracts_path, 'rb') as f:
@@ -168,7 +172,7 @@ class BaseGateway(ABC):
                     self.acct_detail.contracts_map.update(contracts_map)
     
     def __write_cache(self):
-        data_path = config.get_config('data_path')
+        data_path = get_config('data_path')
         contracts_path = os.path.join(data_path, 'contracts.pkl')
         with open(contracts_path, 'wb') as f:
             pickle.dump({'contracts': self.acct_detail.contracts_map, 'date': datetime.today().date()}, f)

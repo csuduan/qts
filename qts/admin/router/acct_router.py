@@ -3,8 +3,8 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, Extra
 from qts.admin.core.resp import resp_success
 from qts.admin.core import acct_mgr
-from qts.common.model.object import *
-from qts.common.model.constant import Exchange, Direction
+from qts.common.object import *
+from qts.common.constant import Exchange, Direction
 from qts.common.dao import conf_dao
 
 router = APIRouter(prefix='/v1/acct')

@@ -1,16 +1,16 @@
 
-from qts.common.model.object import  AcctConf,AcctInfo,Position,TickData
+from qts.common.object import  AcctConf,AcctInfo,Position,TickData
 import subprocess
 import os
 import psutil
 import json
 import datetime
 from typing import Any, List,Dict
-from qts.common.tcp.client import TcpClient
-from qts.common.model.message import MsgHandler,MsgType,Message
-from qts.common.model.object import TradeData,TickData,AcctDetail,OrderData,OrderRequest,Exchange
+from qts.common.rpc.client import TcpClient
+from qts.common.message import MsgHandler,MsgType,Message
+from qts.common.object import TradeData,TickData,AcctDetail,OrderData,OrderRequest,Exchange
 
-from qts.common.log import get_logger
+from qts.common import get_logger
 
 log = get_logger(__name__)
 
@@ -149,7 +149,10 @@ class AcctInst(object):
             self.tick_map[data.symbol] = data
             data.localtime = datetime.datetime.now().strftime("%Y%m%d %H:%M:%S")
             self.send_ws_msg("on_tick",json.loads(data.json()))
-
+        
+        @topic_handler.register(MsgType.ON_LOG)
+        def on_log(data:str):
+            self.send_ws_msg("on_log",data)
 
         @topic_handler.register(MsgType.ON_ORDER)
         def on_order(data:OrderData):

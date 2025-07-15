@@ -74,7 +74,6 @@ class EventEngine:
         Stop event engine.
         """
         self._active = False
-        self._timer.join()
         self._thread.join()
 
     def put(self, event: Event) -> None:
@@ -118,3 +117,6 @@ class EventEngine:
         """
         if handler in self._general_handlers:
             self._general_handlers.remove(handler)
+
+event_engine = EventEngine()
+event_engine.start()

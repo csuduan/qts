@@ -1,7 +1,7 @@
 from fastapi import status
 from fastapi.responses import JSONResponse
 from typing import Union
-from qts.common.model.exception import BizException
+from qts.common.exception import BizException
 
 
 def resp_success(data=None):

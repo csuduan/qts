@@ -1,17 +1,13 @@
 from datetime import datetime
 
-from .ctp_td_api import CtpTdApi
-from .ctp_md_api import CtpMdApi
+from qts.common.message import MsgType
+from qts.common import get_logger
 
 from ..base_gateway import BaseGateway
-from .lib import  *
+from .ctp_td_api import CtpTdApi
+from .ctp_md_api import CtpMdApi
+from .base import *
 
-from qts.common.event import EventEngine
-
-from qts.common.model.object import *
-from qts.common.model.constant import *
-from qts.common.model.message import MsgType
-from qts.common.log import get_logger
 
 log = get_logger(__name__)
 
@@ -21,15 +17,14 @@ class CtpGateway(BaseGateway):
     """
 
     default_name: str = "CTP"
-
     exchanges: list[str] = list(EXCHANGE_CTP2VT.values())
 
     def __init__(self, acct_detail:AcctDetail) -> None:
         """构造函数"""
         super().__init__(acct_detail)
 
-        self.td_api: "CtpTdApi" = CtpTdApi(self)
-        self.md_api: "CtpMdApi" = CtpMdApi(self)
+        self.td_api: CtpTdApi = CtpTdApi(self)
+        self.md_api: CtpMdApi = CtpMdApi(self)
 
          
     def connect(self) -> None:

@@ -1,5 +1,6 @@
 from datetime import datetime
 from dataclasses import dataclass,field
+from tkinter import N
 
 from numpy import str_
 from .constant import *
@@ -25,13 +26,13 @@ class AcctConf(BaseModel):
     remark: str | None = None
 
 class AcctInfo(BaseModel):
-    id: str
-    group: str
-    name: str
+    conf: AcctConf = None
+
+    id: str = None
+    group: str = None
+    name: str = None
     enable: bool = False
     status: bool = True  #账户状态
-
-    conf: AcctConf = None
 
     trading_day: str = None
     td_status: bool = False
@@ -43,25 +44,26 @@ class AcctInfo(BaseModel):
     hold_profit: float = 0
     close_profit: float = 0
 
+    def model_post_init(self, __context) ->None:
+        self.id = self.conf.id
+        self.group = self.conf.group
+        self.name = self.conf.name
+        self.enable = self.conf.enable
+        self.status = self.conf.enable
+        
 
-
-
-
-#@dataclass
 class Position(BaseModel):
-    id: str  #symbol-direction
     symbol: str
     exchange: Exchange
     direction: PosDirection
 
+    id: str =None
     volume: int = 0
     yd_volume: int = 0
     td_volume: int =0
     yestday_volume: int =0  #昨日持仓量
     frozen: int = 0  #>0开仓冻结，<0平仓冻结
     available: int = 0
-
-
 
     price: float = 0 # 持仓均价
     pre_price: float = 0 # 昨日结算价
@@ -71,8 +73,9 @@ class Position(BaseModel):
     margin: float = 0 # 保证金占用
     commission: float = 0 # 手续费
 
-
-
+    def model_post_init(self, __context) -> None:
+        """"""
+        self.id: str = f"{self.symbol}-{self.direction.value}"
 
 class TradeData(BaseModel):
     id: str
@@ -88,12 +91,9 @@ class TradeData(BaseModel):
     order_ref: str = None
     fee: float = 0
 
-
-    def __post_init__(self) -> None:
+    def model_post_init(self, __context) -> None:
         """"""
         self.std_symbol: str = f"{self.symbol}.{self.exchange.value}"
-
-
 
 class OrderData(BaseModel):
     #两张组合ExchangeID + OrderSysID，FrontID + SessionID + OrderRef
@@ -138,7 +138,8 @@ class TickData(BaseModel):
 
     symbol: str
     exchange: Exchange
-    time: datetime
+    time: datetime 
+    std_symbol: str = None
 
     name: str = ""
     volume: float = 0
@@ -178,14 +179,10 @@ class TickData(BaseModel):
     ask_volume_4: float = 0
     ask_volume_5: float = 0
 
-    localtime: str = None
 
-    def __post_init__(self) -> None:
+    def model_post_init(self, __context) -> None:
         """"""
         self.std_symbol: str = f"{self.symbol}.{self.exchange.value}"
-
-
-
 
 class BarData(BaseModel):
     """
@@ -205,7 +202,7 @@ class BarData(BaseModel):
     low_price: float = 0
     close_price: float = 0
 
-    def __post_init__(self) -> None:
+    def model_post_init(self, __context) -> None:
         """"""
         self.vt_symbol: str = f"{self.symbol}.{self.exchange.value}"
     
@@ -220,14 +217,13 @@ class ProductData(BaseModel):
     """
     Product data contains basic information about each product traded.
     """
-
+    id: str
     name: str
-    product: Product
+    type: ProductType
     exchange: Exchange
 
     multiple: int
     pricetick: float
-#@dataclass
 class ContractData(BaseModel):
     """
     Contract data contains basic information about each contract traded.
@@ -236,9 +232,10 @@ class ContractData(BaseModel):
     symbol: str
     exchange: Exchange
     name: str
-    product: Product
-    multiple: int
-    pricetick: float
+    product: ProductType = None
+    multiple: int = 0 
+    pricetick: float = 0 
+    vt_symbol: str = None
 
     min_volume: float = 1           # minimum trading volume of the contract
     stop_supported: bool = False    # whether server supports stop order
@@ -253,7 +250,7 @@ class ContractData(BaseModel):
     option_portfolio: str = ""
     option_index: str = ""          # for identifying options with same strike price
 
-    def __post_init__(self) -> None:
+    def model_post_init(self, __context)-> None:
         """"""
         self.vt_symbol: str = f"{self.symbol}.{self.exchange.value}"
 
@@ -279,7 +276,7 @@ class OrderRequest(BaseModel):
     price: float = 0
 
 class SubscribeRequest(BaseModel):
-    symbol: str
+    symbols: list[str] = []
     exchange: Exchange = Exchange.NONE
 
 class AccountData(BaseModel):
@@ -302,5 +299,6 @@ class AcctDetail(BaseModel):
     trade_map: Dict[str,TradeData] = {}
     order_map: Dict[str,OrderData] = {} #挂单队列
     tick_map: Dict[str,TickData] = {}
+    product_map: Dict[str, ProductData] = {}
     contracts_map: Dict[str, ContractData] = {}
     timestamp: str = ""

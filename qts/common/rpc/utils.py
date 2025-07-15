@@ -2,10 +2,10 @@ import pickle
 import struct
 from typing import Tuple, Any
 
-def pack_message(msg_type: int, data: Any) -> bytes:
+def pack_message(header_type: int, data: Any) -> bytes:
     """Pack message with header (type + length) and pickled data"""
     body = pickle.dumps(data)
-    header = struct.pack('!II', msg_type, len(body))
+    header = struct.pack('!II', header_type, len(body))
     return header + body
 
 def unpack_header(header: bytes) -> Tuple[int, int]:

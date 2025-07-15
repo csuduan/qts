@@ -1,17 +1,20 @@
-import os
-import json
-def init(configs:dict):
-    # 初始化配置
-    from .config import config   
-    config.init(configs)
+from .config import config
+from .logger import logger
 
-    # 初始化日志
-    from .log import logger_utils
-    app_name = config.get_config("app_name")
-    log_path = config.get_config("log_path")
-    if not os.path.exists(log_path):
-        os.makedirs(log_path)
-    log_file = os.path.join(log_path, app_name+".log")
-    logger_utils.init(log_file)
+
+def get_config(key:str):
+    return config.get_config(key)
+
+def set_config(key:str,value:str):
+    return config.set_config(key,value)
+
+def get_logger( __name__):   
+    return logger
+
+__all__ = [
+    "set_conf",
+    "get_conf",
+    "get_logger"
+    ]
 
 

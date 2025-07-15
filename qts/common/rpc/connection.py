@@ -6,7 +6,7 @@ from typing import Dict, Optional, Any, Callable
 from .constants import *
 from .utils import *
 
-from qts.common.log import  get_logger
+from qts.common import  get_logger
 
 log = get_logger(__name__)
 
@@ -119,10 +119,10 @@ class Connection:
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._socket.connect((self._host, self._port))
             
-            # 发送连接类型
-            conn_type_data = {"conn_type": self._conn_type}
-            message = pack_message(MsgType.CONN_TYPE, conn_type_data)
-            self._socket.sendall(message)
+            if self._conn_type == ConnType.PSH:
+                #发起订阅
+                message = pack_message(HeadType.SUBS, {})
+                self._socket.sendall(message)
             
             self._connected = True
             self._last_heartbeat = time.time()
@@ -169,12 +169,12 @@ class Connection:
                 
                 if self._conn_type == ConnType.REQ:
                     # Handle response
-                    if msg_type == MsgType.RESPONSE:
+                    if msg_type == HeadType.RESPONSE:
                         self._handle_response(data)
                         continue
                 else:
                     # Handle push message
-                    if self._push_callback and msg_type == MsgType.PUSH:
+                    if self._push_callback and msg_type == HeadType.PUSH:
                         msg_id = data.get("msg_id")
                         self._push_callback(data.get("data"))
 
@@ -199,11 +199,10 @@ class Connection:
             # 如果连接断开则重新连接
             if not self._connected:
                 self._connect()
-
             # 如果连接正常则发送心跳
             if self._connected:
                 try:
-                    self.send_message(MsgType.HEARTBEAT, time.time())
+                    self.send_message(HeadType.HEARTBEAT, time.time())
                     self._last_heartbeat = time.time()
                 except Exception as e:
                     log.error(f"Failed to send heartbeat: {e}")

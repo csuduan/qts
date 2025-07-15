@@ -1,14 +1,18 @@
+"""
+author: krenx@openctp.
+last modify: 2024/12/12
+"""
+
 import sys
 import time
 import os
 import threading
-from openctp_ctp import tdapi
-
-# import thosttraderapi as tdapi
+from openctp_ctp import thosttraderapi as tdapi # pip install mode
+# import thosttraderapi as tdapi # local mode
 
 
 class TdImpl(tdapi.CThostFtdcTraderSpi):
-    def __init__(self, host, broker, user, password, appid, authcode,flow_path):
+    def __init__(self, host, broker, user, password, appid, authcode):
         super().__init__()
 
         self.broker = broker
@@ -22,7 +26,7 @@ class TdImpl(tdapi.CThostFtdcTraderSpi):
         self.SessionID = 0
         self.OrderRef = 0
 
-        self.api: tdapi.CThostFtdcTraderApi = tdapi.CThostFtdcTraderApi.CreateFtdcTraderApi(flow_path)
+        self.api: tdapi.CThostFtdcTraderApi = tdapi.CThostFtdcTraderApi.CreateFtdcTraderApi()
         self.api.RegisterSpi(self)
         self.api.RegisterFront(host)
         self.api.SubscribePrivateTopic(tdapi.THOST_TERT_QUICK)
@@ -63,7 +67,7 @@ class TdImpl(tdapi.CThostFtdcTraderSpi):
         req.UserID = self.user
         req.Password = self.password
         req.UserProductInfo = "demo"
-        self.api.ReqUserLogin(req, 0)
+        self.api.ReqUserLogin(req, 0,0,None)
 
     def OnRspUserLogin(
             self,
@@ -225,7 +229,7 @@ class TdImpl(tdapi.CThostFtdcTraderSpi):
                 f"MaxLimitOrderVolume={pInstrument.MaxLimitOrderVolume} "
             )
         if bIsLast == True:
-            semaphore.release()
+           semaphore.release()
 
     def OnRspQryExchange(self, pExchange: "CThostFtdcExchangeField", pRspInfo: "CThostFtdcRspInfoField",
                          nRequestID: "int", bIsLast: "bool") -> "void":
@@ -329,8 +333,8 @@ class TdImpl(tdapi.CThostFtdcTraderSpi):
               f'ParticipantID={pTrade.ParticipantID} '
               )
 
-    def OnRspQryInvestorPosition(self, pInvestorPosition: "CThostFtdcInvestorPositionField", pRspInfo: "CThostFtdcRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
-        # 查询持仓回报
+    def OnRspQryInvestorPosition(self, pInvestorPosition: tdapi.CThostFtdcInvestorPositionField,
+                                 pRspInfo: "CThostFtdcRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
         if pRspInfo is not None and pRspInfo.ErrorID != 0:
             print(f"OnRspQryInvestorPosition failed: {pRspInfo.ErrorMsg}")
             return
@@ -626,7 +630,7 @@ class TdImpl(tdapi.CThostFtdcTraderSpi):
             exit(-1)
         if pSettlementInfo is not None:
             # print(f"OnRspQrySettlementInfo:TradingDay={pSettlementInfo.TradingDay},InvestorID={pSettlementInfo.InvestorID},CurrencyID={pSettlementInfo.CurrencyID},Content={pSettlementInfo.Content}")
-            print(pSettlementInfo.Content)
+            print(pSettlementInfo.Content.decode('gbk'))
         if bIsLast == True:
             semaphore.release()
 
@@ -783,21 +787,16 @@ class TdImpl(tdapi.CThostFtdcTraderSpi):
         self.api.ReqOrderAction(req, 0)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 7:
-        print("Usage: {} host broker user password appid authcode".format(sys.argv[0]))
-        print("example: {} tcp://180.168.146.187:10130 9999 000001 888888 simnow_client_test 0000000000000000".format(
-            sys.argv[0]))
-        exit(0)
 
     semaphore = threading.Semaphore(0)
 
-    host = sys.argv[1]
-    broker = sys.argv[2]
-    user = sys.argv[3]
-    password = sys.argv[4]
-    appid = sys.argv[5]
-    authcode = sys.argv[6]
-    tdImpl = TdImpl(host, broker, user, password, appid, authcode,'/opt/data/ctp_con/demo_td')
+    host = 'tcp://182.254.243.31:30001'
+    broker = '9999'
+    user = '048997'
+    password = 'csuduan@2024'
+    appid = 'simnow_client_test'
+    authcode = '0000000000000000'
+    tdImpl = TdImpl(host, broker, user, password, appid, authcode)
     tdImpl.Run()
 
     # wait for login ok.

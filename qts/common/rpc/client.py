@@ -9,7 +9,7 @@ from typing import TypeVar, Callable
 
 
 
-from qts.common.log import get_logger
+from qts.common import get_logger
 
 log = get_logger(__name__)
 
@@ -57,7 +57,7 @@ class TcpClient:
             raise ConnectionError("Request connection not available")
         
         try:
-            rsp = self._req_conn.send_request(MsgType.REQUEST, req, timeout)
+            rsp = self._req_conn.send_request(HeadType.REQUEST, req, timeout)
             log.info(f"request success!  : {req}")
             return rsp
         except Exception as e:
@@ -70,7 +70,7 @@ class TcpClient:
             raise ConnectionError("Request connection not available")
         
         try:
-            self._req_conn.send_message(MsgType.REQUEST, data)
+            self._req_conn.send_message(HeadType.REQUEST, data)
         except Exception as e:
             log.error(f"Send failed: {e}")
             raise

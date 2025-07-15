@@ -1,4 +1,4 @@
-from qts.common.model.constant import Direction,Offset,PosDirection
+from qts.common.constant import Direction,Offset,PosDirection
 
 def get_reverse_direction(direction:PosDirection):
     return PosDirection.SHORT if direction == PosDirection.LONG else PosDirection.LONG

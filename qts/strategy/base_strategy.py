@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from qts.common.model.object import  TickData,BarData,OrderData,TradeData
+from qts.common.object import  TickData,BarData,OrderData,TradeData
 
 class BaseStrategy(ABC):
     def __init__(self):
