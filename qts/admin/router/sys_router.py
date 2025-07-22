@@ -2,6 +2,9 @@ from fastapi import APIRouter,Request
 from pydantic import BaseModel,Extra
 from qts.common import get_logger,get_config
 from qts.admin.core.resp import  resp_success
+from qts.admin.core import job_mgr
+
+
 
 logger = get_logger(__name__)
 router = APIRouter(prefix='/v1/sys')
@@ -50,7 +53,13 @@ async def get_jobs():
     获取任务列表
     :return:
     '''
-    jobs=[]
+    jobs = job_mgr.get_jobs()
     return resp_success(jobs)
+
+@router.post('/job/operate')
+async def operate_job(job_id:str,data:dict):
+    job_mgr.operate(job_id,data['action'])
+    return resp_success({})
+
 
 

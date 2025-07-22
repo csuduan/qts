@@ -6,7 +6,7 @@ from qts.common.dao import conf_dao
 from qts.common.message import MsgType
 from qts.common.event import event_engine,Event
 from qts.common.logger import add_custom_sink,INFO
-from .acct_inst import AcctInst
+from .trader_inst import TraderInst
 
 log = get_logger(__name__)
 
@@ -23,8 +23,7 @@ def handle_exit(signum, frame):
     exit(0)
 
 def custom_sink(message):
-    event = Event(type=MsgType.ON_LOG,data=message)
-    event_engine.put(event)
+    event_engine.put(type=MsgType.ON_LOG,data=message)
 
 def custon_filter(record):
     module_path = record.get('name', '')
@@ -39,8 +38,8 @@ async def main(acctId: str = None):
     log.info(f"启动账户: {acctId}")
 
 
-    acct_inst = AcctInst(acct_conf)
-    acct_inst.start()
+    trader_inst = TraderInst(acct_conf)
+    trader_inst.start()
     await asyncio.sleep(500)
 
 # 注册信号处理器

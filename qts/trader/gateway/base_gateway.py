@@ -31,12 +31,10 @@ class BaseGateway(ABC):
 
 
     def trig_event(self, type: MsgType, data: Any = None) -> None:
-        event: Event = Event(type, data)
-        event_engine.put(event)
+        event_engine.put(type,data)
 
     def on_ready(self) -> None:
         self.trig_event(MsgType.ON_READY,self.acct_detail)
-
     def on_status(self,status:StatusData) -> None:
         if status.type == "td":
             self.acct_detail.acct_info.td_status = status.status
@@ -44,12 +42,13 @@ class BaseGateway(ABC):
             self.acct_detail.acct_info.md_status = status.status
         if status.trading_day is not None:
             self.acct_detail.acct_info.trading_day = status.trading_day
-        if status.order_ref >0  :
+        if status.order_ref > 0  :
             self.order_ref = status.order_ref
-        self.trig_event(MsgType.ON_ACCT_INFO, self.acct_detail.acct_info)
+        self.trig_event(MsgType.ON_STATUS, {})
 
     def on_tick(self, tick: TickData) -> None:
         self.acct_detail.tick_map[tick.symbol] = tick
+        #不动态更新持仓盈亏
         self.trig_event(MsgType.ON_TICK, tick)
 
     def on_trade(self, trade: TradeData) -> None:
@@ -62,30 +61,41 @@ class BaseGateway(ABC):
             pos.frozen -= trade.volume if trade.offset == Offset.OPEN else -trade.volume
         #更新持仓
         if trade.offset == Offset.OPEN:
+            #开仓
             pos.td_volume += trade.volume
             pos.volume += trade.volume
-        elif trade.offset == Offset.CLOSETODAY:
-            pos.td_volume -= trade.volume
-            pos.volume -= trade.volume
+            #重新计算成本
+            pos.hold_cost += round(trade.volume*trade.price*pos.multiple,2)
+            pos.avg_price = round(pos.hold_cost/pos.volume/pos.multiple,2)
         else:
-            #优先平昨
-            yd = min(trade.volume,pos.yd_volume)
-            td = trade.volume - yd
-            pos.yd_volume -= yd
-            pos.td_volume -= td
-            pos.volume -= trade.volume
+            #平仓
+            if trade.offset == Offset.CLOSETODAY:
+                pos.td_volume -= trade.volume
+                pos.volume -= trade.volume
+            else:
+                #优先平昨
+                yd = min(trade.volume,pos.yd_volume)
+                td = trade.volume - yd
+                pos.yd_volume -= yd
+                pos.td_volume -= td
+                pos.volume -= trade.volume
+            pos.close_profit += round((trade.price-pos.avg_price)*trade.volume*pos.multiple*(-1 if trade.direction == Direction.SELL else 1),2)
+            #重新计算成本
+            pos.hold_cost -= round(trade.volume*pos.multiple*pos.avg_price,2)  
 
         log.info(f"成交回报: {trade.order_ref} {trade.symbol} {trade.offset.value}  {trade.direction.value} {trade.volume}  trade_id:{trade.id}")           
         self.trig_event(MsgType.ON_TRADE, trade)
         self.trig_event(MsgType.ON_POSITION,pos)
 
+
     def on_order(self, order: OrderData) -> None:
         #暂不处理非本应用发起的报单回报
+        #保证金、手续费、盈亏由管理平台统一计算
         if order.order_ref not in self.acct_detail.order_map:
             return
-
+            
+        pos = self.get_position(order.symbol,order.offset,order.direction,order.exchange)
         if order.status == Status.CANCELLED:
-            pos = self.get_position(order.symbol,order.offset,order.direction,order.exchange)
             #解除冻结
             untraded = order.volume-order.traded
             pos.frozen -= untraded if order.offset == Offset.OPEN else -untraded
@@ -95,6 +105,7 @@ class BaseGateway(ABC):
 
         log.info(f"报单回报: {order.order_ref} {order.symbol} {order.offset.value}  {order.direction.value} {order.traded}/{order.volume}  {order.status_msg} sys_id:{order.order_sys_id}")           
         self.trig_event(MsgType.ON_ORDER, order)
+        self.trig_event(MsgType.ON_POSITION, pos)
 
     def on_positions(self, positions:dict[str,Position]) -> None:
         self.acct_detail.position_map.clear()
@@ -182,7 +193,10 @@ class BaseGateway(ABC):
         pos_direction = get_pos_direction(offset,direction)
         pos_id = f"{symbol}-{pos_direction.value}"
         if pos_id not in self.acct_detail.position_map:
-            self.acct_detail.position_map[pos_id] = Position(id=pos_id,symbol=symbol,direction=pos_direction,exchange=exchange)
+            pos= Position(id=pos_id,symbol=symbol,direction=pos_direction,exchange=exchange)
+            contract = self.get_contract(symbol)
+            pos.multiple = contract.multiple
+            self.acct_detail.position_map[pos_id] = pos
         return self.acct_detail.position_map[pos_id]
     
     def next_order_ref(self) -> int:

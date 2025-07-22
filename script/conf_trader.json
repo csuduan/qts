@@ -4,5 +4,6 @@
   "data_path": "/opt/qts/data",
   "db_url": "sqlite:////opt/dev/qts-new/qts/qts.db",
   "log_path": "/opt/qts/log",
+  "rpc_addr": "127.0.0.1:8085",
   "save_tick": true
 }

@@ -6,7 +6,22 @@
   "data_path": "/opt/qts/data",
   "log_path": "/opt/qts/log",
   "db_url": "sqlite:////opt/dev/qts-new/qts/qts.db",
-  
+
+  "jobs":[
+    {
+      "id":"conn_api_day",
+      "name":"开盘自动连接",
+      "cron":"50 8,20 * * *",
+      "func":"qts.admin.job.connect_api_job"
+    },
+    {
+      "id":"dissconn_api_day",
+      "name":"收盘断开连接",
+      "cron":"40 15,2 * * *",
+      "func":"qts.admin.job.disconnect_api_job"
+    }
+
+  ],
   "routers": [
     {
       "path": "/system",
@@ -68,34 +83,12 @@
           }
         },
         {
-          "path": "/system/ref",
+          "path": "/system/help",
+          "name": "help",
           "meta": {
-            "title": "参考"
-          },
-          "children": [
-            {
-              "path": "/system/ref/doc",
-              "name": "https://pure-admin.github.io/pure-admin-doc",
-              "meta": {
-                "title": "官方文档"
-              }
-            },
-            {
-              "path": "/system/ref/element",
-              "name": "https://element-plus.sxtxhy.com/zh-CN/",
-              "meta": {
-                "title": "element文档"
-              }
-            },
-            {
-              "path": "/system/ref/icone",
-              "name": "https://icones.js.org/",
-              "meta": {
-                "title": "图标大全"
-              }
-            }
-          ]
-        }
+            "title": "帮助"
+          }
+        }      
       ]
     },
     {

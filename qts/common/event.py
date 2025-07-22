@@ -4,6 +4,7 @@ from collections import defaultdict
 from queue import Empty, Queue
 from threading import Thread
 from time import sleep
+from .logger import logger
 
 import asyncio
 class Event:
@@ -56,11 +57,14 @@ class EventEngine:
         Then distribute event to those general handlers which listens
         to all types.
         """
-        if event.type in self._handlers:
-            [handler(event) for handler in self._handlers[event.type]]
+        try:
+            if event.type in self._handlers:
+                [handler(event) for handler in self._handlers[event.type]]
 
-        if self._general_handlers:
-            [handler(event) for handler in self._general_handlers]
+            if self._general_handlers:
+                [handler(event) for handler in self._general_handlers]
+        except Exception as e:
+            logger.exception(f"事件处理异常,{e}")
 
     def start(self) -> None:
         """
@@ -76,11 +80,17 @@ class EventEngine:
         self._active = False
         self._thread.join()
 
-    def put(self, event: Event) -> None:
+    # def put(self, event: Event) -> None:
+    #     """
+    #     Put an event object into event queue.
+    #     """
+    #     self._queue.put(event)
+    
+    def put(self,type: str, data: Any) -> None:
         """
         Put an event object into event queue.
         """
-        self._queue.put(event)
+        self._queue.put(Event(type, data))
 
     def register(self, type: str, handler: HandlerType ) -> None:
         """

@@ -3,7 +3,7 @@ import argparse
 import asyncio
 
 
-os.environ['QTS_CONFIG'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), "conf_admin.json")
+os.environ['QTS_CONFIG'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), "conf_trader.json")
 
 if __name__ == '__main__':  
     from qts.trader.app import main

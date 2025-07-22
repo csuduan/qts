@@ -18,6 +18,7 @@ dependencies = [
     "gunicorn",
     "psutil",
     "qts",
+    "uvicorn",
     "pyzmq==26.2.0.*"
 ]
 

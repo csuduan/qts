@@ -31,7 +31,6 @@ class CtpGateway(BaseGateway):
         '''连接接口'''
         self.td_api.connect()
         self.md_api.connect()
-        self.init_query()
 
     def disconnect(self) -> None:
         """断开接口"""
@@ -43,6 +42,7 @@ class CtpGateway(BaseGateway):
         self.md_api.subscribe(req)
 
     def create_order(self,req: OrderRequest) -> OrderData:
+        """创建订单"""
         order_ref = self.next_order_ref()
         if not req.exchange or req.exchange == Exchange.NONE:
             contract:ContractData = self.acct_detail.contracts_map[req.symbol]
@@ -72,6 +72,8 @@ class CtpGateway(BaseGateway):
     def send_order(self, req: OrderData) -> bool:
         """委托下单"""
 
+        if not req.order_ref:
+            req.order_ref = self.next_order_ref() 
         #冻结仓位检查
         pos : Position = self.get_position(req.symbol,req.offset,req.direction,req.exchange)
         if pos.frozen<0 and req.offset == Offset.OPEN or pos.frozen>0 and req.offset == Offset.CLOSE:
@@ -107,26 +109,6 @@ class CtpGateway(BaseGateway):
     def query_position(self) -> None:
         """查询持仓"""
         self.td_api.query_position()
-
-
-    def process_timer_event(self, event) -> None:
-        """定时事件处理"""
-        self.count += 1
-        if self.count < 2:
-            return
-        self.count = 0
-
-        func = self.query_functions.pop(0)
-        func()
-        self.query_functions.append(func)
-
-        self.md_api.update_date()
-
-    def init_query(self) -> None:
-        """初始化查询任务"""
-        self.count: int = 0
-        self.query_functions: list = [self.query_account, self.query_position]
-
     
     def __autotrade_check(self,req:OrderData) -> bool:
         """自成交检查"""

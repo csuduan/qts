@@ -1,13 +1,14 @@
 import os,sys
 import json
 import nest_asyncio
+import asyncio
 from fastapi_offline import FastAPIOffline
 from fastapi import WebSocket,Request,WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
 
 from .router import sys_router,acct_router
-from .core import acct_mgr
+from .core import acct_mgr,job_mgr
 
 from qts.common import  get_config
 from qts.common import  get_logger
@@ -19,7 +20,7 @@ app = FastAPIOffline()
 app.include_router(sys_router.router,prefix=f"/{app_name}",tags=['系统管理'])
 app.include_router(acct_router.router,prefix=f"/{app_name}",tags=['账户管理'])
 
-
+job_mgr.start(get_config('jobs'))
 acct_mgr.start()
 
 @app.websocket("/ws")
@@ -28,12 +29,11 @@ async def websocket_endpoint(websocket: WebSocket):
     log.info(f"WebSocket connection accepted")
     acct_mgr.active_websockets.append(websocket)
     try:
-        # Send initial connection message
         await websocket.send_json({"type": "on_connect"})
-
         # 发送初始账户信息
         for inst in acct_mgr.get_all_insts():
             await websocket.send_json({"type": "on_acct_detail","acct_id":inst.acct_id, "data": json.loads(inst.acct_detail.json())})
+            await websocket.send_json({"type": "on_logs","acct_id":inst.acct_id, "data": inst.log_buffer})
         
         while True:
             data = await websocket.receive_text()
@@ -52,22 +52,17 @@ async def websocket_endpoint(websocket: WebSocket):
 async def log_request_response(request: Request, call_next):
     # 记录请求信息
     body = await request.body()
-    # log.info(f"\n--- Request ---\n"
-    #             f"{request.method} {request.url}\n"
-    #             f"Headers: {dict(request.headers)}\n"
-    #             f"Body: {body.decode()}")
-    
     # 获取响应
-    response = await call_next(request)
-    
+    response = await call_next(request)   
     # 如果是 JSONResponse，记录响应内容
     if isinstance(response, JSONResponse):
         log.info(f"\n--- Response ---\n"
                    f"Status: {response.status_code}\n"
                    f"Headers: {dict(response.headers)}\n"
-                   f"Body: {response.body.decode()}")
-    
+                   f"Body: {response.body.decode()}")  
     return response
+
+
 
 
 

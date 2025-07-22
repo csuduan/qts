@@ -57,7 +57,6 @@ async def get_acct_detail(acct_id: str,timestamp: str):
     :return:
     '''
     detail = acct_mgr.get_acct_detail(acct_id,timestamp)
-
     return resp_success(detail)
 
 
@@ -69,8 +68,8 @@ async def get_acct_positions(acct_id: str):
     :param acct_id: 账户编号
     :return:
     '''
-    positions = acct_mgr.get_acct_inst(acct_id).get_positions()
-    return resp_success(positions)
+    acct = acct_mgr.get_acct_inst(acct_id).get_acct_detail()
+    return resp_success(list(acct.position_map.values))
 
 @router.get('/inst/orders')
 async def get_acct_orders(acct_id: str):
@@ -79,8 +78,8 @@ async def get_acct_orders(acct_id: str):
     :param acct_id: 账户编号
     :return:
     '''
-    orders = acct_mgr.get_acct_inst(acct_id).get_orders()
-    return resp_success(orders)
+    acct = acct_mgr.get_acct_inst(acct_id).get_acct_detail()
+    return resp_success(list(acct.order_map.values))
 
 @router.get('/inst/quotes')
 async def get_acct_ticks(acct_id: str,timestamp: str):
@@ -89,9 +88,8 @@ async def get_acct_ticks(acct_id: str,timestamp: str):
     :param acct_id: 账户编号
     :return:
     '''
-    ticks = acct_mgr.get_acct_inst(acct_id).get_quotes(timestamp)
-    resp = resp_success(ticks)
-    return resp
+    acct = acct_mgr.get_acct_inst(acct_id).get_acct_detail()
+    return resp_success(list(acct.tick_map.values))
 
 @router.get('/inst/trades')
 async def get_acct_trades(acct_id: str):
@@ -100,8 +98,8 @@ async def get_acct_trades(acct_id: str):
     :param acct_id: 账户编号
     :return:
     '''
-    trades = acct_mgr.get_acct_inst(acct_id).get_trades()
-    return resp_success(trades)
+    acct = acct_mgr.get_acct_inst(acct_id).get_acct_detail()
+    return resp_success(list(acct.trade_map.values))
 
 @router.get('/inst/operate')
 async def disconnect_acct(acct_id: str,op_type: AcctOpType):
@@ -116,13 +114,11 @@ async def disconnect_acct(acct_id: str,op_type: AcctOpType):
     return resp_success()
 
 @router.post('/inst/subscribe')
-async def sub_contract(data:dict):
-    acct_id = data.get('acct_id')
-    symbol = data.get('symbol')
+async def sub_contract(acct_id:str,data:SubscribeRequest):
     acct_inst = acct_mgr.get_acct_inst(acct_id)
     if not acct_inst:
         raise Exception(f"账户实例不存在: {acct_id}")
-    acct_inst.subscribe(symbol)
+    acct_inst.subscribe(data)
     return resp_success()
 
 @router.post('/inst/order')
@@ -131,4 +127,12 @@ async def send_order(acct_id:str,data:OrderRequest):
     if not acct_inst:
         raise Exception(f"账户实例不存在: {acct_id}")
     acct_inst.send_order(data)
+    return resp_success()
+
+@router.post('/inst/cancel-order')
+async def send_order(acct_id:str,data:OrderCancel):
+    acct_inst = acct_mgr.get_acct_inst(acct_id)
+    if not acct_inst:
+        raise Exception(f"账户实例不存在: {acct_id}")
+    acct_inst.cancel_order(data)
     return resp_success()

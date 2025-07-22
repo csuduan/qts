@@ -1,3 +1,4 @@
+from re import M
 import threading
 from datetime import datetime
 from time import sleep
@@ -30,7 +31,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
         self.frontid: int = 0
         self.sessionid: int = 0
         self.trade_data: list[dict] = []
-        self.positions: dict[str, Position] = {}
+        self.position_map: dict[str, Position] = {}
         self.contract_map:dict[str,ContractData] = {}
         self.ordering_map: dict[str, OrderData] = {}
         self.api: CThostFtdcTraderApi = None
@@ -85,9 +86,9 @@ class CtpTdApi(CThostFtdcTraderSpi):
         # 异步发起查询
         threading.Thread(target=self.__run_query).start()
 
-    def OnRspOrderAction(self, data: dict, error: dict, reqid: int, last: bool) -> None:
+    def OnRspOrderAction(self, pInputOrderAction: "CThostFtdcInputOrderActionField", pRspInfo: "CThostFtdcRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
         """委托撤单失败回报"""
-        log.error(f"交易撤单失败:{error}")
+        log.error(f"交易撤单失败:{pRspInfo.ErrorMsg}")
 
     def OnRspSettlementInfoConfirm(self, pSettlementInfoConfirm: "CThostFtdcSettlementInfoConfirmField",
                                    pRspInfo: "CThostFtdcRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
@@ -112,29 +113,27 @@ class CtpTdApi(CThostFtdcTraderSpi):
             if contract:
                 # 获取之前缓存的持仓数据缓存
                 key: str = f"{pInvestorPosition.InstrumentID}-{direction.value}"
-                position: Position = self.positions.get(key, None)
+                position: Position = self.position_map.get(key, None)
                 if not position:
                     position = Position(
                         symbol=pInvestorPosition.InstrumentID,
                         exchange=contract.exchange,
                         direction=direction,
                     )
-                    self.positions[key] = position
+                    self.position_map[key] = position
 
-                # # 对于上期所昨仓需要特殊处理
-                # if position.exchange in {Exchange.SHFE, Exchange.INE}:
-                #     if pInvestorPosition.YdPosition and not pInvestorPosition.TodayPosition:
-                #         position.yd_volume = pInvestorPosition.Position
-                # # 对于其他交易所昨仓的计算
-                # else:
-                #     position.yd_volume = pInvestorPosition.Position - pInvestorPosition.TodayPosition
+                # 说明：
+                # YdPosition是当前键值下的昨仓，是个静态值，不会更新。当前真实的昨仓值为Position-TodayPosition；
+                #对于非上期/能源的交易所，合约的昨仓YdPosition和今仓TodayPosition在一条记录里面，而上期/能源是分成了两条记录。
                 # 获取合约的乘数信息
                 size: int = contract.multiple
+                position.multiple = size
 
                 volume: int = pInvestorPosition.Position
                 td_volume: int = pInvestorPosition.TodayPosition if pInvestorPosition.TodayPosition else 0
                 yd_volume: int = volume - td_volume
                 
+                #累计仓位
                 position.volume += volume
                 position.td_volume += td_volume
                 position.yd_volume += yd_volume
@@ -142,12 +141,12 @@ class CtpTdApi(CThostFtdcTraderSpi):
 
                 # 计算持仓成本/均价
                 position.hold_cost +=pInvestorPosition.PositionCost
-                position.price = round(position.hold_cost / (position.volume * size),2) if position.volume > 0 else 0
+                position.avg_price = round(position.hold_cost / (position.volume * size),2) if position.volume > 0 else 0
                 position.hold_profit += round(pInvestorPosition.PositionProfit,2)
                 position.close_profit += round(pInvestorPosition.CloseProfit,2)
 
                 position.pre_price = pInvestorPosition.PreSettlementPrice
-                position.margin += round(pInvestorPosition.UseMargin,2)
+                position.margin += round(pInvestorPosition.UseMargin,2) + round(pInvestorPosition.FrozenMargin,2)
                 position.commission += round(pInvestorPosition.Commission,2)
                 # 更新仓位冻结数量
                 if position.direction == PosDirection.LONG:
@@ -158,9 +157,9 @@ class CtpTdApi(CThostFtdcTraderSpi):
                 
 
         if bIsLast:
-            self.gateway.on_positions(self.positions)
-            log.info(f"持仓信息查询成功,共{len(self.positions)}条")
-            self.positions.clear()
+            self.gateway.on_positions(self.position_map)
+            log.info(f"持仓信息查询成功,共{len(self.position_map)}条")
+            self.position_map.clear()
             self.semaphore.release()
 
     def OnRspQryTradingAccount(self, pTradingAccount: "CThostFtdcTradingAccountField",
@@ -221,6 +220,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
                 product=product,
                 multiple=pInstrument.VolumeMultiple,
                 pricetick=pInstrument.PriceTick,
+                maxMarginSideAlgorithm=pInstrument.MaxMarginSideAlgorithm,
             )
 
             # 期权相关
@@ -248,6 +248,24 @@ class CtpTdApi(CThostFtdcTraderSpi):
             self.gateway.on_contracts(self.contract_map)
             self.contract_map.clear()
             self.semaphore.release()
+
+    def OnRspQryInstrumentMarginRate(self, pInstrumentMarginRate: "CThostFtdcInstrumentMarginRateField", pRspInfo: "CThostFtdcRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
+        """请求查询合约保证金率响应"""
+        if pRspInfo is not None and pRspInfo.ErrorID != 0:
+            log.error(f"查询合约保证金率失败,{pRspInfo.ErrorMsg}")
+            self.semaphore.release()
+            return
+        
+        contract: ContractData = self.gateway.get_contract(pInstrumentMarginRate.InstrumentID)
+        if contract:
+            contract.long_margin_by_volume = pInstrumentMarginRate.LongMarginRatioByVolume
+            contract.long_margin_by_money = pInstrumentMarginRate.LongMarginRatioByMoney
+            contract.short_margin_by_volume = pInstrumentMarginRate.ShortMarginRatioByVolume
+            contract.short_margin_by_money = pInstrumentMarginRate.ShortMarginRatioByMoney
+        if bIsLast:
+            self.semaphore.release()
+            log.info(f"合约保证金率查询成功")
+
 
     def OnRspQryTrade(self, pTrade: "CThostFtdcTradeField", pRspInfo: "CThostFtdcRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
         """请求查询成交响应"""
@@ -307,6 +325,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
         """委托更新推送"""
         symbol: str = pOrder.InstrumentID;
         #contract: ContractData = self.gateway.get_contract(symbol)
+        #OrderSubmitStatus为THOST_FTDC_OSS_InsertRejected（”报单已经被拒绝“）即说明该笔单子被交易所拒单（处于被动撤单状态）。
 
         status: Status = STATUS_CTP2VT.get(pOrder.OrderStatus, None)
         if not status:
@@ -403,9 +422,8 @@ class CtpTdApi(CThostFtdcTraderSpi):
             log.error(f"开平方向无效{req.offset.value}")
             return ""
 
-        self.reqid += 1
         ctp_req: CThostFtdcInputOrderField = CThostFtdcInputOrderField()
-        ctp_req.RequestID = self.reqid
+        ctp_req.RequestID = self.next_reqid()
         ctp_req.OrderRef = req.order_ref
         ctp_req.InvestorID = self.user
         ctp_req.BrokerID = self.broker
@@ -444,21 +462,20 @@ class CtpTdApi(CThostFtdcTraderSpi):
 
     def cancel_order(self, req: OrderCancel) -> None:
         """委托撤单"""
-        frontid, sessionid, order_ref = req.orderid.split("_")
+        
+        ctp_req:CThostFtdcInputOrderActionField = CThostFtdcInputOrderActionField()
+        ctp_req.InvestorID=self.user
+        ctp_req.BrokerID=self.broker
+        ctp_req.ActionFlag = THOST_FTDC_AF_Delete
+        if not req.order_sys_id:
+            ctp_req.OrderRef = req.order_ref
+            ctp_req.FrontID = int(self.frontid)
+            ctp_req.SessionID = int(self.sessionid)
+        else:
+            ctp_req.OrderSysID = req.order_sys_id
+            ctp_req.ExchangeID = req.exchange.value
 
-        ctp_req: dict = {
-            "InstrumentID": req.symbol,
-            "ExchangeID": req.exchange.value,
-            "OrderRef": order_ref,
-            "FrontID": int(frontid),
-            "SessionID": int(sessionid),
-            "ActionFlag": THOST_FTDC_AF_Delete,
-            "BrokerID": self.broker,
-            "InvestorID": self.user
-        }
-
-        self.reqid += 1
-        self.api.ReqOrderAction(ctp_req, self.reqid)
+        self.api.ReqOrderAction(ctp_req, self.next_reqid())
 
     def __run_query(self):
         # log.info(f"[1/6] 查询结算信息")
@@ -489,6 +506,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
             self.query_account, 
             self.query_product, 
             self.query_contract, 
+            self.query_margin,
             self.query_position,
             self.query_trades]
 
@@ -584,6 +602,21 @@ class CtpTdApi(CThostFtdcTraderSpi):
         ret = self.api.ReqQryTrade(req, self.next_reqid())
         if ret != 0:
             log.error(f"查询成交失败，错误代码：{ret}")
+            self.semaphore.release()
+    
+    def query_margin(self):
+        """查询保证金"""
+        if not self.td_status:
+            return
+        self.semaphore.acquire()
+        log.info("开始查询保证金...")
+        req:CThostFtdcQryInstrumentMarginRateField = CThostFtdcQryInstrumentMarginRateField()
+        req.BrokerID = self.broker
+        req.InvestorID = self.user
+        req.HedgeFlag = THOST_FTDC_HF_Speculation
+        ret = self.api.ReqQryInstrumentMarginRate(req, self.next_reqid())
+        if ret != 0:
+            log.error(f"查询保证金失败，错误代码：{ret}")
             self.semaphore.release()
 
     def next_reqid(self)->int:

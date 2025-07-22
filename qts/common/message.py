@@ -4,37 +4,38 @@ from typing import TypeVar, Callable
 
 
 class MsgType(Enum):
-    CONNECT = "connect"
-    DISCONNECT = "disconnect"
-    CLOSE = "close"
-    GET_POSITIONS = "get_positions"
-    GET_TRADES = "get_trades"
-    GET_ORDERS = "get_orders"
-    GET_ACCT_INFO = "get_acct_info"
-    GET_ACCT_DETAIL = "get_acct_detail"
-    GET_QUOTES = "get_quotes"
-    SEND_ORDER = "send_order"
-    CANCEL_ORDER = "cancel_order"
-    SUBSCRIBE = "subscribe"
+    HEARTBEAT = "heartbeat"
+    REGISTER = "register"
+
+    REQ_CONNECT = "req_connect"
+    REQ_DISCONNECT = "req_disconnect"
+    REQ_CLOSE = "req_close"
+    REQ_SEND_ORDER = "req_insert_order"
+    REQ_CANCEL_ORDER = "req_cancel_order"
+    REQ_SUBSCRIBE = "req_subscribe"
 
     ON_CONNECTED = "on_connected"
     ON_READY = "on_ready"
     ON_STATUS = "on_status"
     ON_TICK = "on_tick"
-    ON_LOG = "on_log"
     ON_ORDER = "on_order"
     ON_POSITION = "on_position"
     ON_POSITIONS = "on_positions"
     ON_TRADE = "on_trade"
     ON_TRADES = "on_trades"
     ON_ACCT_INFO = "on_acct_info"
+    ON_ACCT_DETAIL = "on_acct_detail"
     ON_CONTRACTS = "on_contracts"
+    ON_LOG = "on_log"
+
+
+    ON_WS = "on_ws"
     
 @dataclass
 class Message():
     type: MsgType
-    data: any = None;
-    code: int = 0 ;
+    id: str = None
+    data: any = None
 
 
 R = TypeVar('R')  # 返回值类型
