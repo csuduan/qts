@@ -1,6 +1,6 @@
 {
   "app_name": "qts-trader",
-  "api_path": "/opt/qts/api",
+  "api_path": "/opt/qts/data/api",
   "data_path": "/opt/qts/data",
   "db_url": "sqlite:////opt/dev/qts-new/qts/qts.db",
   "log_path": "/opt/qts/log",

@@ -1,5 +1,6 @@
-from re import M
 import threading
+import platform
+
 from datetime import datetime
 from time import sleep
 
@@ -412,7 +413,12 @@ class CtpTdApi(CThostFtdcTraderSpi):
         req.UserID = self.user
         req.Password = self.pwd
         req.UserProductInfo = 'qts'
-        ret = self.api.ReqUserLogin(req, self.next_reqid(), 0, None)
+        
+        if platform.system() == 'Darwin':
+            ret = self.api.ReqUserLogin(req, self.next_reqid(), 0, None)
+        else:
+            ret = self.api.ReqUserLogin(req, self.next_reqid())
+        
         if ret != 0:
             log.error(f"交易服务器登录失败，错误代码：{ret}")
 

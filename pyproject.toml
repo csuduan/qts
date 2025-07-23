@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=58", "wheel"]
 build-backend = "setuptools.build_meta"
 
 
@@ -8,6 +8,8 @@ name = "qts"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "numpy",
+    "pandas",
     "cachetools",
     "APScheduler",
     "Flask-SocketIO",
@@ -19,12 +21,11 @@ dependencies = [
     "psutil",
     "qts",
     "uvicorn",
-    "pyzmq==26.2.0.*"
+    "pyzmq==26.2.0.*",
+    "loguru"
 ]
 
 [tool.setuptools]
-packages.find = {where = ["qts"]}
+#packages = ["qts"]
+packages = {find = {include = ["qts*"]}}
 
-[tool.poetry]
-name = "qts"
-version = "0.1.0"

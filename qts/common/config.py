@@ -22,7 +22,7 @@ class Config():
         config_file = os.getenv('QTS_CONFIG', os.path.join(os.path.dirname(os.path.abspath(__file__)), "conf.json"))
         if not os.path.exists(config_file):
             exit(-1)
-        with open(config_file, "r") as f:
+        with open(config_file, "r",encoding="utf-8") as f:
             self.configs = json.load(f)
         self.inited = True
 
