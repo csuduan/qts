@@ -10,7 +10,7 @@ class HeadType(IntEnum):
     REQUEST = 1
 
 HEADER_SIZE = 8  # 4 bytes type + 4 bytes length
-HEARTBEAT_INTERVAL = 15  # seconds
+HEARTBEAT_INTERVAL = 5  # seconds
 RECONNECT_INTERVAL = 3  # seconds
 REQUEST_TIMEOUT = 15.0  # seconds 
 

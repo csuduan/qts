@@ -190,16 +190,18 @@ class CtpTdApi(CThostFtdcTraderSpi):
             log.error(f"查询产品失败,{pRspInfo.ErrorMsg}")
             self.semaphore.release()
             return
-        product: ProductData = ProductData(
-            id = pProduct.ProductID,
-            name = pProduct.ProductName,
-            exchange = EXCHANGE_CTP2VT.get(pProduct.ExchangeID,None),
-            type = PRODUCT_CTP2VT.get(pProduct.ProductClass, None),
-            pricetick = pProduct.PriceTick,
-            multiple = pProduct.VolumeMultiple
-        )
-        if product:
-            self.gateway.on_product(product)
+        if pProduct.ProductClass in PRODUCT_CTP2VT:
+            product: ProductData = ProductData(
+                id = pProduct.ProductID,
+                name = pProduct.ProductName,
+                exchange = EXCHANGE_CTP2VT.get(pProduct.ExchangeID,None),
+                type = PRODUCT_CTP2VT.get(pProduct.ProductClass, None),
+                pricetick = pProduct.PriceTick,
+                multiple = pProduct.VolumeMultiple
+            )
+        
+            if product:
+                self.gateway.on_product(product)
         if bIsLast:
             self.semaphore.release()
 
@@ -372,7 +374,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
         if not self.connect_status:
             log.info("开始连接交易服务器...")
             path = get_data_path(self.gateway_name.lower())
-            flow_path = (str(path) + "\\Td")
+            flow_path = (str(path) + "/td")
             self.api = CThostFtdcTraderApi.CreateFtdcTraderApi(flow_path)
             self.api.RegisterSpi(self)
             self.api.RegisterFront(self.address)

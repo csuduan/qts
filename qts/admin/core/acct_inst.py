@@ -1,4 +1,5 @@
 
+from admin.core.ws_mgr import WsMgr
 from qts.common.object import  AcctConf,AcctInfo,Position,TickData
 import json
 import queue
@@ -20,12 +21,12 @@ LOG_BUFF_SIZE = 1000
 账户实例
 '''
 class AcctInst(object):
-    def __init__(self, config:AcctConf,push_callback:Callable):
+    def __init__(self, config:AcctConf,ws_msg:WsMgr):
         self.config: AcctConf = config
         self.acct_id = config.id
         acct_info = AcctInfo(id=config.id,group=config.group,name=config.name,enable=config.enable,status=False,conf=config)
         #self.acct_info: AcctInfo = acct_info
-        self.push_callback = push_callback
+        self.ws_mgr = ws_msg
         self.acct_detail: AcctDetail = AcctDetail(acct_info=acct_info)
         self.acct_connection: Connection = None
         self.log_buffer:list[str] = []
@@ -90,7 +91,8 @@ class AcctInst(object):
 
     def send_ws_msg(self,type:str,json_msg:Any):
         #event_engine.put(MsgType.ON_WS,{"type":type,"acct_id":self.acct_id,"data":json_msg})
-        self.push_callback({"type":type,"acct_id":self.acct_id,"data":json_msg})
+        #self.push_callback({"type":type,"acct_id":self.acct_id,"data":json_msg})
+        self.ws_mgr.push_msg({"type":type,"acct_id":self.acct_id,"data":json_msg})
 
     def push_task(self):
         if not self.inst_status:

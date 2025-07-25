@@ -140,7 +140,7 @@ class CtpMdApi(CThostFtdcMdSpi):
         if not self.connect_status:
             log.info("开始连接行情服务器...")
             path = get_data_path(self.gateway_name.lower())
-            flow_path = path + "/Md"
+            flow_path = path + "/md"
             self.api = CThostFtdcMdApi.CreateFtdcMdApi(flow_path)
             self.api.RegisterFront(self.address)
             self.api.RegisterSpi(self)

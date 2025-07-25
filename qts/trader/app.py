@@ -32,11 +32,10 @@ def custon_filter(record):
 async def main(acctId: str = None):
     add_custom_sink(custom_sink,custon_filter,level=INFO)
     acct_conf = conf_dao.get_acct_config(acctId)
-    if acct_conf is None:
-        log.error(f"账户 {acctId} 不存在")
+    if acct_conf is None or not acct_conf.enable:
+        log.error(f"账户 {acctId} 不存在或已禁用")
         return       
     log.info(f"启动账户: {acctId}")
-
 
     trader_inst = TraderInst(acct_conf)
     trader_inst.start()

@@ -2,10 +2,9 @@
   "app_name": "qts-admin",
   "server_port": 8084,
   "rpc_port": 8085,
-  "api_path": "/opt/qts/api",
   "data_path": "/opt/qts/data",
   "log_path": "/opt/qts/log",
-  "db_url": "sqlite:////opt/dev/qts-new/qts/qts.db",
+  "db_url": "sqlite:////opt/dev/qts-new/qts.db",
 
   "jobs":[
     {

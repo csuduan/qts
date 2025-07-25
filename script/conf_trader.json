@@ -1,9 +1,8 @@
 {
   "app_name": "qts-trader",
-  "api_path": "/opt/qts/data/api",
-  "data_path": "/opt/qts/data",
-  "db_url": "sqlite:////opt/dev/qts-new/qts/qts.db",
-  "log_path": "/opt/qts/log",
   "rpc_addr": "127.0.0.1:8085",
+  "data_path": "/opt/qts/data",
+  "log_path": "/opt/qts/log",
+  "db_url": "sqlite:////opt/dev/qts-new/qts.db",
   "save_tick": true
 }

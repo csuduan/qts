@@ -30,7 +30,7 @@ format: str ="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> - {level} - <cyan>{f
 # Log level
 level: int = config.get_config("log.level")
 level = level if level else INFO
-app_name: str = config.get_config("appName")
+app_name: str = config.get_config("app_name")
 log_path: str = config.get_config("log_path")
 
 # Remove default stderr output

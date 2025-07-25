@@ -22,7 +22,6 @@ class AcctConfPo(Base):
     td_addr = Column(String)
     md_addr = Column(String)
     enable = Column(Boolean)
-    rpc_addr= Column(String)
     remark= Column(String)
 
     def __repr__(self):

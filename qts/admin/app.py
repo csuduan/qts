@@ -2,8 +2,8 @@ import os,sys
 import json
 import nest_asyncio
 import asyncio
-from fastapi_offline import FastAPIOffline
-from fastapi import WebSocket,Request,WebSocketDisconnect
+from contextlib import asynccontextmanager
+from fastapi import WebSocket,Request,WebSocketDisconnect,FastAPI
 from fastapi.responses import JSONResponse
 
 
@@ -16,19 +16,26 @@ log = get_logger(__name__)
 
 nest_asyncio.apply()
 app_name = get_config('app_name')
-app = FastAPIOffline()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    log.info("启动前执行")
+    job_mgr.start(get_config('jobs'))
+    acct_mgr.start()
+    yield
+    log.info("关闭后前执行")
+
+app = FastAPI(lifespan=lifespan)
 app.include_router(sys_router.router,prefix=f"/{app_name}",tags=['系统管理'])
 app.include_router(acct_router.router,prefix=f"/{app_name}",tags=['账户管理'])
 
-job_mgr.start(get_config('jobs'))
-acct_mgr.start()
+
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    log.info(f"WebSocket connection accepted")
-    acct_mgr.active_websockets.append(websocket)
     try:
+        await acct_mgr.ws_mgr.connect(websocket)
         await websocket.send_json({"type": "on_connect"})
         # 发送初始账户信息
         for inst in acct_mgr.get_all_insts():
@@ -36,16 +43,12 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_json({"type": "on_logs","acct_id":inst.acct_id, "data": inst.log_buffer})
         
         while True:
-            data = await websocket.receive_text()
-            #log.info(f"Received data: {data}")
-               
-    except WebSocketDisconnect:
-        acct_mgr.active_websockets.remove(websocket)
-        log.info("WebSocket connection closed")
+            await websocket.receive_text()
+            #log.info(f"Received data: {data}")           
+    except WebSocketDisconnect as e:
+        acct_mgr.ws_mgr.disconnect(websocket)
     except Exception as e:
-        acct_mgr.active_websockets.remove(websocket)
         log.error(f"WebSocket error: {str(e)}")
-        raise
 
 
 @app.middleware("http")
@@ -61,9 +64,3 @@ async def log_request_response(request: Request, call_next):
                    f"Headers: {dict(response.headers)}\n"
                    f"Body: {response.body.decode()}")  
     return response
-
-
-
-
-
-

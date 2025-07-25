@@ -111,18 +111,15 @@ class TcpServer:
                 log.error(f"读取数据错误: {e}")
                 break
             except Exception as e:
-                log.error(f"处理消息错误:{e}")
+                log.exception(f"处理消息错误:{e}")
         log.warning(f"Client[{conn.id}] 工作线程退出!")
-        if conn.sock in self.active_conns.keys():
-            self.active_conns.pop(conn,None) 
-        if conn.is_active():
-            conn.sock.close()
+        self.active_conns.pop(conn.sock,None) 
                 
 
     def close_connection(self,conn:Connection):
         """关闭客户端连接"""
         log.warning(f"close connection:[{conn.id}]")
-        self.active_conns.pop(conn,None)
+        self.active_conns.pop(conn.sock,None)
         if conn.on_close:
             conn.on_close()
         try:

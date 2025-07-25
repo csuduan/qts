@@ -22,7 +22,6 @@ class AcctConf(BaseModel):
     td_addr: str 
     md_addr: str 
     enable: bool 
-    rpc_addr: str
     remark: str | None = None
 
 class AcctInfo(BaseModel):

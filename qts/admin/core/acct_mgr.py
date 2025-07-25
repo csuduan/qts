@@ -1,4 +1,5 @@
-from .acct_inst import AcctInst
+from fastapi import WebSocket
+import asyncio
 
 from qts.common.rpc.server import Connection, TcpServer  
 from qts.common import get_config
@@ -8,8 +9,9 @@ from qts.common.message import MsgType
 from qts.common.constant import EnumEncoder
 from qts.common.dao import conf_dao
 from qts.common.event import event_engine,Event
-from fastapi import WebSocket
-import asyncio
+
+from .acct_inst import AcctInst
+from .ws_mgr import WsMgr
 
 
 log = get_logger(__name__)
@@ -20,11 +22,14 @@ log = get_logger(__name__)
 class AcctMgr():
     def __init__(self):
         self.acct_insts: dict[str, AcctInst] = {}
-        self.active_websockets: list[WebSocket] = []
         self.rpc_server : TcpServer = None
+        self.ws_mgr = WsMgr()
         
     
     def on_connect(self,conn:Connection):
+        if conn.id not in self.acct_insts:
+            log.error(f"找不到账户{conn.id},请检查账户是否已禁用")
+            return
         acct_inst = self.acct_insts[conn.id]
         acct_inst.add_connection(conn)
 
@@ -32,13 +37,15 @@ class AcctMgr():
         log.info("start acct mgr")
         acct_configs:list[AcctConf] = conf_dao.get_acct_configs()
         for acct_conf in acct_configs:
-            self.create_inst(acct_conf)
+            if acct_conf.enable:
+                self.create_inst(acct_conf)
         self.rpc_server = TcpServer("0.0.0.0",get_config('rpc_port'),self.on_connect)
         self.rpc_server.start()
+        self.ws_mgr.start()
 
     
     def create_inst(self, config:AcctConf):
-        acct_inst = AcctInst(config,self._ws_push)
+        acct_inst = AcctInst(config,self.ws_mgr)
         self.acct_insts[config.id] = acct_inst
         log.info(f'create acct_inst:{config.id}')
 
@@ -48,11 +55,6 @@ class AcctMgr():
             return
         return self.acct_insts[acct_id].get_acct_detail(timestamp) 
     
-    def get_ticks(self,acct_id,timestamp):
-        if acct_id not in self.acct_insts:
-            return
-        return self.acct_insts[acct_id].get_quotes(timestamp)
-
 
     def get_acct_infos(self) -> list[AcctInfo]:
         list=[]
@@ -62,6 +64,7 @@ class AcctMgr():
             inst.acct_detail.acct_info.status = inst.inst_status 
             list.append(inst.acct_detail.acct_info)
         return list
+
     def get_acct_inst(self, acct_id) -> AcctInst:
         return self.acct_insts[acct_id]
     
@@ -70,17 +73,5 @@ class AcctMgr():
     
 
     def _ws_push(self,json_msg):
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            # 如果没有事件循环，创建一个新的
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        for ws in self.active_websockets:
-            try:
-                loop.run_until_complete(ws.send_json(json_msg))
-
-            except Exception as e:
-                log.error(f"ws push error:{e}")
-                self.active_websockets.remove(ws)
+        self.ws_mgr.push_msg(json_msg)
 
