@@ -38,6 +38,8 @@ python -m build
 ``` 
 
 2. 启动管理器
+* 拷贝qts-simple及script到指定目录
+* 启动脚本
 ```
 cd /opt/dev/qts
 python script/run_admin.py
