@@ -6,11 +6,11 @@ class Config():
         self.configs = None
         self.inited = False
     
-    def get_config(self,key:str):
+    def get_config(self,key:str,default:Any=None):
         if not self.inited:
             self.__init_config()
         if key not in self.configs:
-            return None
+            return default
         return self.configs[key]
 
     def set_config(self,key:str,value:Any): 

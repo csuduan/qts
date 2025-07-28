@@ -29,7 +29,8 @@ class TraderInst():
         event_engine.register_general(self.__on_rpc_event)
         event_engine.register_general(self.__on_gen_event)
         #启动网关
-        self.gateway = create_gateway('ctp', self.acct_detail)
+        api_type = self.acct_conf.td_addr.split("|")[0]
+        self.gateway = create_gateway(api_type, self.acct_detail)
         self.gateway.connect()
 
     def __on_rpc_event(self,event:Event):

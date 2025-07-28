@@ -1,13 +1,33 @@
 import sys
 import os
 from zoneinfo import ZoneInfo
-
+import importlib
 from qts.common.constant import *
 from qts.common import get_config,get_logger
-#from openctp_ctp.thosttraderapi import *
-#from openctp_ctp.thostmduserapi import *
 
-from openctp_ctp import thosttraderapi as tdapi
+def load_library(type:str):
+    if type == 'ctp':
+            lib_name = 'ctp' 
+    elif type == 'rohon':
+            lib_name = 'rohon' 
+    else:
+        raise ValueError(f"Unsupported type: {type}")
+    data_path = get_config('data_path')
+    sys.path.insert(0, os.path.join(data_path,'api'))
+    #if importlib.util.find_spec('ctp'):
+    dev = False
+    if dev:
+        import openctp_ctp 
+        library = openctp_ctp
+    else:
+        library = importlib.import_module(lib_name)
+    sys.path.pop(0)
+    return library
+
+api_type = get_config('gateway.type')
+lib = load_library(api_type)
+tdapi = lib.tdapi
+mdapi = lib.mdapi
 
 log = get_logger(__name__)
 

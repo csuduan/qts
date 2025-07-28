@@ -6,10 +6,9 @@ from time import sleep
 
 from ..base_gateway import BaseGateway
 from .base import *
-from openctp_ctp.thosttraderapi import *
 
 
-class CtpTdApi(CThostFtdcTraderSpi):
+class CtpTdApi(tdapi.CThostFtdcTraderSpi):
     """"""
 
     def __init__(self, gateway: BaseGateway) -> None:
@@ -35,7 +34,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
         self.position_map: dict[str, Position] = {}
         self.contract_map:dict[str,ContractData] = {}
         self.ordering_map: dict[str, OrderData] = {}
-        self.api: CThostFtdcTraderApi = None
+        self.api: tdapi.CThostFtdcTraderApi = None
         self.semaphore = threading.Semaphore(1)
         log.info(f"初始化交易接口,名称:{gateway.gateway_name}, 地址:{self.address}")
 
@@ -324,7 +323,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
         self.ordering_map.pop(order_ref,None)
         self.gateway.on_order(order)
 
-    def OnRtnOrder(self, pOrder: "CThostFtdcOrderField") -> "void":
+    def OnRtnOrder(self, pOrder: tdapi.CThostFtdcOrderField) -> "void":
         """委托更新推送"""
         symbol: str = pOrder.InstrumentID;
         #contract: ContractData = self.gateway.get_contract(symbol)
@@ -348,7 +347,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
             self.ordering_map.pop(order_ref,None)
         self.gateway.on_order(order)
 
-    def OnRtnTrade(self, pTrade: "CThostFtdcTradeField") -> None:
+    def OnRtnTrade(self, pTrade: tdapi.CThostFtdcTradeField) -> None:
         """成交数据推送"""
 
         trade: TradeData = TradeData(
@@ -375,11 +374,11 @@ class CtpTdApi(CThostFtdcTraderSpi):
             log.info("开始连接交易服务器...")
             path = get_data_path(self.gateway_name.lower())
             flow_path = (str(path) + "/td")
-            self.api = CThostFtdcTraderApi.CreateFtdcTraderApi(flow_path)
+            self.api = tdapi.CThostFtdcTraderApi.CreateFtdcTraderApi(flow_path)
             self.api.RegisterSpi(self)
             self.api.RegisterFront(self.address)
-            self.api.SubscribePrivateTopic(THOST_TERT_QUICK)
-            self.api.SubscribePublicTopic(THOST_TERT_QUICK)
+            self.api.SubscribePrivateTopic(tdapi.THOST_TERT_QUICK)
+            self.api.SubscribePublicTopic(tdapi.THOST_TERT_QUICK)
             self.api.Init()
             self.connect_status = True
 
@@ -396,7 +395,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
     def authenticate(self) -> None:
         """发起授权验证"""
         appid, auth_code = self.auth.split(':')
-        req = CThostFtdcReqAuthenticateField()
+        req = tdapi.CThostFtdcReqAuthenticateField()
         req.BrokerID = self.broker
         req.UserID = self.user
         req.AppID = appid
@@ -410,7 +409,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
         if self.login_status:
             return
 
-        req = CThostFtdcReqUserLoginField()
+        req = tdapi.CThostFtdcReqUserLoginField()
         req.BrokerID = self.broker
         req.UserID = self.user
         req.Password = self.pwd
@@ -430,7 +429,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
             log.error(f"开平方向无效{req.offset.value}")
             return ""
 
-        ctp_req: CThostFtdcInputOrderField = CThostFtdcInputOrderField()
+        ctp_req: tdapi.CThostFtdcInputOrderField = tdapi.CThostFtdcInputOrderField()
         ctp_req.RequestID = self.next_reqid()
         ctp_req.OrderRef = req.order_ref
         ctp_req.InvestorID = self.user
@@ -439,26 +438,26 @@ class CtpTdApi(CThostFtdcTraderSpi):
         ctp_req.ExchangeID = req.exchange.value
         ctp_req.Direction = DIRECTION_VT2CTP.get(req.direction, "")
         ctp_req.CombOffsetFlag = OFFSET_VT2CTP.get(req.offset, "")
-        ctp_req.CombHedgeFlag = THOST_FTDC_HF_Speculation #组合投机套保标志
-        ctp_req.ContingentCondition = THOST_FTDC_CC_Immediately
-        ctp_req.ForceCloseReason = THOST_FTDC_FCC_NotForceClose #强平原因: 非强平
+        ctp_req.CombHedgeFlag = tdapi.THOST_FTDC_HF_Speculation #组合投机套保标志
+        ctp_req.ContingentCondition = tdapi.THOST_FTDC_CC_Immediately
+        ctp_req.ForceCloseReason = tdapi.THOST_FTDC_FCC_NotForceClose #强平原因: 非强平
         ctp_req.IsAutoSuspend = 0 #自动挂起标志 0:no 1:yes
 
-        ctp_req.OrderPriceType = THOST_FTDC_OPT_LimitPrice #委托价格类型: 限价
+        ctp_req.OrderPriceType = tdapi.THOST_FTDC_OPT_LimitPrice #委托价格类型: 限价
         ctp_req.LimitPrice = req.price
         ctp_req.VolumeTotalOriginal = int(req.volume)
         ctp_req.MinVolume = 1
     
 
         if req.type == OrderType.FAK:
-            ctp_req.TimeCondition = THOST_FTDC_TC_IOC # 委托有效期: 立即成交剩余转限价
-            ctp_req.VolumeCondition = THOST_FTDC_VC_AV 
+            ctp_req.TimeCondition = tdapi.THOST_FTDC_TC_IOC # 委托有效期: 立即成交剩余转限价
+            ctp_req.VolumeCondition = tdapi.THOST_FTDC_VC_AV 
         elif req.type == OrderType.FOK:
-            ctp_req.TimeCondition = THOST_FTDC_TC_IOC
-            ctp_req.VolumeCondition = THOST_FTDC_VC_CV 
+            ctp_req.TimeCondition = tdapi.THOST_FTDC_TC_IOC
+            ctp_req.VolumeCondition = tdapi.THOST_FTDC_VC_CV 
         else:
-            ctp_req.TimeCondition = THOST_FTDC_TC_GFD  # 委托有效期: 当日有效
-            ctp_req.VolumeCondition = THOST_FTDC_VC_AV 
+            ctp_req.TimeCondition = tdapi.THOST_FTDC_TC_GFD  # 委托有效期: 当日有效
+            ctp_req.VolumeCondition = tdapi.THOST_FTDC_VC_AV 
 
         
         n: int = self.api.ReqOrderInsert(ctp_req, self.reqid)
@@ -471,10 +470,10 @@ class CtpTdApi(CThostFtdcTraderSpi):
     def cancel_order(self, req: OrderCancel) -> None:
         """委托撤单"""
         
-        ctp_req:CThostFtdcInputOrderActionField = CThostFtdcInputOrderActionField()
+        ctp_req:tdapi.CThostFtdcInputOrderActionField = tdapi.CThostFtdcInputOrderActionField()
         ctp_req.InvestorID=self.user
         ctp_req.BrokerID=self.broker
-        ctp_req.ActionFlag = THOST_FTDC_AF_Delete
+        ctp_req.ActionFlag = tdapi.THOST_FTDC_AF_Delete
         if not req.order_sys_id:
             ctp_req.OrderRef = req.order_ref
             ctp_req.FrontID = int(self.frontid)
@@ -538,7 +537,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
             return
         self.semaphore.acquire()
         log.info("开始查询结算单...")
-        req = CThostFtdcSettlementInfoConfirmField()
+        req = tdapi.CThostFtdcSettlementInfoConfirmField()
         req.BrokerID = self.broker
         req.InvestorID = self.user
         ret = self.api.ReqSettlementInfoConfirm(req, self.next_reqid())
@@ -552,7 +551,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
             return
         self.semaphore.acquire()
         log.info("开始查询资金...")
-        req = CThostFtdcQryTradingAccountField()
+        req = tdapi.CThostFtdcQryTradingAccountField()
         ret = self.api.ReqQryTradingAccount(req, self.next_reqid())
         if ret != 0:
             log.error(f"查询资金失败，错误代码：{ret}")
@@ -563,7 +562,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
             return
         self.semaphore.acquire()
         log.info("开始查询产品...")
-        req = CThostFtdcQryProductField()
+        req = tdapi.CThostFtdcQryProductField()
         ret = self.api.ReqQryProduct(req, self.next_reqid())
         if ret != 0:
             log.error(f"查询产品失败，错误代码：{ret}")
@@ -576,7 +575,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
         if len(self.gateway.get_contracts_map()) > 0:
             return
         self.semaphore.acquire()
-        req = CThostFtdcQryInstrumentField()
+        req = tdapi.CThostFtdcQryInstrumentField()
         ret = self.api.ReqQryInstrument(req, self.next_reqid())
         if ret != 0:
             log.error(f"查询合约失败，错误代码：{ret}")
@@ -590,7 +589,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
         self.semaphore.acquire()
         log.info("开始查询持仓...")
 
-        req = CThostFtdcQryInvestorPositionField()
+        req = tdapi.CThostFtdcQryInvestorPositionField()
         req.BrokerID = self.broker
         req.InvestorID = self.user
         ret = self.api.ReqQryInvestorPosition(req, self.next_reqid())
@@ -604,7 +603,7 @@ class CtpTdApi(CThostFtdcTraderSpi):
             return
         self.semaphore.acquire()
         log.info("开始查询成交...")
-        req = CThostFtdcQryTradeField()
+        req = tdapi.CThostFtdcQryTradeField()
         req.BrokerID = self.broker
         req.InvestorID = self.user
         ret = self.api.ReqQryTrade(req, self.next_reqid())
@@ -618,10 +617,10 @@ class CtpTdApi(CThostFtdcTraderSpi):
             return
         self.semaphore.acquire()
         log.info("开始查询保证金...")
-        req:CThostFtdcQryInstrumentMarginRateField = CThostFtdcQryInstrumentMarginRateField()
+        req:tdapi.CThostFtdcQryInstrumentMarginRateField = tdapi.CThostFtdcQryInstrumentMarginRateField()
         req.BrokerID = self.broker
         req.InvestorID = self.user
-        req.HedgeFlag = THOST_FTDC_HF_Speculation
+        req.HedgeFlag = tdapi.THOST_FTDC_HF_Speculation
         ret = self.api.ReqQryInstrumentMarginRate(req, self.next_reqid())
         if ret != 0:
             log.error(f"查询保证金失败，错误代码：{ret}")

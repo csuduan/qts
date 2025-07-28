@@ -1,10 +1,9 @@
 from datetime import datetime
 from ..base_gateway import BaseGateway
 from .base import *
-from openctp_ctp.thostmduserapi import *
+#from openctp_ctp.thostmduserapi import *
 
-
-class CtpMdApi(CThostFtdcMdSpi):
+class CtpMdApi(mdapi.CThostFtdcMdSpi):
     """"""
 
     def __init__(self, gateway: BaseGateway) -> None:
@@ -19,11 +18,11 @@ class CtpMdApi(CThostFtdcMdSpi):
 
         self.connect_status: bool = False
         self.login_status: bool = False
-        self.subscribed: set = set()
+        self.subscribed: set[str] = set()
 
         __,self.address = self.acct_conf.md_addr.split('|')
         self.current_date: str = datetime.now().strftime("%Y%m%d")
-        self.api: CThostFtdcMdApi = None
+        self.api: mdapi.CThostFtdcMdApi = None
 
         log.info(f"初始化行情接口,名称:{gateway.gateway_name}, 地址:{self.address}")
 
@@ -42,7 +41,7 @@ class CtpMdApi(CThostFtdcMdSpi):
         self.gateway.on_status(StatusData(type="md",status=False))
         log.info(f"行情服务器连接断开，原因{reason}")
 
-    def OnRspUserLogin(self, pRspUserLogin: CThostFtdcRspUserLoginField, pRspInfo: CThostFtdcRspInfoField,
+    def OnRspUserLogin(self, pRspUserLogin: mdapi.CThostFtdcRspUserLoginField, pRspInfo: mdapi.CThostFtdcRspInfoField,
                        nRequestID: int, bIsLast: bool) -> "void":
         """用户登录请求回报"""
         if pRspInfo is not None and pRspInfo.ErrorID != 0:
@@ -60,15 +59,15 @@ class CtpMdApi(CThostFtdcMdSpi):
         """请求报错回报"""
         log.error(f"行情接口报错 {error}")
 
-    def OnRspSubMarketData(self, pSpecificInstrument: CThostFtdcSpecificInstrumentField,
-                           pRspInfo: CThostFtdcRspInfoField, nRequestID: int, bIsLast: bool) -> "void":
+    def OnRspSubMarketData(self, pSpecificInstrument: mdapi.CThostFtdcSpecificInstrumentField,
+                           pRspInfo: mdapi.CThostFtdcRspInfoField, nRequestID: int, bIsLast: bool) -> "void":
         if pRspInfo is not None and pRspInfo.ErrorID != 0:
             print(f"行情订阅失败  [{pSpecificInstrument.InstrumentID}] {pRspInfo.ErrorMsg}")
             return
         if pSpecificInstrument != None:
             log.info(f"行情订阅成功 {pSpecificInstrument.InstrumentID}")
 
-    def OnRtnDepthMarketData(self, data: "CThostFtdcDepthMarketDataField") -> None:
+    def OnRtnDepthMarketData(self, data: mdapi.CThostFtdcDepthMarketDataField) -> None:
         """行情数据推送"""
         # 过滤没有时间戳的异常行情数据
         if not data.UpdateTime:
@@ -141,7 +140,7 @@ class CtpMdApi(CThostFtdcMdSpi):
             log.info("开始连接行情服务器...")
             path = get_data_path(self.gateway_name.lower())
             flow_path = path + "/md"
-            self.api = CThostFtdcMdApi.CreateFtdcMdApi(flow_path)
+            self.api = mdapi.CThostFtdcMdApi.CreateFtdcMdApi(flow_path)
             self.api.RegisterFront(self.address)
             self.api.RegisterSpi(self)
             self.api.Init()
@@ -160,7 +159,7 @@ class CtpMdApi(CThostFtdcMdSpi):
     def login(self) -> None:
         """用户登录"""
         self.reqid += 1
-        req: CThostFtdcReqUserLoginField = CThostFtdcReqUserLoginField()
+        req: mdapi.CThostFtdcReqUserLoginField = mdapi.CThostFtdcReqUserLoginField()
         self.api.ReqUserLogin(req, self.reqid)
 
     def subscribe(self, req: SubscribeRequest) -> None:
