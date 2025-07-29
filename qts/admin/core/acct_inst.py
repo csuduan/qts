@@ -1,5 +1,5 @@
 
-from admin.core.ws_mgr import WsMgr
+from qts.admin.core.ws_mgr import WsMgr
 from qts.common.object import  AcctConf,AcctInfo,Position,TickData
 import json
 import queue

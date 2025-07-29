@@ -258,12 +258,13 @@ class CtpTdApi(tdapi.CThostFtdcTraderSpi):
             self.semaphore.release()
             return
         
-        contract: ContractData = self.gateway.get_contract(pInstrumentMarginRate.InstrumentID)
-        if contract:
-            contract.long_margin_by_volume = pInstrumentMarginRate.LongMarginRatioByVolume
-            contract.long_margin_by_money = pInstrumentMarginRate.LongMarginRatioByMoney
-            contract.short_margin_by_volume = pInstrumentMarginRate.ShortMarginRatioByVolume
-            contract.short_margin_by_money = pInstrumentMarginRate.ShortMarginRatioByMoney
+        if pInstrumentMarginRate :
+            contract: ContractData = self.gateway.get_contract(pInstrumentMarginRate.InstrumentID)
+            if contract:
+                contract.long_margin_by_volume = pInstrumentMarginRate.LongMarginRatioByVolume
+                contract.long_margin_by_money = pInstrumentMarginRate.LongMarginRatioByMoney
+                contract.short_margin_by_volume = pInstrumentMarginRate.ShortMarginRatioByVolume
+                contract.short_margin_by_money = pInstrumentMarginRate.ShortMarginRatioByMoney
         if bIsLast:
             self.semaphore.release()
             log.info(f"合约保证金率查询成功")

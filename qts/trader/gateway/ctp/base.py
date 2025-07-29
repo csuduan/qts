@@ -7,7 +7,7 @@ from qts.common import get_config,get_logger
 
 def load_library(type:str):
     if type == 'ctp':
-            lib_name = 'ctp' 
+            lib_name = 'ctp_6_7_7' 
     elif type == 'rohon':
             lib_name = 'rohon' 
     else:
