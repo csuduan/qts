@@ -54,7 +54,7 @@ class AcctInfo(BaseModel):
         self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         
 
-#@dataclass
+
 class TickData(BaseModel):
     """
     Tick data contains information about:
@@ -132,12 +132,6 @@ class BarData(BaseModel):
     def model_post_init(self, __context) -> None:
         """"""
         self.vt_symbol: str = f"{self.symbol}.{self.exchange.value}"
-    
-    def is_active(self) -> bool:
-        """
-        Check if the order is active.
-        """
-        return self.status in ACTIVE_STATUSES
 
 class Position(BaseModel):
     symbol: str

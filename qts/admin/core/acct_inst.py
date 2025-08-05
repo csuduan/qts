@@ -1,4 +1,5 @@
 
+import os
 from qts.admin.core.ws_mgr import WsMgr
 from qts.common.object import  AcctConf,AcctInfo,Position,TickData
 import json
@@ -11,7 +12,7 @@ from qts.common.rpc.server import Connection
 from qts.common.message import MsgHandler,MsgType,Message
 from qts.common.event import event_engine,Event
 from qts.common.object import TradeData,TickData,AcctDetail,OrderData,OrderRequest,Exchange,SubscribeRequest
-
+from qts.common import get_config
 from qts.common import get_logger
 
 log = get_logger(__name__)
@@ -30,6 +31,7 @@ class AcctInst(object):
         self.acct_detail: AcctDetail = AcctDetail(acct_info=acct_info)
         self.acct_connection: Connection = None
         self.log_buffer:list[str] = []
+        self.alarms:list[str] = []
         self.msg_handler = self.create_handler()
         self.scheduler = BackgroundScheduler()
         self.scheduler.add_job(self.push_task, 'interval', seconds=3)  # 每3秒触发
@@ -44,6 +46,7 @@ class AcctInst(object):
     def add_connection(self,conn:Connection):
         self.acct_connection = conn
         self.acct_connection.on_message = self.on_message
+        self.acct_detail.acct_info.status = True
 
     def on_message(self,msg):
         type = msg['type']
@@ -55,6 +58,8 @@ class AcctInst(object):
             self.log_buffer.append(data)
             if len(self.log_buffer)>LOG_BUFF_SIZE:
                 self.log_buffer.pop(0)
+            if 'ERROR' in data:
+                self.alarms.append(data)
 
         handler = self.msg_handler.get_handler(type)
         if handler:
@@ -89,6 +94,7 @@ class AcctInst(object):
     def get_acct_detail(self):
         return self.acct_detail
 
+
     def send_ws_msg(self,type:str,json_msg:Any):
         #event_engine.put(MsgType.ON_WS,{"type":type,"acct_id":self.acct_id,"data":json_msg})
         #self.push_callback({"type":type,"acct_id":self.acct_id,"data":json_msg})
@@ -99,7 +105,9 @@ class AcctInst(object):
             return
         if self._last_push_time  < self.acct_detail.acct_info.timestamp:
             self._last_push_time = self.acct_detail.acct_info.timestamp
-        self.send_ws_msg("on_acct",json.loads(self.acct_detail.acct_info.json()))
+            self.send_ws_msg("on_acct",json.loads(self.acct_detail.acct_info.json()))
+
+
 
     def create_handler(self):
         topic_handler = MsgHandler()

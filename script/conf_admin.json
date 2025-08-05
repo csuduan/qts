@@ -8,6 +8,12 @@
 
   "jobs":[
     {
+      "id":"before_open_job",
+      "name":"开盘前处理",
+      "cron":"45 8,20 * * *",
+      "func":"qts.admin.job.before_open_job"
+    },
+    {
       "id":"conn_api_day",
       "name":"开盘自动连接",
       "cron":"50 8,20 * * *",
@@ -18,8 +24,19 @@
       "name":"收盘断开连接",
       "cron":"40 15,2 * * *",
       "func":"qts.admin.job.disconnect_api_job"
+    },
+    {
+      "id":"after_close_job",
+      "name":"收盘后处理",
+      "cron":"35 15 * * *",
+      "func":"qts.admin.job.after_close_job"
+    },
+    {
+      "id":"export_pos_job",
+      "name":"导出持仓",
+      "cron":"45 15 * * 1-5",
+      "func":"qts.admin.job.export_pos_job"
     }
-
   ],
   "routers": [
     {
