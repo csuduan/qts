@@ -5,6 +5,7 @@ import uuid
 
 from .utils import *
 from qts.common import  get_logger
+from qts.common.event import event_engine
 from qts.common.message import Message, MsgType
 
 log = get_logger(__name__)
@@ -20,7 +21,6 @@ class Connection:
         self.sock = sock
         self.id = None
         self.timestamp = time.time()
-        self.on_close:Callable[[],None] = None
         self.on_message:Callable[[any],None] = None
     
     def update_timestamp(self):
@@ -31,6 +31,15 @@ class Connection:
     
     def  is_dead(self):
         return time.time() - self.timestamp > HEARTBEAT_INTERVAL * 4
+
+    def close(self):
+        log.warning(f"关闭连接:[{self.id}]")
+        try:
+            if self.is_active():
+                self.sock.close()
+            event_engine.put(MsgType.ON_RPC_DISCONNECTED,self)
+        except:
+            log.error(f"关闭连接失败")
     
     def send(self,type:str,data:any):
         if not self.sock:
@@ -49,11 +58,10 @@ class Connection:
             log.error(f"Failed to send message: {e}")
               
 class TcpServer:
-    def __init__(self, host: str = "0.0.0.0", port: int = 8888, on_conn:Callable = None):
+    def __init__(self, host: str = "0.0.0.0", port: int = 8888):
         self._host = host
         self._port = port
         self.server_socket = None
-        self.on_connect = on_conn
         self._running = False
         self._lock = threading.Lock()
         self.active_conns: dict[socket.socket, Connection] = {}
@@ -100,8 +108,7 @@ class TcpServer:
                     pass
                 elif type == MsgType.REGISTER:
                     conn.id = data['id']
-                    if self.on_connect:
-                        self.on_connect(conn)
+                    event_engine.put(MsgType.ON_RPC_CONNECTED,conn)
                 else:
                     # 处理消息
                     if conn.on_message:
@@ -114,20 +121,8 @@ class TcpServer:
                 log.exception(f"处理消息错误:{e}")
         log.warning(f"Client[{conn.id}] 工作线程退出!")
         self.active_conns.pop(conn.sock,None) 
+        conn.close()
                 
-
-    def close_connection(self,conn:Connection):
-        """关闭客户端连接"""
-        log.warning(f"close connection:[{conn.id}]")
-        self.active_conns.pop(conn.sock,None)
-        if conn.on_close:
-            conn.on_close()
-        try:
-            if conn.is_active():
-                conn.sock.close()
-        except:
-            pass
-
     def stop(self):
         """Stop server"""
         self._running = False
@@ -149,8 +144,9 @@ class TcpServer:
                         dead_conns.append(conn)         
             # Remove dead clients
             for conn in dead_conns:
-                #log.warning(f"Client {conn.sock.getpeername()} heartbeat timeout")
-                self.close_connection(conn)           
+                log.warning(f"conn heart beat timeout:[{conn.id}]")
+                self.active_conns.pop(conn.sock,None)
+                conn.close()           
             time.sleep(HEARTBEAT_INTERVAL)
 
 

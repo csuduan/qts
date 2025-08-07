@@ -108,9 +108,9 @@ async def disconnect_acct(acct_id: str,op_type: AcctOpType):
         raise Exception(f"账户实例不存在: {acct_id}")
 
     if op_type == AcctOpType.CONNECT:
-        acct_inst.connect()
+        acct_inst.connect_api()
     elif op_type == AcctOpType.DISCONNECT:
-        acct_inst.disconnect()
+        acct_inst.disconnect_api()
     return resp_success()
 
 @router.post('/inst/subscribe')

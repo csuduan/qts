@@ -93,7 +93,7 @@ class BaseGateway(ABC):
         #保证金、手续费、盈亏由管理平台统一计算
         if order.order_ref not in self.acct_detail.order_map:
             return
-            
+
         pos = self.get_position(order.symbol,order.offset,order.direction,order.exchange)
         if order.status == Status.CANCELLED:
             #解除冻结
@@ -102,8 +102,11 @@ class BaseGateway(ABC):
         if not order.is_active():
             order.deleted = True
             self.acct_detail.order_map.pop(order.order_ref,None)
-
-        log.info(f"报单回报: {order.order_ref} {order.symbol} {order.offset.value}  {order.direction.value} {order.traded}/{order.volume}  {order.status_msg} sys_id:{order.order_sys_id}")           
+        msg = f"报单回报: {order.order_ref} {order.symbol} {order.offset.value}  {order.direction.value} {order.traded}/{order.volume}  {order.status_msg} sys_id:{order.order_sys_id}"
+        if "拒绝" in order.status_msg:
+            log.error(msg)
+        else:
+            log.info(msg)           
         self.trig_event(MsgType.ON_ORDER, order)
         self.trig_event(MsgType.ON_POSITION, pos)
 

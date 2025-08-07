@@ -25,21 +25,13 @@ class AcctMgr():
         self.rpc_server : TcpServer = None
         self.ws_mgr = WsMgr()
         
-    
-    def on_connect(self,conn:Connection):
-        if conn.id not in self.acct_insts:
-            log.error(f"找不到账户{conn.id},请检查账户是否已禁用")
-            return
-        acct_inst = self.acct_insts[conn.id]
-        acct_inst.add_connection(conn)
-
     def start(self) :
         log.info("start acct mgr")
         acct_configs:list[AcctConf] = conf_dao.get_acct_configs()
         for acct_conf in acct_configs:
             if acct_conf.enable:
                 self.create_inst(acct_conf)
-        self.rpc_server = TcpServer("0.0.0.0",get_config('rpc_port'),self.on_connect)
+        self.rpc_server = TcpServer("0.0.0.0",get_config('rpc_port'))
         self.rpc_server.start()
         self.ws_mgr.start()
 

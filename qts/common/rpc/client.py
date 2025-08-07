@@ -44,8 +44,14 @@ class TcpClient:
             self._socket.connect((self.host, self.port))   
             self._connected = True
             log.info(f"connect to {self.host}:{self.port} success!")
-            self.__on_connect()   
-            
+            #注册id
+            self.send(MsgType.REGISTER,{"id":self.id})
+            log.info(f"register id: {self.id} success!")
+            event_engine.put(MsgType.ON_RPC_CONNECTED,{})  
+            #发送缓存消息
+            for (type,data) in self.send_buffer.get_all():     
+                self.send(type,data)
+  
         except Exception as e:
             if self._connected:
                 log.error(f"connect to {self.host}:{self.port} error: {e}")
@@ -57,14 +63,6 @@ class TcpClient:
         if self.__is_alive():
             self._socket.close()
             self._socket = None
-
-    def __on_connect(self):
-        #发起注册
-        self.send(MsgType.REGISTER,{"id":self.id})
-        #发送缓存消息
-        for (type,data) in self.send_buffer.get_all():     
-            self.send(type,data)
-        event_engine.put(MsgType.ON_CONNECTED,{})
 
     
     def __on_message(self,msg):

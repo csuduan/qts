@@ -14,7 +14,8 @@ class MsgType(Enum):
     REQ_CANCEL_ORDER = "req_cancel_order"
     REQ_SUBSCRIBE = "req_subscribe"
 
-    ON_CONNECTED = "on_connected"
+    ON_RPC_CONNECTED = "on_connected"
+    ON_RPC_DISCONNECTED = "on_disconnected"
     ON_READY = "on_ready"
     ON_STATUS = "on_status"
     ON_TICK = "on_tick"

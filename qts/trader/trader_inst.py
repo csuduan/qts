@@ -58,7 +58,7 @@ class TraderInst():
         match event.type:
             case MsgType.ON_LOG:
                 self.push_msg(event.type,event.data)
-            case MsgType.ON_CONNECTED:
+            case MsgType.ON_RPC_CONNECTED:
                 #连接服务端成功后推送一次账户信息
                 self.push_msg(MsgType.ON_ACCT_DETAIL,self.acct_detail)       
             case MsgType.ON_STATUS:

@@ -31,22 +31,34 @@ class AcctInst(object):
         self.acct_detail: AcctDetail = AcctDetail(acct_info=acct_info)
         self.acct_connection: Connection = None
         self.log_buffer:list[str] = []
-        self.alarms:list[str] = []
         self.msg_handler = self.create_handler()
         self.scheduler = BackgroundScheduler()
         self.scheduler.add_job(self.push_task, 'interval', seconds=3)  # 每3秒触发
         self.scheduler.start()
         self._last_push_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
+        event_engine.register(MsgType.ON_RPC_DISCONNECTED,self.on_disconnected)
+        event_engine.register(MsgType.ON_RPC_CONNECTED,self.on_connected)
+
         
     @property
     def inst_status(self):
         return self.acct_connection and self.acct_connection.is_active()
+    
+    def on_connected(self,event:Event):
+        """RPC连接成功"""
+        conn:Connection = event.data
+        if conn.id == self.acct_id:
+            self.acct_connection = conn
+            self.acct_connection.on_message = self.on_message
+            self.acct_detail.acct_info.status = True
 
-    def add_connection(self,conn:Connection):
-        self.acct_connection = conn
-        self.acct_connection.on_message = self.on_message
-        self.acct_detail.acct_info.status = True
+
+    def on_disconnected(self,event:Event):
+        """RPC连接断开"""
+        conn:Connection = event.data
+        if conn.id == self.acct_id:
+            self.acct_detail.acct_info.status = False
 
     def on_message(self,msg):
         type = msg['type']
@@ -59,17 +71,17 @@ class AcctInst(object):
             if len(self.log_buffer)>LOG_BUFF_SIZE:
                 self.log_buffer.pop(0)
             if 'ERROR' in data:
-                self.alarms.append(data)
+                self.acct_detail.warnning = True
 
         handler = self.msg_handler.get_handler(type)
         if handler:
             handler(data) 
 
-    def connect(self):
+    def connect_api(self):
         """连接接口"""
         self.acct_connection.send(MsgType.REQ_CONNECT,{})
 
-    def disconnect(self):
+    def disconnect_api(self):
         """断开接口"""
         self.acct_connection.send(MsgType.REQ_DISCONNECT,{})
 
@@ -111,7 +123,7 @@ class AcctInst(object):
 
     def create_handler(self):
         topic_handler = MsgHandler()
-        @topic_handler.register(MsgType.ON_CONNECTED)
+        @topic_handler.register(MsgType.ON_RPC_CONNECTED)
         def on_connect(data):
             self.send_ws_msg("on_acct",json.loads(self.acct_detail.acct_info.json()))
 
@@ -148,8 +160,8 @@ class AcctInst(object):
         @topic_handler.register(MsgType.ON_ORDER)
         def on_order(data:OrderData):
             self.acct_detail.order_map[data.order_ref] = data
-            if data.deleted:
-                self.acct_detail.order_map.pop(data.order_ref,None)
+            #if data.deleted:
+            #    self.acct_detail.order_map.pop(data.order_ref,None)
             self.acct_detail.update()
             self.send_ws_msg("on_order",json.loads(data.json()))
 
