@@ -167,13 +167,13 @@ class TradeData(BaseModel):
     symbol: str
     exchange: Exchange
     trading_day: str
-    std_symbol : str = None
+    time: str = None
 
+    std_symbol : str = None
     direction: Direction = None
     offset: Offset = Offset.NONE
     price: float = 0
     volume: int = 0
-    time: str = None
     order_ref: str = None
     fee: float = 0
 

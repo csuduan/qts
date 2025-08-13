@@ -70,8 +70,6 @@ class AcctInst(object):
             self.log_buffer.append(data)
             if len(self.log_buffer)>LOG_BUFF_SIZE:
                 self.log_buffer.pop(0)
-            if 'ERROR' in data:
-                self.acct_detail.warnning = True
 
         handler = self.msg_handler.get_handler(type)
         if handler:
