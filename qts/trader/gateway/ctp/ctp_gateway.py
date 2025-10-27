@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from qts.common.constant import Exchange
 from qts.common.message import MsgType
 from qts.common import get_logger
 
@@ -16,9 +17,8 @@ class CtpGateway(BaseGateway):
     """
     CTP交易网关。
     """
-
-    default_name: str = "CTP"
-    exchanges: list[str] = list(EXCHANGE_CTP2VT.values())
+    #default_name: str = "CTP"
+    #exchanges: list[Exchange] = list[Exchange](EXCHANGE_CTP2VT.values())
 
     def __init__(self, acct_detail:AcctDetail) -> None:
         """构造函数"""

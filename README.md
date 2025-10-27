@@ -26,10 +26,15 @@ Quick Trading Sysmtem(Qts)是一款支持多账户的量化交易系统。该系
 1. 安装
 * 下载项目代码
 * 安装python环境(略)  
-* 安装依赖包
-```
+* 安装包
+``` bash
+# 安装qts
 pip install -e .
-pip install openctp-ctp==6.7.2.*
+# 安装qts-ctp、qts-rohon
+cd qts-api/ctp/package
+pip install .
+cd qts-api/rohon/package
+pip install .
 ```
 * 打包(可选，供生产使用)
 ```
@@ -61,15 +66,13 @@ python script/run_trader.py --acctId DQ24
 
 ## 参考
 * [zeromq](https://github.com/zeromq/pyzmq)
-* [openctp_python](https://github.com/openctp/openctp-ctp-python)
+* [openctp_python](https://github.com/openctp/openctp/tree/master/ctpapi-python)
 * [ctpbee_api](https://github.com/ctpbee/ctpbee_api/tree/master)
 * [vnpy_ctp](https://github.com/vnpy/vnpy_ctp)
-* [Python-CTPAPI](https://github.com/nicai0609/Python-CTPAPI)
 
 ## 问题汇总
 
 1. 字符集问题
-
 - Linux下安装后，需要安装中文字符集，否则导入时报错：
 
   ```text

@@ -1,10 +1,11 @@
 from datetime import datetime
 from ..base_gateway import BaseGateway
 from .base import *
-#from openctp_ctp.thostmduserapi import *
 
 class CtpMdApi(mdapi.CThostFtdcMdSpi):
-    """"""
+    """
+    CTP行情接口
+    """
 
     def __init__(self, gateway: BaseGateway) -> None:
         """构造函数"""
@@ -12,7 +13,7 @@ class CtpMdApi(mdapi.CThostFtdcMdSpi):
 
         self.gateway: BaseGateway = gateway
         self.acct_conf: AcctConf= gateway.acct_detail.acct_info.conf
-        self.gateway_name: str = gateway.gateway_name
+        self.name: str = gateway.gateway_name
 
         self.reqid: int = 0
 
@@ -24,7 +25,7 @@ class CtpMdApi(mdapi.CThostFtdcMdSpi):
         self.current_date: str = datetime.now().strftime("%Y%m%d")
         self.api: mdapi.CThostFtdcMdApi = None
 
-        log.info(f"初始化行情接口,名称:{gateway.gateway_name}, 地址:{self.address}")
+        log.info(f"初始化行情接口,名称:{self.name}, 地址:{self.address}")
 
     @property
     def md_status(self):
@@ -138,8 +139,8 @@ class CtpMdApi(mdapi.CThostFtdcMdSpi):
         # 禁止重复发起连接，会导致异常崩溃
         if not self.connect_status:
             log.info("开始连接行情服务器...")
-            path = get_data_path(self.gateway_name.lower())
-            flow_path = path + "/md"
+            path = get_data_path(f"tmp/{self.name.lower()}")
+            flow_path = (str(path) + "/md-")
             self.api = mdapi.CThostFtdcMdApi.CreateFtdcMdApi(flow_path)
             self.api.RegisterFront(self.address)
             self.api.RegisterSpi(self)

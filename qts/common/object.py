@@ -36,12 +36,14 @@ class AcctInfo(BaseModel):
     trading_day: str = None
     td_status: bool = False
     md_status: bool = False
+    pre_balance: float = 0
     balance: float = 0
     frozen: float = 0
     margin_rate: float = 0
     available: float = 0
     hold_profit: float = 0
     close_profit: float = 0
+    profit_rate: float = 0
 
     timestamp: str = ""
 
@@ -296,6 +298,7 @@ class AccountData(BaseModel):
     available.
     """
     accountid: str
+    pre_balance: float = 0
     balance: float = 0
     available: float = 0
     frozen: float = 0
@@ -353,5 +356,7 @@ class AcctDetail(BaseModel):
             pos.hold_profit = round(pos.volume*pos.multiple*last_tick.last_price - pos.hold_cost,2) * (1 if pos.direction == PosDirection.LONG else -1)
             sum_profit += pos.hold_profit
         self.acct_info.hold_profit = sum_profit
+        total_profit = self.acct_info.hold_profit + self.acct_info.close_profit
+        self.acct_info.profit_rate = round(total_profit/self.acct_info.balance if self.acct_info.balance > 0 else 0,6)
 
 

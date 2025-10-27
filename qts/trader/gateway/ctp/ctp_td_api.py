@@ -162,7 +162,7 @@ class CtpTdApi(tdapi.CThostFtdcTraderSpi):
             self.position_map.clear()
             self.semaphore.release()
 
-    def OnRspQryTradingAccount(self, pTradingAccount: "CThostFtdcTradingAccountField",
+    def OnRspQryTradingAccount(self, pTradingAccount: tdapi.CThostFtdcTradingAccountField,
                                pRspInfo: "CThostFtdcRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
         """资金查询回报"""
         if pRspInfo is not None and pRspInfo.ErrorID != 0:
@@ -178,8 +178,10 @@ class CtpTdApi(tdapi.CThostFtdcTraderSpi):
         account.margin_rate = round(pTradingAccount.CurrMargin/pTradingAccount.Balance,4)
         account.hold_profit = round(pTradingAccount.PositionProfit,2)
         account.close_profit = round(pTradingAccount.CloseProfit,2)
+        account.pre_balance = round(pTradingAccount.PreBalance,2)
         self.gateway.on_account(account)
-        log.info(f"查询资金成功,可用资金{account.available},持仓资金{account.balance},冻结资金{account.frozen},保证金率{account.margin_rate},持仓盈亏{account.hold_profit},平仓盈亏{account.close_profit}")
+        
+        log.info(f"查询资金成功,静态市值{account.pre_balance},{account.available},持仓资金{account.balance},冻结资金{account.frozen},保证金率{account.margin_rate},持仓盈亏{account.hold_profit},平仓盈亏{account.close_profit}")
         self.semaphore.release()
 
     def OnRspQryProduct(self, pProduct: "CThostFtdcProductField", pRspInfo: "CThostFtdcRspInfoField", nRequestID: "int",
@@ -215,6 +217,7 @@ class CtpTdApi(tdapi.CThostFtdcTraderSpi):
 
         product: ProductType = PRODUCT_CTP2VT.get(pInstrument.ProductClass, None)
         if product:
+            maxMarginSideAlgorithm: int = int(pInstrument.MaxMarginSideAlgorithm) if pInstrument.MaxMarginSideAlgorithm!='' else 0
             contract: ContractData = ContractData(
                 symbol=pInstrument.InstrumentID,
                 exchange=EXCHANGE_CTP2VT[pInstrument.ExchangeID],
@@ -222,7 +225,7 @@ class CtpTdApi(tdapi.CThostFtdcTraderSpi):
                 product=product,
                 multiple=pInstrument.VolumeMultiple,
                 pricetick=pInstrument.PriceTick,
-                maxMarginSideAlgorithm=pInstrument.MaxMarginSideAlgorithm,
+                maxMarginSideAlgorithm=maxMarginSideAlgorithm,
             )
 
             # 期权相关
@@ -373,8 +376,8 @@ class CtpTdApi(tdapi.CThostFtdcTraderSpi):
         """连接服务器"""
         if not self.connect_status:
             log.info("开始连接交易服务器...")
-            path = get_data_path(self.gateway_name.lower())
-            flow_path = (str(path) + "/td")
+            path = get_data_path(f"tmp/{self.gateway_name.lower()}")
+            flow_path = (str(path) + "/td-")
             self.api = tdapi.CThostFtdcTraderApi.CreateFtdcTraderApi(flow_path)
             self.api.RegisterSpi(self)
             self.api.RegisterFront(self.address)

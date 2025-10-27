@@ -22,7 +22,8 @@ dependencies = [
     "qts",
     "uvicorn",
     "pyzmq==26.2.0.*",
-    "loguru"
+    "loguru",
+    "requests"
 ]
 
 [tool.setuptools]

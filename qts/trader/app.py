@@ -1,11 +1,11 @@
 import asyncio
 import os,signal,pickle,datetime
 from qts.common import get_logger,get_config
-from qts.common.object import  ContractData
+from qts.common.object import  ContractData,AcctConf
 from qts.common.dao import conf_dao
 from qts.common.message import MsgType
 from qts.common.event import event_engine,Event
-from qts.common.logger import add_custom_sink,INFO
+from qts.common.logger import INFO,Loggers
 from .trader_inst import TraderInst
 
 log = get_logger(__name__)
@@ -30,8 +30,8 @@ def custon_filter(record):
     return 'qts.trader.gateway' in module_path
 
 async def main(acctId: str = None):
-    add_custom_sink(custom_sink,custon_filter,level=INFO)
-    acct_conf = conf_dao.get_acct_config(acctId)
+    Loggers.add_sink(custom_sink,INFO,custon_filter)
+    acct_conf : AcctConf = conf_dao.get_acct_config(acctId)
     if acct_conf is None or not acct_conf.enable:
         log.error(f"账户 {acctId} 不存在或已禁用")
         return       

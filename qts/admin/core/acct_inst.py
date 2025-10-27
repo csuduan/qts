@@ -124,6 +124,7 @@ class AcctInst(object):
         @topic_handler.register(MsgType.ON_RPC_CONNECTED)
         def on_connect(data):
             self.send_ws_msg("on_acct",json.loads(self.acct_detail.acct_info.json()))
+            log.info(f"on_connect:{self.acct_detail.acct_info}")
 
         @topic_handler.register(MsgType.ON_READY)
         def on_ready(data:AcctDetail):
@@ -131,18 +132,21 @@ class AcctInst(object):
             self.acct_detail.acct_info = data.acct_info
             self.acct_detail.update()
             self.send_ws_msg("on_acct_detail",json.loads(self.acct_detail.json()))
+            log.info(f"on_ready:{self.acct_detail.acct_info}")
 
         @topic_handler.register(MsgType.ON_ACCT_INFO)
         def on_acct_info(data:AcctInfo):
             self.acct_detail.acct_info = data
             self.acct_detail.update()
             self.send_ws_msg("on_acct",json.loads(self.acct_detail.acct_info.json()))
+            log.info(f"on_acct_info:{self.acct_detail.acct_info}")
 
         @topic_handler.register(MsgType.ON_ACCT_DETAIL)
         def on_acct_detail(data:AcctDetail):
             self.acct_detail = data
             self.acct_detail.update()
             self.send_ws_msg("on_acct_detail",json.loads(self.acct_detail.json()))
+            log.info(f"on_acct_detail:{self.acct_detail.acct_info}")
 
         @topic_handler.register(MsgType.ON_TICK)
         def on_tick(data:TickData):

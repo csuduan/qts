@@ -4,24 +4,31 @@ from zoneinfo import ZoneInfo
 import importlib
 from qts.common.constant import *
 from qts.common import get_config,get_logger
+from typing import cast
+
+log = get_logger(__name__)
+
+# def load_library(type:str):
+#     if type == 'ctp':
+#             lib_name = 'ctp_6_7_7' 
+#     elif type == 'rohon':
+#             lib_name = 'rohon' 
+#     else:
+#         raise ValueError(f"Unsupported type: {type}")
+#     data_path = get_config('data_path')
+#     sys.path.insert(0, os.path.join(data_path,'api'))
+#     #if importlib.util.find_spec('ctp'):
+#     library = importlib.import_module(lib_name)
+#     sys.path.pop(0)
+#     return library
 
 def load_library(type:str):
     if type == 'ctp':
-            lib_name = 'ctp_6_7_7' 
+        import qts_ctp as library
     elif type == 'rohon':
-            lib_name = 'rohon' 
+        import qts_rohon as library 
     else:
         raise ValueError(f"Unsupported type: {type}")
-    data_path = get_config('data_path')
-    sys.path.insert(0, os.path.join(data_path,'api'))
-    #if importlib.util.find_spec('ctp'):
-    dev = False
-    if dev:
-        import openctp_ctp 
-        library = openctp_ctp
-    else:
-        library = importlib.import_module(lib_name)
-    sys.path.pop(0)
     return library
 
 api_type = get_config('gateway.type')
@@ -29,7 +36,6 @@ lib = load_library(api_type)
 tdapi = lib.tdapi
 mdapi = lib.mdapi
 
-log = get_logger(__name__)
 
 from qts.common.object import ( 
         AcctConf,
