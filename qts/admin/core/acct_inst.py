@@ -37,28 +37,22 @@ class AcctInst(object):
         self.scheduler.start()
         self._last_push_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
-        event_engine.register(MsgType.ON_RPC_DISCONNECTED,self.on_disconnected)
-        event_engine.register(MsgType.ON_RPC_CONNECTED,self.on_connected)
-
+        event_engine.register(MsgType.ON_RPC_STATUS,self.on_rpc_status_changed)
         
     @property
     def inst_status(self):
         return self.acct_connection and self.acct_connection.is_active()
     
-    def on_connected(self,event:Event):
-        """RPC连接成功"""
+    def on_rpc_status_changed(self,event:Event):
+        """RPC连接状态改变"""
         conn:Connection = event.data
         if conn.id == self.acct_id:
             self.acct_connection = conn
-            self.acct_connection.on_message = self.on_message
-            self.acct_detail.acct_info.status = True
-
-
-    def on_disconnected(self,event:Event):
-        """RPC连接断开"""
-        conn:Connection = event.data
-        if conn.id == self.acct_id:
-            self.acct_detail.acct_info.status = False
+            self.acct_detail.acct_info.status = conn.is_active()
+            if conn.is_active():
+                self.acct_connection.on_message = self.on_message
+            self.send_ws_msg("on_acct",json.loads(self.acct_detail.acct_info.json()))
+            log.info(f"{self.acct_id}连接状态变化为:{conn.is_active()}")
 
     def on_message(self,msg):
         type = msg['type']
@@ -106,8 +100,6 @@ class AcctInst(object):
 
 
     def send_ws_msg(self,type:str,json_msg:Any):
-        #event_engine.put(MsgType.ON_WS,{"type":type,"acct_id":self.acct_id,"data":json_msg})
-        #self.push_callback({"type":type,"acct_id":self.acct_id,"data":json_msg})
         self.ws_mgr.push_msg({"type":type,"acct_id":self.acct_id,"data":json_msg})
 
     def push_task(self):
@@ -121,10 +113,10 @@ class AcctInst(object):
 
     def create_handler(self):
         topic_handler = MsgHandler()
-        @topic_handler.register(MsgType.ON_RPC_CONNECTED)
-        def on_connect(data):
-            self.send_ws_msg("on_acct",json.loads(self.acct_detail.acct_info.json()))
-            log.info(f"on_connect:{self.acct_detail.acct_info}")
+        # @topic_handler.register(MsgType.ON_RPC_CONNECTED)
+        # def on_connect(data):
+        #     self.send_ws_msg("on_acct",json.loads(self.acct_detail.acct_info.json()))
+        #     log.info(f"on_connect:{self.acct_detail.acct_info}")
 
         @topic_handler.register(MsgType.ON_READY)
         def on_ready(data:AcctDetail):

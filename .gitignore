@@ -46,3 +46,5 @@ hs_err*
 __pycache__
 *.egg-info
 
+### linux ###
+*.out

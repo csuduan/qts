@@ -31,7 +31,7 @@ def after_close_job():
             #inst.disconnect()
             #检查账户单日盈亏是否超过阈值0.5%
             profit_rate = inst.get_acct_detail().acct_info.profit_rate
-            profit_rate_limit = 0.001
+            profit_rate_limit = 0.005
             if abs(profit_rate) > profit_rate_limit:
                 send_wechat(f"账户{inst.get_acct_detail().acct_info.name}单日盈亏超过阈值{profit_rate_limit*1000}‰，当前盈亏率{profit_rate*1000}‰")
             pass

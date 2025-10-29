@@ -37,7 +37,7 @@ class Connection:
         try:
             if self.is_active():
                 self.sock.close()
-            event_engine.put(MsgType.ON_RPC_DISCONNECTED,self)
+            event_engine.put(MsgType.ON_RPC_STATUS,self)
         except:
             log.error(f"关闭连接失败")
     
@@ -108,7 +108,7 @@ class TcpServer:
                     pass
                 elif type == MsgType.REGISTER:
                     conn.id = data['id']
-                    event_engine.put(MsgType.ON_RPC_CONNECTED,conn)
+                    event_engine.put(MsgType.ON_RPC_STATUS,conn)
                 else:
                     # 处理消息
                     if conn.on_message:

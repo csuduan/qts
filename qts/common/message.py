@@ -16,6 +16,7 @@ class MsgType(Enum):
 
     ON_RPC_CONNECTED = "on_connected"
     ON_RPC_DISCONNECTED = "on_disconnected"
+    ON_RPC_STATUS = "on_rpc_status"
     ON_READY = "on_ready"
     ON_STATUS = "on_status"
     ON_TICK = "on_tick"

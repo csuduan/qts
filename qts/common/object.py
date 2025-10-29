@@ -357,6 +357,6 @@ class AcctDetail(BaseModel):
             sum_profit += pos.hold_profit
         self.acct_info.hold_profit = sum_profit
         total_profit = self.acct_info.hold_profit + self.acct_info.close_profit
-        self.acct_info.profit_rate = round(total_profit/self.acct_info.balance if self.acct_info.balance > 0 else 0,6)
+        self.acct_info.profit_rate = round(total_profit/self.acct_info.pre_balance if self.acct_info.balance > 0 else 0,6)
 
 
